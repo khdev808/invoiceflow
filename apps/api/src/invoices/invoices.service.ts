@@ -110,6 +110,16 @@ export class InvoicesService {
         throw new ForbiddenException(e.message);
       }
     }
+    const settings = await this.prisma.userSettings.findUnique({ where: { userId } });
+    const templateId = dto.templateId || settings?.templateId || 'modern';
+    if (!['modern', 'minimal'].includes(templateId)) {
+      try {
+        await this.plan.checkFeature(userId, 'premiumTemplates');
+      } catch (e: any) {
+        throw new ForbiddenException(e.message);
+      }
+    }
+
     const docType = (dto.documentType || 'INVOICE') as DocumentType;
     let totals = calcInvoiceTotals(dto.lineItems);
     if (docType === 'CREDIT_NOTE') {
@@ -122,6 +132,13 @@ export class InvoicesService {
     }
     const documentNumber = await this.nextDocNumber(userId, docType === 'CREDIT_NOTE' ? 'INVOICE' : docType);
 
+    const paymentTerms = settings?.defaultPaymentTerms ?? 30;
+    const dueDate = dto.dueDate
+      ? new Date(dto.dueDate)
+      : docType === 'INVOICE' || docType === 'ESTIMATE'
+        ? (() => { const d = new Date(); d.setDate(d.getDate() + paymentTerms); return d; })()
+        : undefined;
+
     const invoice = await this.prisma.invoice.create({
       data: {
         userId,
@@ -129,12 +146,12 @@ export class InvoicesService {
         documentNumber: docType === 'CREDIT_NOTE' ? `CN-${documentNumber}` : documentNumber,
         documentType: docType,
         issueDate: dto.issueDate ? new Date(dto.issueDate) : new Date(),
-        dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+        dueDate,
         currency: dto.currency || 'USD',
         notes: dto.notes,
         terms: dto.terms,
         signature: dto.signature,
-        templateId: dto.templateId || 'modern',
+        templateId,
         recurringRule: dto.recurringRule,
         depositAmount: dto.depositAmount,
         depositPercent: dto.depositPercent,
@@ -160,8 +177,7 @@ export class InvoicesService {
     }
 
     if (dto.recurringRule) {
-      const nextRun = new Date();
-      nextRun.setMonth(nextRun.getMonth() + 1);
+      const nextRun = this.nextRunFromFrequency(dto.recurringRule);
       await this.prisma.recurringSchedule.create({
         data: {
           userId,
@@ -182,6 +198,14 @@ export class InvoicesService {
     const existing = await this.findOne(userId, id);
     if (existing.status === 'PAID') throw new BadRequestException('Cannot edit paid invoice');
 
+    if (dto.templateId && !['modern', 'minimal'].includes(dto.templateId)) {
+      try {
+        await this.plan.checkFeature(userId, 'premiumTemplates');
+      } catch (e: any) {
+        throw new ForbiddenException(e.message);
+      }
+    }
+
     const totals = dto.lineItems ? calcInvoiceTotals(dto.lineItems) : {};
 
     await this.prisma.lineItem.deleteMany({ where: { invoiceId: id } });
@@ -197,6 +221,8 @@ export class InvoicesService {
         ...(dto.terms !== undefined && { terms: dto.terms }),
         ...(dto.signature !== undefined && { signature: dto.signature }),
         ...(dto.templateId && { templateId: dto.templateId }),
+        ...(dto.depositAmount !== undefined && { depositAmount: dto.depositAmount }),
+        ...(dto.depositPercent !== undefined && { depositPercent: dto.depositPercent }),
         ...totals,
         ...(dto.lineItems && {
           lineItems: {
@@ -437,6 +463,24 @@ export class InvoicesService {
         where: { userId, documentType: 'ESTIMATE', status: { in: ['DRAFT', 'SENT'] } },
       }),
     };
+  }
+
+  private nextRunFromFrequency(frequency: string) {
+    const d = new Date();
+    switch (frequency) {
+      case 'weekly':
+        d.setDate(d.getDate() + 7);
+        break;
+      case 'quarterly':
+        d.setMonth(d.getMonth() + 3);
+        break;
+      case 'yearly':
+        d.setFullYear(d.getFullYear() + 1);
+        break;
+      default:
+        d.setMonth(d.getMonth() + 1);
+    }
+    return d;
   }
 
   private async applyCreditToInvoice(userId: string, linkedInvoiceId: string, creditAmount: number) {

@@ -1,15 +1,20 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
-import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Switch } from 'react-native';
+import { useState, useEffect, useMemo } from 'react';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { clientsApi, invoicesApi, productsApi } from '@/lib/api';
 import { queueOfflineOp } from '@/lib/offline';
 import { SignaturePad } from '@/components/SignaturePad';
+import { TemplatePicker } from '@/components/TemplatePicker';
+import { PaywallModal } from '@/components/PaywallModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useI18n } from '@/hooks/useI18n';
 import { useUserCurrency } from '@/hooks/useUserCurrency';
-import { PaywallModal } from '@/components/PaywallModal';
+import { useAuthStore } from '@/stores/auth';
 import { formatCurrency } from '@/lib/format';
+import { previewInvoicePdf } from '@/lib/exportInvoicePdf';
+import { calcLineTotals } from '@/lib/invoiceCalc';
+import { paymentTermOptions, templates } from '@/constants/theme';
 import { radius, spacing } from '@/constants/theme';
 
 interface LineItem {
@@ -25,6 +30,9 @@ export default function CreateInvoiceScreen() {
   const { colors } = useTheme();
   const { t, lang } = useI18n();
   const currency = useUserCurrency();
+  const user = useAuthStore((s) => s.user);
+  const isPro = user?.plan === 'pro' || user?.plan === 'business';
+  const defaultTax = String(user?.settings?.defaultTaxRate ?? 0);
   const docType = type === 'ESTIMATE' ? 'ESTIMATE' : type === 'CREDIT_NOTE' ? 'CREDIT_NOTE' : 'INVOICE';
 
   const [clients, setClients] = useState<any[]>([]);
@@ -33,13 +41,19 @@ export default function CreateInvoiceScreen() {
   const [clientId, setClientId] = useState('');
   const [linkedInvoiceId, setLinkedInvoiceId] = useState('');
   const [notes, setNotes] = useState('');
+  const [terms, setTerms] = useState('');
   const [signature, setSignature] = useState('');
+  const [templateId, setTemplateId] = useState(user?.settings?.templateId || 'modern');
+  const [paymentTermDays, setPaymentTermDays] = useState(user?.settings?.defaultPaymentTerms ?? 30);
+  const [depositMode, setDepositMode] = useState<'percent' | 'flat'>('percent');
   const [depositPercent, setDepositPercent] = useState('');
+  const [depositAmount, setDepositAmount] = useState('');
   const [recurring, setRecurring] = useState('');
+  const [advancedMode, setAdvancedMode] = useState(false);
   const [showSignature, setShowSignature] = useState(false);
   const [paywall, setPaywall] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>([
-    { description: '', quantity: '1', unitPrice: '', taxRate: '0', discount: '0' },
+    { description: '', quantity: '1', unitPrice: '', taxRate: defaultTax, discount: '0' },
   ]);
   const [loading, setLoading] = useState(false);
   const [loadingClients, setLoadingClients] = useState(true);
@@ -70,24 +84,29 @@ export default function CreateInvoiceScreen() {
           description: i.description || '',
           quantity: String(i.quantity ?? 1),
           unitPrice: String(i.unitPrice ?? 0),
-          taxRate: String(i.taxRate ?? 0),
+          taxRate: String(i.taxRate ?? defaultTax),
           discount: String(i.discount ?? 0),
         })));
       }
-    } catch { /* ignore bad payload */ }
-  }, [prefilled]);
+    } catch { /* ignore */ }
+  }, [prefilled, defaultTax]);
+
+  const selectedClient = clients.find((c) => c.id === clientId);
+
+  const totals = useMemo(() => calcLineTotals(lineItems, docType === 'CREDIT_NOTE'), [lineItems, docType]);
 
   const addProductLine = (product: any) => {
     setLineItems([...lineItems, {
       description: product.name,
       quantity: '1',
       unitPrice: String(product.unitPrice),
-      taxRate: String(product.taxRate || 0),
+      taxRate: String(product.taxRate || defaultTax),
       discount: '0',
     }]);
   };
 
-  const addLine = () => setLineItems([...lineItems, { description: '', quantity: '1', unitPrice: '', taxRate: '0', discount: '0' }]);
+  const addLine = () => setLineItems([...lineItems, { description: '', quantity: '1', unitPrice: '', taxRate: defaultTax, discount: '0' }]);
+  const removeLine = (index: number) => setLineItems(lineItems.filter((_, i) => i !== index));
 
   const updateLine = (index: number, field: keyof LineItem, value: string) => {
     const updated = [...lineItems];
@@ -95,14 +114,71 @@ export default function CreateInvoiceScreen() {
     setLineItems(updated);
   };
 
-  const calcTotal = () => {
-    const raw = lineItems.reduce((sum, item) => {
-      const base = parseFloat(item.quantity || '0') * parseFloat(item.unitPrice || '0');
-      const afterDiscount = base - parseFloat(item.discount || '0');
-      const tax = afterDiscount * (parseFloat(item.taxRate || '0') / 100);
-      return sum + afterDiscount + tax;
-    }, 0);
-    return docType === 'CREDIT_NOTE' ? -Math.abs(raw) : raw;
+  const buildDueDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + paymentTermDays);
+    return d.toISOString();
+  };
+
+  const buildPayload = (validItems: LineItem[]) => ({
+    clientId,
+    documentType: docType,
+    currency,
+    dueDate: buildDueDate(),
+    notes,
+    terms: terms || undefined,
+    signature: signature || undefined,
+    templateId,
+    depositPercent: depositMode === 'percent' && depositPercent ? parseFloat(depositPercent) : undefined,
+    depositAmount: depositMode === 'flat' && depositAmount ? parseFloat(depositAmount) : undefined,
+    recurringRule: recurring || undefined,
+    linkedInvoiceId: linkedInvoiceId || undefined,
+    lineItems: validItems.map((i) => ({
+      description: i.description,
+      quantity: parseFloat(i.quantity),
+      unitPrice: parseFloat(i.unitPrice),
+      taxRate: parseFloat(i.taxRate),
+      discount: parseFloat(i.discount),
+    })),
+  });
+
+  const buildPreviewInvoice = (validItems: LineItem[]) => ({
+    documentType: docType,
+    documentNumber: 'PREVIEW',
+    issueDate: new Date(),
+    dueDate: buildDueDate(),
+    ...totals,
+    currency,
+    notes,
+    terms,
+    templateId,
+    signature,
+    depositPercent: depositMode === 'percent' && depositPercent ? parseFloat(depositPercent) : null,
+    depositAmount: depositMode === 'flat' && depositAmount ? parseFloat(depositAmount) : null,
+    client: selectedClient || { name: 'Client' },
+    lineItems: validItems.map((i) => {
+      const qty = parseFloat(i.quantity || '0');
+      const price = parseFloat(i.unitPrice || '0');
+      const disc = parseFloat(i.discount || '0');
+      const tax = parseFloat(i.taxRate || '0');
+      const base = qty * price - disc;
+      const total = base + base * (tax / 100);
+      return { description: i.description, quantity: qty, unitPrice: price, taxRate: tax, discount: disc, total };
+    }),
+    user,
+  });
+
+  const handlePreviewPdf = async () => {
+    const validItems = lineItems.filter((i) => i.description && i.unitPrice);
+    if (validItems.length === 0) {
+      Alert.alert(t('error'), t('addLineItemRequired'));
+      return;
+    }
+    try {
+      await previewInvoicePdf(buildPreviewInvoice(validItems) as any);
+    } catch {
+      Alert.alert(t('error'), t('failed'));
+    }
   };
 
   const handleSave = async (send = false) => {
@@ -111,28 +187,8 @@ export default function CreateInvoiceScreen() {
     if (validItems.length === 0) { Alert.alert(t('error'), t('addLineItemRequired')); return; }
 
     setLoading(true);
+    const payload = buildPayload(validItems);
     try {
-      const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 30);
-
-      const payload = {
-        clientId,
-        documentType: docType,
-        dueDate: dueDate.toISOString(),
-        notes,
-        signature: signature || undefined,
-        depositPercent: depositPercent ? parseFloat(depositPercent) : undefined,
-        recurringRule: recurring || undefined,
-        linkedInvoiceId: linkedInvoiceId || undefined,
-        lineItems: validItems.map((i) => ({
-          description: i.description,
-          quantity: parseFloat(i.quantity),
-          unitPrice: parseFloat(i.unitPrice),
-          taxRate: parseFloat(i.taxRate),
-          discount: parseFloat(i.discount),
-        })),
-      };
-
       let invoiceId: string;
       try {
         const { data } = await invoicesApi.create(payload);
@@ -150,7 +206,6 @@ export default function CreateInvoiceScreen() {
         }
         throw e;
       }
-
       if (send) await invoicesApi.send(invoiceId);
       router.replace(`/invoice/${invoiceId}`);
     } catch (e: any) {
@@ -163,22 +218,24 @@ export default function CreateInvoiceScreen() {
   if (loadingClients) return <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />;
 
   const styles = makeStyles(colors);
-
   const screenTitle = docType === 'ESTIMATE' ? t('newEstimate') : docType === 'CREDIT_NOTE' ? t('newCreditNote') : t('newInvoice');
+  const tplName = templates.find((x) => x.id === templateId)?.name;
 
   return (
     <>
       <Stack.Screen options={{ title: screenTitle }} />
-      <PaywallModal visible={paywall} onClose={() => setPaywall(false)} reason="limit" />
+      <PaywallModal visible={paywall} onClose={() => setPaywall(false)} reason="general" />
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+        <View style={styles.modeRow}>
+          <Text style={[styles.modeLabel, { color: colors.text }]}>{t('simpleMode')}</Text>
+          <Switch value={advancedMode} onValueChange={setAdvancedMode} trackColor={{ true: colors.primary }} />
+          <Text style={[styles.modeLabel, { color: colors.text }]}>{t('advancedMode')}</Text>
+        </View>
+
         <Text style={styles.label}>{t('client')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clientList}>
           {clients.map((c) => (
-            <TouchableOpacity
-              key={c.id}
-              style={[styles.clientChip, clientId === c.id && styles.clientChipActive]}
-              onPress={() => setClientId(c.id)}
-            >
+            <TouchableOpacity key={c.id} style={[styles.clientChip, clientId === c.id && styles.clientChipActive]} onPress={() => setClientId(c.id)}>
               <Text style={[styles.clientChipText, clientId === c.id && styles.clientChipTextActive]}>{c.name}</Text>
             </TouchableOpacity>
           ))}
@@ -187,25 +244,23 @@ export default function CreateInvoiceScreen() {
           </TouchableOpacity>
         </ScrollView>
 
+        <TemplatePicker
+          selected={templateId}
+          onSelect={setTemplateId}
+          onPremiumRequired={() => setPaywall(true)}
+          isPro={isPro}
+        />
+
         {docType === 'CREDIT_NOTE' && invoices.length > 0 && (
           <>
             <Text style={styles.label}>{t('linkToInvoice')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clientList}>
-              <TouchableOpacity
-                style={[styles.clientChip, !linkedInvoiceId && styles.clientChipActive]}
-                onPress={() => setLinkedInvoiceId('')}
-              >
+              <TouchableOpacity style={[styles.clientChip, !linkedInvoiceId && styles.clientChipActive]} onPress={() => setLinkedInvoiceId('')}>
                 <Text style={[styles.clientChipText, !linkedInvoiceId && styles.clientChipTextActive]}>—</Text>
               </TouchableOpacity>
               {invoices.map((inv) => (
-                <TouchableOpacity
-                  key={inv.id}
-                  style={[styles.clientChip, linkedInvoiceId === inv.id && styles.clientChipActive]}
-                  onPress={() => setLinkedInvoiceId(inv.id)}
-                >
-                  <Text style={[styles.clientChipText, linkedInvoiceId === inv.id && styles.clientChipTextActive]}>
-                    {inv.documentNumber}
-                  </Text>
+                <TouchableOpacity key={inv.id} style={[styles.clientChip, linkedInvoiceId === inv.id && styles.clientChipActive]} onPress={() => setLinkedInvoiceId(inv.id)}>
+                  <Text style={[styles.clientChipText, linkedInvoiceId === inv.id && styles.clientChipTextActive]}>{inv.documentNumber}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -219,7 +274,7 @@ export default function CreateInvoiceScreen() {
               {products.slice(0, 8).map((p) => (
                 <TouchableOpacity key={p.id} style={styles.productChip} onPress={() => addProductLine(p)}>
                   <Text style={styles.productChipText}>{p.name}</Text>
-                  <Text style={styles.productPrice}>${p.unitPrice}</Text>
+                  <Text style={styles.productPrice}>{formatCurrency(p.unitPrice, currency, lang)}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -229,30 +284,24 @@ export default function CreateInvoiceScreen() {
         <Text style={styles.sectionTitle}>{t('lineItems')}</Text>
         {lineItems.map((item, index) => (
           <View key={index} style={styles.lineCard}>
-            <TextInput
-              style={styles.input}
-              placeholder={t('description')}
-              placeholderTextColor={colors.textMuted}
-              value={item.description}
-              onChangeText={(v) => updateLine(index, 'description', v)}
-            />
+            <View style={styles.lineHeader}>
+              <Text style={[styles.lineNum, { color: colors.textMuted }]}>#{index + 1}</Text>
+              {lineItems.length > 1 && (
+                <TouchableOpacity onPress={() => removeLine(index)}>
+                  <Text style={{ color: colors.danger, fontSize: 13, fontWeight: '600' }}>{t('removeLine')}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TextInput style={styles.input} placeholder={t('description')} placeholderTextColor={colors.textMuted} value={item.description} onChangeText={(v) => updateLine(index, 'description', v)} />
             <View style={styles.lineRow}>
-              <View style={styles.lineField}>
-                <Text style={styles.fieldLabel}>{t('qty')}</Text>
-                <TextInput style={styles.smallInput} value={item.quantity} onChangeText={(v) => updateLine(index, 'quantity', v)} keyboardType="decimal-pad" />
-              </View>
-              <View style={styles.lineField}>
-                <Text style={styles.fieldLabel}>{t('price')}</Text>
-                <TextInput style={styles.smallInput} value={item.unitPrice} onChangeText={(v) => updateLine(index, 'unitPrice', v)} keyboardType="decimal-pad" placeholder="0.00" />
-              </View>
-              <View style={styles.lineField}>
-                <Text style={styles.fieldLabel}>{t('tax')}</Text>
-                <TextInput style={styles.smallInput} value={item.taxRate} onChangeText={(v) => updateLine(index, 'taxRate', v)} keyboardType="decimal-pad" />
-              </View>
-              <View style={styles.lineField}>
-                <Text style={styles.fieldLabel}>{t('discount')}</Text>
-                <TextInput style={styles.smallInput} value={item.discount} onChangeText={(v) => updateLine(index, 'discount', v)} keyboardType="decimal-pad" />
-              </View>
+              <View style={styles.lineField}><Text style={styles.fieldLabel}>{t('qty')}</Text><TextInput style={styles.smallInput} value={item.quantity} onChangeText={(v) => updateLine(index, 'quantity', v)} keyboardType="decimal-pad" /></View>
+              <View style={styles.lineField}><Text style={styles.fieldLabel}>{t('price')}</Text><TextInput style={styles.smallInput} value={item.unitPrice} onChangeText={(v) => updateLine(index, 'unitPrice', v)} keyboardType="decimal-pad" placeholder="0.00" /></View>
+              {advancedMode && (
+                <>
+                  <View style={styles.lineField}><Text style={styles.fieldLabel}>{t('tax')}</Text><TextInput style={styles.smallInput} value={item.taxRate} onChangeText={(v) => updateLine(index, 'taxRate', v)} keyboardType="decimal-pad" /></View>
+                  <View style={styles.lineField}><Text style={styles.fieldLabel}>{t('discount')}</Text><TextInput style={styles.smallInput} value={item.discount} onChangeText={(v) => updateLine(index, 'discount', v)} keyboardType="decimal-pad" /></View>
+                </>
+              )}
             </View>
           </View>
         ))}
@@ -262,39 +311,75 @@ export default function CreateInvoiceScreen() {
           <Text style={styles.addLineText}>{t('addLineItem')}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.label}>{t('depositRequest')}</Text>
-        <TextInput style={styles.input} value={depositPercent} onChangeText={setDepositPercent} keyboardType="decimal-pad" placeholder={t('depositPlaceholder')} placeholderTextColor={colors.textMuted} />
-
-        {docType === 'INVOICE' && (
+        {advancedMode && (
           <>
-            <Text style={styles.label}>{t('recurringSchedule')}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }}>
-              {['', 'weekly', 'monthly', 'quarterly', 'yearly'].map((f) => (
-                <TouchableOpacity key={f || 'none'} style={[styles.freqChip, recurring === f && styles.freqActive]} onPress={() => setRecurring(f)}>
-                  <Text style={[styles.freqText, recurring === f && styles.freqTextActive]}>
-                    {f === '' ? t('oneTime') : t(f as 'weekly' | 'monthly' | 'quarterly' | 'yearly')}
-                  </Text>
+            <Text style={styles.label}>{t('paymentTerms')}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.md }}>
+              {paymentTermOptions.map((opt) => (
+                <TouchableOpacity key={opt.days} style={[styles.freqChip, paymentTermDays === opt.days && styles.freqActive]} onPress={() => setPaymentTermDays(opt.days)}>
+                  <Text style={[styles.freqText, paymentTermDays === opt.days && styles.freqTextActive]}>{opt.label}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
+
+            <Text style={styles.label}>{t('depositRequest')}</Text>
+            <View style={styles.depositModeRow}>
+              <TouchableOpacity style={[styles.freqChip, depositMode === 'percent' && styles.freqActive]} onPress={() => setDepositMode('percent')}>
+                <Text style={[styles.freqText, depositMode === 'percent' && styles.freqTextActive]}>{t('percentDeposit')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.freqChip, depositMode === 'flat' && styles.freqActive]} onPress={() => setDepositMode('flat')}>
+                <Text style={[styles.freqText, depositMode === 'flat' && styles.freqTextActive]}>{t('flatDeposit')}</Text>
+              </TouchableOpacity>
+            </View>
+            {depositMode === 'percent' ? (
+              <TextInput style={styles.input} value={depositPercent} onChangeText={setDepositPercent} keyboardType="decimal-pad" placeholder={t('depositPlaceholder')} placeholderTextColor={colors.textMuted} />
+            ) : (
+              <TextInput style={styles.input} value={depositAmount} onChangeText={setDepositAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.textMuted} />
+            )}
+
+            {docType === 'INVOICE' && (
+              <>
+                <Text style={styles.label}>{t('recurringSchedule')}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }}>
+                  {['', 'weekly', 'monthly', 'quarterly', 'yearly'].map((f) => (
+                    <TouchableOpacity key={f || 'none'} style={[styles.freqChip, recurring === f && styles.freqActive]} onPress={() => setRecurring(f)}>
+                      <Text style={[styles.freqText, recurring === f && styles.freqTextActive]}>{f === '' ? t('oneTime') : t(f as 'weekly' | 'monthly' | 'quarterly' | 'yearly')}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            )}
+
+            <TouchableOpacity style={styles.sigToggle} onPress={() => setShowSignature(!showSignature)}>
+              <Ionicons name="create-outline" size={20} color={colors.primary} />
+              <Text style={styles.sigToggleText}>{signature ? t('signatureAdded') : t('addSignature')}</Text>
+            </TouchableOpacity>
+            {showSignature && <SignaturePad onSave={(s) => { setSignature(s); setShowSignature(false); }} />}
+
+            <Text style={styles.label}>{t('termsLabel')}</Text>
+            <TextInput style={[styles.input, styles.notes]} value={terms} onChangeText={setTerms} multiline placeholder="Net 30. Late payments subject to 5% fee." placeholderTextColor={colors.textMuted} />
           </>
         )}
-
-        <TouchableOpacity style={styles.sigToggle} onPress={() => setShowSignature(!showSignature)}>
-          <Ionicons name="create-outline" size={20} color={colors.primary} />
-          <Text style={styles.sigToggleText}>{signature ? t('signatureAdded') : t('addSignature')}</Text>
-        </TouchableOpacity>
-        {showSignature && <SignaturePad onSave={(s) => { setSignature(s); setShowSignature(false); }} />}
 
         <Text style={styles.label}>{t('notes')}</Text>
         <TextInput style={[styles.input, styles.notes]} value={notes} onChangeText={setNotes} multiline placeholder={t('notesPlaceholder')} placeholderTextColor={colors.textMuted} />
 
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>{t('total')}</Text>
-          <Text style={[styles.totalValue, docType === 'CREDIT_NOTE' && { color: colors.danger }]}>
-            {formatCurrency(calcTotal(), currency, lang)}
-          </Text>
+        <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          {advancedMode && totals.discountTotal > 0 && <View style={styles.summaryRow}><Text style={{ color: colors.textSecondary }}>Discount</Text><Text>{formatCurrency(totals.discountTotal, currency, lang)}</Text></View>}
+          {advancedMode && totals.taxTotal > 0 && <View style={styles.summaryRow}><Text style={{ color: colors.textSecondary }}>Tax</Text><Text>{formatCurrency(totals.taxTotal, currency, lang)}</Text></View>}
+          <View style={styles.totalRow}>
+            <View>
+              <Text style={styles.totalLabel}>{t('total')}</Text>
+              {tplName && <Text style={{ fontSize: 12, color: colors.textMuted }}>{tplName} theme</Text>}
+            </View>
+            <Text style={[styles.totalValue, docType === 'CREDIT_NOTE' && { color: colors.danger }]}>{formatCurrency(totals.total, currency, lang)}</Text>
+          </View>
         </View>
+
+        <TouchableOpacity style={[styles.previewBtn, { borderColor: colors.primary }]} onPress={handlePreviewPdf}>
+          <Ionicons name="document-outline" size={20} color={colors.primary} />
+          <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('previewPdf')}</Text>
+        </TouchableOpacity>
 
         <View style={styles.actions}>
           <TouchableOpacity style={styles.saveBtn} onPress={() => handleSave(false)} disabled={loading}>
@@ -311,6 +396,8 @@ export default function CreateInvoiceScreen() {
 
 const makeStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
+  modeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, marginBottom: spacing.md },
+  modeLabel: { fontSize: 13, fontWeight: '600' },
   label: { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginTop: spacing.md, marginBottom: spacing.sm },
   clientList: { marginBottom: spacing.md },
@@ -320,6 +407,8 @@ const makeStyles = (colors: any) => StyleSheet.create({
   clientChipTextActive: { color: '#fff' },
   addClientChip: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: colors.primary, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
   lineCard: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border },
+  lineHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs },
+  lineNum: { fontSize: 12, fontWeight: '700' },
   input: { backgroundColor: colors.surfaceAlt, borderRadius: radius.sm, padding: spacing.sm, fontSize: 15, color: colors.text, marginBottom: spacing.sm },
   lineRow: { flexDirection: 'row', gap: spacing.sm },
   lineField: { flex: 1 },
@@ -328,10 +417,13 @@ const makeStyles = (colors: any) => StyleSheet.create({
   addLineBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
   addLineText: { color: colors.primary, fontWeight: '600' },
   notes: { minHeight: 80, textAlignVertical: 'top' },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.md },
+  summaryCard: { borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, marginTop: spacing.md },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.sm },
   totalLabel: { fontSize: 18, fontWeight: '700', color: colors.text },
   totalValue: { fontSize: 28, fontWeight: '800', color: colors.primary },
-  actions: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xxl },
+  previewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, marginTop: spacing.md },
+  actions: { flexDirection: 'row', gap: spacing.sm, marginVertical: spacing.lg, marginBottom: spacing.xxl },
   saveBtn: { flex: 1, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.primary, alignItems: 'center' },
   saveBtnText: { color: colors.primary, fontWeight: '700', fontSize: 16 },
   sendBtn: { flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center' },
@@ -343,6 +435,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
   freqActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   freqText: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
   freqTextActive: { color: '#fff' },
+  depositModeRow: { flexDirection: 'row', marginBottom: spacing.sm },
   sigToggle: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
   sigToggleText: { color: colors.primary, fontWeight: '600' },
 });

@@ -8,6 +8,10 @@ interface User {
   name: string;
   businessName?: string;
   businessLogo?: string;
+  businessPhone?: string;
+  businessEmail?: string;
+  businessAddress?: string;
+  taxId?: string;
   currency?: string;
   language?: string;
   plan?: string;

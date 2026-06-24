@@ -58,7 +58,7 @@ export default function RecurringScreen() {
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rule}>{item.rule}</Text>
+              <Text style={styles.rule}>{item.frequency}</Text>
               <Text style={styles.meta}>Next: {new Date(item.nextRunAt).toLocaleDateString()}</Text>
             </View>
             <Switch value={item.active} onValueChange={(v) => toggle(item.id, v)} />

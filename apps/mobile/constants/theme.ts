@@ -128,12 +128,24 @@ export const shadows = {
 };
 
 export const templates = [
-  { id: 'modern', name: 'Modern', color: '#4F46E5' },
-  { id: 'classic', name: 'Classic', color: '#1E293B' },
-  { id: 'minimal', name: 'Minimal', color: '#64748B' },
-  { id: 'bold', name: 'Bold', color: '#7C3AED' },
-  { id: 'professional', name: 'Professional', color: '#0F766E' },
-  { id: 'creative', name: 'Creative', color: '#DB2777' },
+  { id: 'modern', name: 'Modern', color: '#4F46E5', accentColor: '#6366F1', layout: 'modern', description: 'Clean indigo header — great for tech & creative', premium: false },
+  { id: 'minimal', name: 'Minimal', color: '#64748B', accentColor: '#94A3B8', layout: 'minimal', description: 'Light and airy — lets your line items shine', premium: false },
+  { id: 'classic', name: 'Classic', color: '#1E293B', accentColor: '#475569', layout: 'classic', description: 'Traditional serif look for established businesses', premium: true },
+  { id: 'bold', name: 'Bold', color: '#7C3AED', accentColor: '#A78BFA', layout: 'bold', description: 'Big typography that commands attention', premium: true },
+  { id: 'professional', name: 'Professional', color: '#0F766E', accentColor: '#14B8A6', layout: 'professional', description: 'Teal accent stripe — perfect for trades & consulting', premium: true },
+  { id: 'creative', name: 'Creative', color: '#DB2777', accentColor: '#F472B6', layout: 'creative', description: 'Gradient header with soft pink tones', premium: true },
+] as const;
+
+export type InvoiceTemplate = (typeof templates)[number];
+
+export const FREE_TEMPLATE_IDS = new Set<string>(templates.filter((t) => !t.premium).map((t) => t.id));
+
+export const paymentTermOptions = [
+  { days: 0, label: 'Due on receipt' },
+  { days: 7, label: 'Net 7' },
+  { days: 14, label: 'Net 14' },
+  { days: 30, label: 'Net 30' },
+  { days: 60, label: 'Net 60' },
 ];
 
 export const currencies = [
