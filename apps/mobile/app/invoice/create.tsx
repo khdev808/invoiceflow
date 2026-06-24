@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { clientsApi, invoicesApi, productsApi } from '@/lib/api';
+import { queueOfflineOp } from '@/lib/offline';
 import { SignaturePad } from '@/components/SignaturePad';
 import { colors, radius, spacing } from '@/constants/theme';
 
@@ -77,7 +78,7 @@ export default function CreateInvoiceScreen() {
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 30);
 
-      const { data } = await invoicesApi.create({
+      const payload = {
         clientId,
         documentType: docType,
         dueDate: dueDate.toISOString(),
@@ -92,10 +93,24 @@ export default function CreateInvoiceScreen() {
           taxRate: parseFloat(i.taxRate),
           discount: parseFloat(i.discount),
         })),
-      });
+      };
 
-      if (send) await invoicesApi.send(data.id);
-      router.replace(`/invoice/${data.id}`);
+      let invoiceId: string;
+      try {
+        const { data } = await invoicesApi.create(payload);
+        invoiceId = data.id;
+      } catch (e: any) {
+        if (!e.response) {
+          await queueOfflineOp({ method: 'POST', url: '/invoices', body: payload });
+          Alert.alert('Saved Offline', 'Invoice will sync when you are back online.');
+          router.back();
+          return;
+        }
+        throw e;
+      }
+
+      if (send) await invoicesApi.send(invoiceId);
+      router.replace(`/invoice/${invoiceId}`);
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Failed to create invoice');
     } finally {

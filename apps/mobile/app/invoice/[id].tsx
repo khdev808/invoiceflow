@@ -1,20 +1,26 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Share, Linking } from 'react-native';
 import { useState, useCallback } from 'react';
-import { useLocalSearchParams, useFocusEffect, Stack } from 'expo-router';
+import { useLocalSearchParams, useFocusEffect, Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { invoicesApi, paymentsApi, PORTAL_BASE } from '@/lib/api';
 import { shareInvoice } from '@/lib/share';
-import { colors, radius, spacing, shadows } from '@/constants/theme';
-
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: colors.textMuted, SENT: colors.primary, VIEWED: colors.warning, PAID: colors.accent, OVERDUE: colors.danger,
-};
+import { buildInvoicePdfHtml } from '@/lib/invoicePdf';
+import { PaymentQRCode } from '@/components/PaymentQRCode';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useI18n } from '@/hooks/useI18n';
+import { radius, spacing, shadows } from '@/constants/theme';
 
 export default function InvoiceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { colors } = useTheme();
+  const { t } = useI18n();
+  const STATUS_COLORS: Record<string, string> = {
+    DRAFT: colors.textMuted, SENT: colors.primary, VIEWED: colors.warning, PAID: colors.accent, OVERDUE: colors.danger,
+  };
   const [invoice, setInvoice] = useState<any>(null);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -61,9 +67,25 @@ export default function InvoiceDetailScreen() {
     setActionLoading(true);
     try {
       const { data } = await paymentsApi.createLink(id);
-      await Share.share({ message: `Pay invoice ${invoice.documentNumber}: ${data.url}`, url: data.url });
+      setPaymentUrl(data.url || data.qrData);
+      if (data.url) {
+        await Share.share({ message: `Pay invoice ${invoice.documentNumber}: ${data.url}`, url: data.url });
+      }
     } catch {
       Alert.alert('Error', 'Failed to create payment link');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePayPal = async () => {
+    setActionLoading(true);
+    try {
+      const { data } = await paymentsApi.publicPayPal(id);
+      if (data.url) await Linking.openURL(data.url);
+      else Alert.alert('Paid', 'Invoice is already paid.');
+    } catch {
+      Alert.alert('Error', 'PayPal link unavailable');
     } finally {
       setActionLoading(false);
     }
@@ -90,17 +112,7 @@ export default function InvoiceDetailScreen() {
 
   const handleSharePDF = async () => {
     if (!invoice) return;
-    const html = `
-      <html><body style="font-family:sans-serif;padding:40px">
-        <h1>${invoice.documentType} ${invoice.documentNumber}</h1>
-        <p><strong>Bill To:</strong> ${invoice.client.name}</p>
-        <p><strong>Date:</strong> ${new Date(invoice.issueDate).toLocaleDateString()}</p>
-        <table style="width:100%;border-collapse:collapse;margin-top:20px">
-          <tr style="background:#f1f5f9"><th style="padding:8px;text-align:left">Description</th><th>Qty</th><th>Price</th><th>Total</th></tr>
-          ${invoice.lineItems.map((i: any) => `<tr><td style="padding:8px;border-bottom:1px solid #e2e8f0">${i.description}</td><td style="text-align:center">${i.quantity}</td><td style="text-align:right">$${i.unitPrice}</td><td style="text-align:right">$${i.total}</td></tr>`).join('')}
-        </table>
-        <p style="text-align:right;margin-top:20px;font-size:24px"><strong>Total: $${invoice.total.toFixed(2)}</strong></p>
-      </body></html>`;
+    const html = buildInvoicePdfHtml(invoice);
     const { uri } = await Print.printToFileAsync({ html });
     await Sharing.shareAsync(uri);
   };
@@ -108,7 +120,10 @@ export default function InvoiceDetailScreen() {
   const handleMarkPaid = async () => {
     setActionLoading(true);
     try {
-      await invoicesApi.recordPayment(id, { amount: invoice.total, method: 'CASH' });
+      const depositDue = invoice.depositPercent && !invoice.depositPaid
+        ? invoice.total * invoice.depositPercent / 100
+        : invoice.total;
+      await invoicesApi.recordPayment(id, { amount: depositDue, method: 'CASH' });
       load();
     } catch {
       Alert.alert('Error', 'Failed to record payment');
@@ -118,7 +133,9 @@ export default function InvoiceDetailScreen() {
   };
 
   if (loading) return <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />;
-  if (!invoice) return <Text style={{ textAlign: 'center', marginTop: 40 }}>Invoice not found</Text>;
+  if (!invoice) return <Text style={{ textAlign: 'center', marginTop: 40, color: colors.text }}>Invoice not found</Text>;
+
+  const styles = makeStyles(colors);
 
   return (
     <>
@@ -155,7 +172,7 @@ export default function InvoiceDetailScreen() {
             <View style={styles.totalRow}><Text>Subtotal</Text><Text>${invoice.subtotal.toFixed(2)}</Text></View>
             {invoice.discountTotal > 0 && <View style={styles.totalRow}><Text>Discount</Text><Text>-${invoice.discountTotal.toFixed(2)}</Text></View>}
             {invoice.taxTotal > 0 && <View style={styles.totalRow}><Text>Tax</Text><Text>${invoice.taxTotal.toFixed(2)}</Text></View>}
-            {invoice.depositPercent > 0 && <View style={styles.totalRow}><Text>Deposit Required ({invoice.depositPercent}%)</Text><Text>${(invoice.total * invoice.depositPercent / 100).toFixed(2)}</Text></View>}
+            {invoice.depositPercent > 0 && <View style={styles.totalRow}><Text>Deposit Required ({invoice.depositPercent}%)</Text><Text>${(invoice.total * invoice.depositPercent / 100).toFixed(2)}{invoice.depositPaid ? ` (${t('depositPaid')})` : ''}</Text></View>}
             {invoice.lateFeeAmount > 0 && <View style={styles.totalRow}><Text style={{ color: colors.danger }}>Late Fee</Text><Text style={{ color: colors.danger }}>${invoice.lateFeeAmount.toFixed(2)}</Text></View>}
             <View style={[styles.totalRow, styles.grandTotal]}><Text style={styles.grandLabel}>Total</Text><Text style={styles.grandValue}>${invoice.total.toFixed(2)}</Text></View>
           </View>
@@ -173,12 +190,24 @@ export default function InvoiceDetailScreen() {
           </View>
         )}
 
+        {paymentUrl && invoice.status !== 'PAID' && (
+          <View style={styles.card}>
+            <PaymentQRCode value={paymentUrl} label={t('scanToPay')} />
+          </View>
+        )}
+
         <View style={styles.actions}>
           {invoice.status === 'DRAFT' && (
-            <TouchableOpacity style={styles.primaryBtn} onPress={handleSend} disabled={actionLoading}>
+            <>
+              <TouchableOpacity style={styles.secondaryBtn} onPress={() => router.push(`/invoice/edit/${id}`)}>
+                <Ionicons name="create-outline" size={20} color={colors.primary} />
+                <Text style={styles.secondaryBtnText}>{t('editInvoice')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.primaryBtn} onPress={handleSend} disabled={actionLoading}>
               <Ionicons name="send" size={20} color="#fff" />
               <Text style={styles.primaryBtnText}>Send Invoice</Text>
             </TouchableOpacity>
+            </>
           )}
           {invoice.documentType === 'ESTIMATE' && invoice.status !== 'PAID' && (
             <TouchableOpacity style={styles.primaryBtn} onPress={handleConvert} disabled={actionLoading}>
@@ -191,6 +220,10 @@ export default function InvoiceDetailScreen() {
               <TouchableOpacity style={styles.secondaryBtn} onPress={handlePaymentLink} disabled={actionLoading}>
                 <Ionicons name="link" size={20} color={colors.primary} />
                 <Text style={styles.secondaryBtnText}>Payment Link</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.secondaryBtn} onPress={handlePayPal} disabled={actionLoading}>
+                <Ionicons name="logo-paypal" size={20} color="#0070BA" />
+                <Text style={[styles.secondaryBtnText, { color: '#0070BA' }]}>{t('payWithPayPal')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.secondaryBtn} onPress={handleMarkPaid} disabled={actionLoading}>
                 <Ionicons name="checkmark-circle" size={20} color={colors.accent} />
@@ -216,7 +249,7 @@ export default function InvoiceDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: typeof import('@/constants/theme').colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: spacing.lg },
   docType: { fontSize: 12, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase' },

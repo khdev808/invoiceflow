@@ -6,12 +6,18 @@ const translations: Record<string, Record<string, string>> = {
     createInvoice: 'Create Invoice', revenue: 'Revenue', outstanding: 'Outstanding',
     overdue: 'Overdue', expenses: 'Expenses', save: 'Save', send: 'Send',
     signIn: 'Sign In', signUp: 'Sign Up', settings: 'Settings',
+    recurring: 'Recurring Invoices', plan: 'Plan & Usage', integrations: 'Integrations',
+    editInvoice: 'Edit Invoice', payWithPayPal: 'Pay with PayPal', scanToPay: 'Scan to Pay',
+    depositPaid: 'Deposit Paid', freePlan: 'Free Plan', webhookUrl: 'Webhook URL',
   },
   es: {
     home: 'Inicio', invoices: 'Facturas', clients: 'Clientes', more: 'Más',
     createInvoice: 'Crear Factura', revenue: 'Ingresos', outstanding: 'Pendiente',
     overdue: 'Vencido', expenses: 'Gastos', save: 'Guardar', send: 'Enviar',
     signIn: 'Iniciar Sesión', signUp: 'Registrarse', settings: 'Ajustes',
+    recurring: 'Facturas Recurrentes', plan: 'Plan y Uso', integrations: 'Integraciones',
+    editInvoice: 'Editar Factura', payWithPayPal: 'Pagar con PayPal', scanToPay: 'Escanear para Pagar',
+    depositPaid: 'Depósito Pagado', freePlan: 'Plan Gratis', webhookUrl: 'URL Webhook',
   },
   fr: {
     home: 'Accueil', invoices: 'Factures', clients: 'Clients', more: 'Plus',

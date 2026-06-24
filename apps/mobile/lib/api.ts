@@ -95,11 +95,24 @@ export const notificationsApi = {
 export const usersApi = {
   updateProfile: (data: any) => api.put('/users/profile', data),
   updateSettings: (data: any) => api.put('/users/settings', data),
+  updatePushToken: (token: string) => api.put('/users/push-token', { token }),
 };
 
 // Payments
 export const paymentsApi = {
   createLink: (invoiceId: string) => api.post(`/payments/link/${invoiceId}`),
+  publicLink: (invoiceId: string) => api.get(`/payments/public/link/${invoiceId}`),
+  publicPayPal: (invoiceId: string) => api.get(`/payments/public/paypal/${invoiceId}`),
+};
+
+// Plan
+export const planApi = {
+  usage: () => api.get('/plan/usage'),
+};
+
+// Integrations
+export const integrationsApi = {
+  setWebhook: (url: string) => api.put('/integrations/webhook', { url }),
 };
 
 // Products
@@ -126,6 +139,8 @@ export const ocrApi = {
 // Recurring
 export const recurringApi = {
   list: () => api.get('/invoices/recurring/list'),
+  toggle: (id: string, active: boolean) => api.patch(`/invoices/recurring/${id}/toggle`, { active }),
+  delete: (id: string) => api.delete(`/invoices/recurring/${id}`),
 };
 
 export const PORTAL_BASE = 'http://localhost:3000/portal';
