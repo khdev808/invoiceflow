@@ -1,0 +1,205 @@
+/** Landing page — English source of truth */
+export const en = {
+  // Nav
+  navWhy: 'Why us',
+  navCompare: 'Compare',
+  navFeatures: 'Features',
+  navPricing: 'Pricing',
+  navGetStarted: 'Get started free',
+  language: 'Language',
+
+  // Hero
+  heroBadge: "The invoice app that doesn't nickel-and-dime you",
+  heroTitle1: 'Invoice Fly speed.',
+  heroTitle2: 'FreshBooks features.',
+  heroTitle3: "Wave's price.",
+  heroDesc1:
+    'InvoiceFlow is the mobile-first invoicing app for freelancers, contractors, and solo trades who are tired of $40/week subscriptions, slow desktop software, and apps that charge extra for time tracking, mileage, and reminders.',
+  heroDesc2:
+    'Send a professional invoice in under 30 seconds. Get paid via Stripe, PayPal, or your client portal. Automate reminders and late fees. Works offline.',
+  ctaStartFree: 'Start free — 25 invoices/month',
+  ctaCompare: 'See how we beat the big names',
+
+  // Stats
+  stat1Label: 'vs Invoice Fly',
+  stat1Value: 'Save ~$350/yr',
+  stat1Sub: 'at Pro tier',
+  stat2Label: 'vs FreshBooks',
+  stat2Value: 'Save ~$156/yr',
+  stat2Sub: 'Lite plan',
+  stat3Label: 'Time to invoice',
+  stat3Value: '~30 sec',
+  stat3Sub: '9 taps on mobile',
+  stat4Label: 'All-in-one',
+  stat4Value: '12+ tools',
+  stat4Sub: 'in one subscription',
+
+  // Why us
+  whyLabel: 'Why InvoiceFlow',
+  whyTitle: "Built different from the apps you've already tried",
+  whyDesc:
+    'We studied Invoice Fly, Wave, FreshBooks, Invoice Simple, QuickBooks, Zoho, and HubSpark — then built the app their 1-star reviews are asking for.',
+
+  diff1Vs: 'vs QuickBooks, FreshBooks, Wave',
+  diff1Headline: '30 seconds. Not 3 minutes.',
+  diff1Body:
+    'QuickBooks and FreshBooks were built for accountants first. InvoiceFlow was built for your phone first — create and send a professional invoice in about 9 taps.',
+  diff2Vs: 'vs Invoice Fly, Invoice Simple, HubSpark',
+  diff2Headline: '$9.99/month. Not $8.99/week.',
+  diff2Body:
+    'Invoice Fly charges roughly $39/month. Invoice Simple locks real features behind $19.99/month. HubSpark Pro starts at $39. InvoiceFlow Pro is $9.99 — with mileage, OCR, time tracking, and credit notes included.',
+  diff3Vs: 'vs Wave, Zoho Invoice',
+  diff3Headline: 'Free that actually works.',
+  diff3Body:
+    '25 invoices per month free — unlimited clients, Stripe + PayPal, reminders, and a client portal. Wave is free but slow on mobile. Zoho free tier slaps their branding on your documents.',
+  diff4Vs: 'vs Invoice Fly, Invoice Simple',
+  diff4Headline: 'One app. Not five subscriptions.',
+  diff4Body:
+    'Invoices, estimates, credit notes, expenses, receipt scan, time → invoice, mileage, recurring billing, and P&L reports — without paying for FreshBooks time tracking + a separate expense app.',
+  diff5Vs: 'vs Wave, Invoice Simple, Square',
+  diff5Headline: 'Get paid your way.',
+  diff5Body:
+    'Stripe, PayPal, QR codes, deposit requests, client portal payments, WhatsApp share, and automated late fees — features Wave and Invoice Simple skip or charge extra for.',
+  diff6Vs: 'vs Invoice Fly, desktop-first tools',
+  diff6Headline: 'Built to sync. Built to work offline.',
+  diff6Body:
+    'Real PostgreSQL cloud sync — not the flaky sync users complain about on Invoice Fly. Draft invoices offline; they sync when you\'re back on signal. Dark mode, 32 languages, 6 currencies.',
+
+  // Compare table
+  compareTitle: 'How InvoiceFlow stacks up',
+  compareDesc:
+    'An honest side-by-side with the most-downloaded invoice apps. We win on price, speed, and all-in-one value — without sacrificing payments or automation.',
+  compareColFeature: 'Feature',
+  compareColInvoiceFlow: 'InvoiceFlow',
+  compareColInvoiceFly: 'Invoice Fly',
+  compareColWave: 'Wave',
+  compareColFreshbooks: 'FreshBooks',
+  compareColInvoiceSimple: 'Invoice Simple',
+  compareFootnote:
+    'Competitor pricing and features based on public listings as of 2026. Invoice Fly ≈ $8.99/week; FreshBooks Lite ≈ $23/month; Invoice Simple Pro ≈ $19.99/month.',
+
+  cr1Feature: 'Mobile invoice speed',
+  cr1IF: '✓ ~30 sec',
+  cr1Fly: '✓ Fast',
+  cr1Wave: '✗ Slow app',
+  cr1FB: '⚠ Desktop-first',
+  cr1IS: '✓ Fast',
+  cr2Feature: 'Free tier',
+  cr2IF: '✓ 25/mo',
+  cr2Fly: '✗ Paid',
+  cr2Wave: '✓ Unlimited',
+  cr2FB: '✗ Trial only',
+  cr2IS: '⚠ Limited',
+  cr3Feature: 'Pro price',
+  cr3IF: '$9.99/mo',
+  cr3Fly: '~$39/mo',
+  cr3Wave: 'Free (+ fees)',
+  cr3FB: '$23+/mo',
+  cr3IS: '$19.99/mo',
+  cr4Feature: 'Time → invoice',
+  cr4IF: '✓ Built-in',
+  cr4Fly: '✗',
+  cr4Wave: '✗',
+  cr4FB: '✓ Best',
+  cr4IS: '✗',
+  cr5Feature: 'Mileage tracking',
+  cr5IF: '✓ IRS rate',
+  cr5Fly: '✗',
+  cr5Wave: '✗',
+  cr5FB: '✓',
+  cr5IS: '✗',
+  cr6Feature: 'Expense + OCR',
+  cr6IF: '✓',
+  cr6Fly: '✓',
+  cr6Wave: '✓',
+  cr6FB: '✓',
+  cr6IS: '✗',
+  cr7Feature: 'Credit notes',
+  cr7IF: '✓',
+  cr7Fly: '✗',
+  cr7Wave: '✓',
+  cr7FB: '✓',
+  cr7IS: '✗',
+  cr8Feature: 'Automated late fees',
+  cr8IF: '✓ Cron',
+  cr8Fly: '⚠',
+  cr8Wave: '✗',
+  cr8FB: '✓',
+  cr8IS: '✗',
+  cr9Feature: 'Offline mode',
+  cr9IF: '✓',
+  cr9Fly: '⚠',
+  cr9Wave: '✗',
+  cr9FB: '⚠',
+  cr9IS: '✓',
+  cr10Feature: 'Multi-language',
+  cr10IF: '✓ 32 langs',
+  cr10Fly: '✓',
+  cr10Wave: '✗',
+  cr10FB: '✓',
+  cr10IS: '✗',
+
+  // Features
+  featuresTitle: "Everything you need. Nothing you don't.",
+  featuresDesc:
+    'Not a stripped-down "invoice only" app. Not bloated accounting software. The sweet spot for solo businesses who invoice from their phone.',
+  feat1Title: 'Invoices, estimates & credit notes',
+  feat1Desc: 'Full document workflow — not just invoices. Convert estimates to invoices in one tap.',
+  feat2Title: 'Deposits & late fees',
+  feat2Desc: 'Request % or flat deposits. Automated reminders and late fees run on the server — set once, forget.',
+  feat3Title: 'Time, expenses & mileage',
+  feat3Desc: 'Log hours and bill them to invoices. Scan receipts with OCR. Track mileage at IRS rates.',
+  feat4Title: 'Client portal + e-sign',
+  feat4Desc: 'Clients pay and sign estimates in the browser — no app required. You get open-tracking alerts.',
+  feat5Title: 'Recurring & reminders',
+  feat5Desc: 'Auto-generate recurring invoices. Daily cron sends payment nudges before and after due dates.',
+  feat6Title: 'Works offline',
+  feat6Desc: 'Create invoices without signal. Invoice list and clients cache locally and sync when you reconnect.',
+
+  // Who it's for
+  whoTitle: 'Who InvoiceFlow is for',
+  whoPerfectTitle: 'Perfect fit',
+  whoPerfect1: 'Freelancers & consultants invoicing from their phone',
+  whoPerfect2: 'Trades — plumbers, electricians, cleaners, landscapers',
+  whoPerfect3: 'Side hustles outgrowing spreadsheets',
+  whoPerfect4: 'Invoice Fly / Invoice Simple users tired of weekly fees',
+  whoPerfect5: 'Wave users who need faster mobile + multi-currency',
+  whoNotTitle: 'Not the right tool (yet)',
+  whoNot1: 'Full double-entry accounting (use QuickBooks)',
+  whoNot2: 'Payroll & inventory (use Square / QBO)',
+  whoNot3: 'Large teams with complex approvals',
+  whoNot4: '40+ payment gateways (use Zoho / Invoice Ninja)',
+
+  // Pricing
+  pricingTitle: 'Pricing that respects your business',
+  pricingDesc: 'Start free with 25 invoices per month. Upgrade to Pro for less than a single week of Invoice Fly.',
+  planFreeName: 'Free',
+  planFreeDetail: '25 invoices/month · unlimited clients · Stripe & PayPal · client portal',
+  planProName: 'Pro',
+  planProDetail: 'Unlimited invoices · premium templates · no branding · priority features',
+  planProBadge: 'Most popular',
+  planBusinessName: 'Business',
+  planBusinessDetail: 'Everything in Pro · team seats · API access · white-label portal (coming)',
+  perMonth: '/mo',
+
+  // Download
+  downloadTitle: 'Stop overpaying. Start invoicing smarter.',
+  downloadDesc:
+    'Download InvoiceFlow on iOS or Android. Create your first invoice in under a minute. No credit card required on the free plan.',
+  downloadIOS: 'iOS',
+  downloadAndroid: 'Android',
+  downloadAppStore: 'App Store',
+  downloadGooglePlay: 'Google Play',
+  downloadComing: 'Coming at launch',
+  downloadHaveAccount: 'Already have an account?',
+  downloadSignIn: 'Sign in to admin',
+
+  // Footer
+  footerTagline: 'Invoice Fly speed. FreshBooks depth. Wave\'s price.',
+  footerAdmin: 'Admin',
+  footerPrivacy: 'Privacy',
+  footerTerms: 'Terms',
+} as const;
+
+export type TranslationKey = keyof typeof en;
+export type Translations = Record<TranslationKey, string>;

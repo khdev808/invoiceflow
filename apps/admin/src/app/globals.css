@@ -24,3 +24,12 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+html[dir='rtl'] .rtl table {
+  text-align: right;
+}
+
+html[dir='rtl'] .rtl th,
+html[dir='rtl'] .rtl td {
+  text-align: right;
+}
