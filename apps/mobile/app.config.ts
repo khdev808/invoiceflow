@@ -19,6 +19,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     package: bundleId,
+    usesCleartextTraffic: IS_DEV,
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
       foregroundImage: './assets/images/android-icon-foreground.png',

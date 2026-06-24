@@ -46,11 +46,12 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "setup:android": "bash scripts/setup-android-dev.sh",
     "start": "APP_VARIANT=development expo start",
     "start:dev": "APP_VARIANT=development expo start",
     "start:prod": "APP_VARIANT=production expo start",
-    "android": "APP_VARIANT=development expo start --android",
-    "android:prod": "APP_VARIANT=production expo start --android",
+    "android": "npm run setup:android && APP_VARIANT=development expo start --android --localhost",
+    "android:prod": "npm run setup:android && APP_VARIANT=production expo start --android --localhost",
     "ios": "APP_VARIANT=development expo start --ios",
     "ios:prod": "APP_VARIANT=production expo start --ios",
     "web": "expo start --web",

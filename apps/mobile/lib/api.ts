@@ -3,12 +3,12 @@ import * as SecureStore from 'expo-secure-store';
 import { getApiUrl, getPortalBase } from './config';
 
 export const api = axios.create({
-  baseURL: getApiUrl(),
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });
 
 api.interceptors.request.use(async (config) => {
+  config.baseURL = getApiUrl();
   const token = await SecureStore.getItemAsync('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;

@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/contexts/ThemeContext';
+import { getApiUrl } from '@/lib/config';
 import { Button } from '@/components/ui/Button';
 import { radius, spacing } from '@/constants/theme';
 
@@ -23,7 +24,13 @@ export default function LoginScreen() {
       await login(email.trim(), password);
       router.replace('/(tabs)');
     } catch (e: any) {
-      setError(e.response?.data?.message || 'Login failed. Check credentials.');
+      if (!e.response) {
+        setError(
+          `Cannot reach the API at ${getApiUrl()}. From the project root run: npm run api`,
+        );
+      } else {
+        setError(e.response?.data?.message || 'Login failed. Check credentials.');
+      }
     } finally {
       setLoading(false);
     }
