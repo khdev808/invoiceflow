@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useI18n } from '@/hooks/useI18n';
 import { ActivityIndicator, View, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isOnboardingComplete } from '@/lib/onboarding';
 
 export default function TabLayout() {
@@ -34,7 +34,15 @@ export default function TabLayout() {
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
   if (!onboardingDone) return <Redirect href="/onboarding" />;
 
-  const tabHeight = 56 + (Platform.OS === 'ios' ? insets.bottom : 12);
+  const tabBarPaddingTop = 8;
+  const tabBarContentHeight = 56;
+  const measuredBottomInset = Math.max(
+    insets.bottom,
+    initialWindowMetrics?.insets.bottom ?? 0,
+  );
+  const bottomInset =
+    Platform.OS === 'android' && measuredBottomInset === 0 ? 48 : measuredBottomInset;
+  const tabHeight = tabBarContentHeight + tabBarPaddingTop + bottomInset;
 
   return (
     <Tabs
@@ -45,8 +53,8 @@ export default function TabLayout() {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
           height: tabHeight,
-          paddingTop: 8,
-          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 12,
+          paddingTop: tabBarPaddingTop,
+          paddingBottom: bottomInset,
           elevation: 8,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },

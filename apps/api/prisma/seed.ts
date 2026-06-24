@@ -27,7 +27,7 @@ async function main() {
   const demoHash = await bcrypt.hash('demo1234', 10);
   const demo = await prisma.user.upsert({
     where: { email: 'demo@invoiceflow.app' },
-    update: {},
+    update: { passwordHash: demoHash },
     create: {
       email: 'demo@invoiceflow.app',
       passwordHash: demoHash,
@@ -59,8 +59,11 @@ async function main() {
     },
   });
 
-  const client2 = await prisma.client.create({
-    data: {
+  const client2 = await prisma.client.upsert({
+    where: { id: 'seed-client-2' },
+    update: {},
+    create: {
+      id: 'seed-client-2',
       userId: demo.id,
       name: 'Sarah Johnson',
       email: 'sarah@buildright.com',
@@ -71,8 +74,12 @@ async function main() {
     },
   });
 
-  await prisma.invoice.create({
-    data: {
+  await prisma.invoice.upsert({
+    where: {
+      userId_documentNumber: { userId: demo.id, documentNumber: 'INV-1001' },
+    },
+    update: {},
+    create: {
       userId: demo.id,
       clientId: client1.id,
       documentNumber: 'INV-1001',
@@ -95,8 +102,12 @@ async function main() {
     },
   });
 
-  await prisma.invoice.create({
-    data: {
+  await prisma.invoice.upsert({
+    where: {
+      userId_documentNumber: { userId: demo.id, documentNumber: 'EST-2001' },
+    },
+    update: {},
+    create: {
       userId: demo.id,
       clientId: client2.id,
       documentNumber: 'EST-2001',
@@ -118,19 +129,29 @@ async function main() {
     },
   });
 
-  await prisma.expense.createMany({
-    data: [
-      { userId: demo.id, description: 'Home Depot - pipe fittings', amount: 87.43, category: 'Materials', vendor: 'Home Depot' },
-      { userId: demo.id, description: 'Fuel - service calls', amount: 65.00, category: 'Travel', vendor: 'Shell' },
-      { userId: demo.id, description: 'Tool rental', amount: 120.00, category: 'Equipment', vendor: 'Sunbelt Rentals' },
-    ],
-  });
+  const expenseSeeds = [
+    { description: 'Home Depot - pipe fittings', amount: 87.43, category: 'Materials', vendor: 'Home Depot' },
+    { description: 'Fuel - service calls', amount: 65.0, category: 'Travel', vendor: 'Shell' },
+    { description: 'Tool rental', amount: 120.0, category: 'Equipment', vendor: 'Sunbelt Rentals' },
+  ];
+
+  for (const expense of expenseSeeds) {
+    const existing = await prisma.expense.findFirst({
+      where: { userId: demo.id, description: expense.description },
+    });
+    if (!existing) {
+      await prisma.expense.create({ data: { userId: demo.id, ...expense } });
+    }
+  }
 
   console.log('Seed complete:', { admin: admin.email, demo: demo.email });
 }
 
 main()
-  .catch(console.error)
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
   .finally(async () => {
     await prisma.$disconnect();
     await pool.end();
