@@ -50,27 +50,40 @@ Swagger UI: http://localhost:3001/api/docs
 
 ### Mobile App
 - ⚡ **30-second invoice creation** — fewer taps than InvoiceZap benchmark
-- 📄 Invoices, estimates, credit notes, recurring billing
+- 📄 Invoices, estimates, **credit notes**, recurring billing
+- 💰 **Deposit requests** (% or flat), automated **late fees**
+- ✍️ **Signature capture** + client e-signatures via portal
 - 👥 Client management with contact import
+- 📦 **Product/service catalog** for quick line items
+- 🚗 **Mileage tracking** with IRS deduction rate
 - 💰 Per-item and total taxes + discounts
 - 📊 Income reports, P&L, expense tracking
-- ⏱️ Time tracking → invoice line items
-- 📸 Receipt scanner for expenses
-- 🔔 Real-time open/view notifications
+- ⏱️ Time tracking → invoice line items (FreshBooks-style)
+- 📸 Receipt scanner with **OCR auto-fill**
+- 🔔 Real-time open tracking + **automated payment reminders**
 - 💳 Stripe payment links + Apple Pay / PayPal
 - 🎨 6 professional templates with branding
-- 🌍 Multi-currency support
-- 📤 PDF export + share via WhatsApp/iMessage
+- 🌍 Multi-currency + **5 languages** (EN, ES, FR, DE, PT)
+- 📤 PDF export + **WhatsApp** + client portal sharing
+- 🌙 Dark mode + **offline cache** with sync queue
 - ☁️ Cross-device cloud sync
 
 ### Backend API
 - JWT authentication
-- Full CRUD for clients, invoices, expenses, time entries
-- Estimate → invoice conversion
+- Full CRUD for clients, invoices, expenses, time entries, **products, mileage**
+- Estimate → invoice conversion, **credit notes**, **deposit tracking**
+- **Cron jobs**: overdue marking, late fees, payment reminders, recurring billing
 - Payment recording + Stripe checkout
+- **OCR receipt parsing** endpoint
+- **Client portal** public API with e-signatures
 - Open tracking webhooks
 - Admin analytics dashboard
 - Swagger documentation
+
+### Client Portal (Web)
+- Public invoice view at `/portal/[id]`
+- Pay now button, estimate e-signature canvas
+- Open tracking on view
 
 ### Admin Panel
 - User management
