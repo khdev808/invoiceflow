@@ -1,8 +1,24 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { api } from './api';
 
-Notifications.setNotificationHandler({
+const canUseRemotePush =
+  Platform.OS !== 'web' &&
+  !(Constants.appOwnership === 'expo' && Platform.OS === 'android');
+
+function getNotificationsModule() {
+  if (!canUseRemotePush) return null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('expo-notifications') as typeof import('expo-notifications');
+  } catch {
+    return null;
+  }
+}
+
+const notifications = getNotificationsModule();
+
+notifications?.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
@@ -13,17 +29,17 @@ Notifications.setNotificationHandler({
 });
 
 export async function registerForPushNotifications(): Promise<string | null> {
-  if (Platform.OS === 'web') return null;
+  if (!notifications) return null;
 
-  const { status: existing } = await Notifications.getPermissionsAsync();
+  const { status: existing } = await notifications.getPermissionsAsync();
   let finalStatus = existing;
   if (existing !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
+    const { status } = await notifications.requestPermissionsAsync();
     finalStatus = status;
   }
   if (finalStatus !== 'granted') return null;
 
-  const tokenData = await Notifications.getExpoPushTokenAsync();
+  const tokenData = await notifications.getExpoPushTokenAsync();
   const token = tokenData.data;
 
   try {
@@ -33,9 +49,9 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
+    await notifications.setNotificationChannelAsync('default', {
       name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
+      importance: notifications.AndroidImportance.MAX,
     });
   }
 

@@ -60,7 +60,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-localization',
   ],
   experiments: {
-    typedRoutes: true,
+    typedRoutes: false,
   },
   extra: {
     appVariant: IS_DEV ? 'development' : 'production',

@@ -11,8 +11,6 @@ import { syncPendingOps } from '@/lib/offline';
 import { useAuthStore } from '@/stores/auth';
 import 'react-native-reanimated';
 
-export { ErrorBoundary } from 'expo-router';
-
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
