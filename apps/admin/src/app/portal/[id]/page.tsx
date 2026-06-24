@@ -1,18 +1,34 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+const TEMPLATE_COLORS: Record<string, string> = {
+  modern: '#2563EB',
+  classic: '#1E293B',
+  minimal: '#64748B',
+  bold: '#7C3AED',
+  professional: '#0F766E',
+  creative: '#DB2777',
+};
+
 export default function ClientPortalPage() {
   const { id } = useParams<{ id: string }>();
   const [invoice, setInvoice] = useState<any>(null);
+  const [payAmount, setPayAmount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
   const [signing, setSigning] = useState(false);
   const [signed, setSigned] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
+
+  const headerColor = useMemo(
+    () => TEMPLATE_COLORS[invoice?.templateId || 'modern'] || TEMPLATE_COLORS.modern,
+    [invoice?.templateId],
+  );
 
   useEffect(() => {
     fetch(`${API_URL}/invoices/public/${id}`)
@@ -20,9 +36,19 @@ export default function ClientPortalPage() {
       .then((data) => {
         setInvoice(data);
         fetch(`${API_URL}/invoices/public/${id}/view`, { method: 'PATCH' });
+        return fetch(`${API_URL}/payments/public/link/${id}`).then((r) => r.json());
+      })
+      .then((link) => {
+        if (link?.amount) setPayAmount(link.amount);
       })
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('paid') === '1') {
+      alert('Thank you! Your payment was received.');
+    }
+  }, []);
 
   const startDraw = (e: React.MouseEvent<HTMLCanvasElement>) => {
     drawing.current = true;
@@ -60,25 +86,46 @@ export default function ClientPortalPage() {
     setSigning(false);
   };
 
-  const payNow = async () => {
-    const res = await fetch(`${API_URL}/payments/link/${id}`, { method: 'POST', headers: { Authorization: 'Bearer ' } });
-    // Public pay - use invoice payment link if exists
-    if (invoice?.paymentLink) window.open(invoice.paymentLink, '_blank');
-    else alert('Payment link will be sent by the business owner.');
+  const payStripe = async () => {
+    setPaying(true);
+    try {
+      const res = await fetch(`${API_URL}/payments/public/link/${id}`);
+      const data = await res.json();
+      if (data.url) window.open(data.url, '_blank');
+      else alert(data.alreadyPaid ? 'This invoice is already paid.' : 'Payment unavailable.');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const payPayPal = async () => {
+    setPaying(true);
+    try {
+      const res = await fetch(`${API_URL}/payments/public/paypal/${id}`);
+      const data = await res.json();
+      if (data.url) window.open(data.url, '_blank');
+      else alert(data.alreadyPaid ? 'This invoice is already paid.' : 'PayPal unavailable.');
+    } finally {
+      setPaying(false);
+    }
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading invoice...</div>;
   if (!invoice) return <div className="min-h-screen flex items-center justify-center">Invoice not found</div>;
 
   const biz = invoice.user;
+  const dueNow = payAmount ?? invoice.total;
+  const depositDue = invoice.depositPercent && !invoice.depositPaid
+    ? invoice.total * invoice.depositPercent / 100
+    : null;
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4">
       <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
-        <div className="bg-blue-600 text-white p-8">
-          <p className="text-blue-200 text-sm uppercase tracking-wide">{invoice.documentType}</p>
+        <div className="text-white p-8" style={{ backgroundColor: headerColor }}>
+          <p className="text-white/70 text-sm uppercase tracking-wide">{invoice.documentType}</p>
           <h1 className="text-3xl font-bold mt-1">{invoice.documentNumber}</h1>
-          <p className="mt-2 text-blue-100">{biz?.businessName || biz?.name}</p>
+          <p className="mt-2 text-white/80">{biz?.businessName || biz?.name}</p>
         </div>
 
         <div className="p-8">
@@ -102,15 +149,23 @@ export default function ClientPortalPage() {
           </table>
 
           <div className="text-right space-y-1 mb-8">
-            {invoice.depositPercent > 0 && <p className="text-slate-600">Deposit ({invoice.depositPercent}%): <strong>${(invoice.total * invoice.depositPercent / 100).toFixed(2)}</strong></p>}
+            {depositDue != null && <p className="text-slate-600">Deposit ({invoice.depositPercent}%): <strong>${depositDue.toFixed(2)}</strong>{invoice.depositPaid && ' ✓ Paid'}</p>}
             {invoice.lateFeeAmount > 0 && <p className="text-red-600">Late Fee: <strong>${invoice.lateFeeAmount.toFixed(2)}</strong></p>}
             <p className="text-3xl font-bold text-slate-900">Total: ${invoice.total.toFixed(2)}</p>
+            {invoice.status !== 'PAID' && dueNow < invoice.total && (
+              <p className="text-lg text-green-700 font-semibold">Due now: ${dueNow.toFixed(2)}</p>
+            )}
           </div>
 
           {invoice.status !== 'PAID' && (
-            <button onClick={payNow} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg mb-6 hover:bg-green-700">
-              Pay Now — ${invoice.total.toFixed(2)}
-            </button>
+            <div className="space-y-3 mb-6">
+              <button onClick={payStripe} disabled={paying} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 disabled:opacity-60">
+                {paying ? 'Loading...' : `Pay with Card — $${dueNow.toFixed(2)}`}
+              </button>
+              <button onClick={payPayPal} disabled={paying} className="w-full bg-[#0070BA] text-white py-3 rounded-xl font-bold hover:bg-[#005ea6] disabled:opacity-60">
+                Pay with PayPal — ${dueNow.toFixed(2)}
+              </button>
+            </div>
           )}
 
           {invoice.documentType === 'ESTIMATE' && !signed && !invoice.clientSignature && (
@@ -118,7 +173,7 @@ export default function ClientPortalPage() {
               <p className="font-semibold mb-3">Sign to approve this estimate</p>
               <canvas ref={canvasRef} width={500} height={120} className="border rounded-lg w-full cursor-crosshair bg-slate-50"
                 onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw} />
-              <button onClick={submitSignature} disabled={signing} className="mt-3 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">
+              <button onClick={submitSignature} disabled={signing} className="mt-3 w-full text-white py-3 rounded-lg font-semibold" style={{ backgroundColor: headerColor }}>
                 {signing ? 'Submitting...' : 'Submit Signature'}
               </button>
             </div>
