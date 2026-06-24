@@ -3,7 +3,7 @@ node_modules/
 .env
 .env.local
 dist/
-src/generated/
+**/src/generated/
 .expo/
 .next/
 coverage/
