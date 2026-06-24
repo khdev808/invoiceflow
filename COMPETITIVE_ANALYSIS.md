@@ -1,4 +1,6 @@
-# InvoiceFlow Competitive Analysis — v2 (Post-Gap Fix)
+# InvoiceFlow Competitive Analysis — v4 (Launch Ready)
+
+> **Full launch strategy, win probability, and store publishing guide:** see [PRODUCT_LAUNCH_REPORT.md](./PRODUCT_LAUNCH_REPORT.md)
 
 ## Competitors Analyzed
 
@@ -45,9 +47,10 @@
 | Income/P&L reports | ✅ | ✅ | ✅✅ | ⚠️ | ✅ | ✅ | ✅ |
 | Client portal | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ **Web portal** |
 | WhatsApp delivery | ❌ | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ **Deep link** |
-| Offline mode | ⚠️ | ❌ | ⚠️ | ✅ | ❌ | ✅ | ✅ **Cache+queue** |
-| Dark mode | ⚠️ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ **System** |
-| QR payment links | ❌ | ✅ | ❌ | ✅ | ❌ | ✅ | ✅ **Share** |
+| Offline mode | ⚠️ | ❌ | ⚠️ | ✅ | ❌ | ✅ | ✅ **Cache+queue+sync** |
+| Dark mode | ⚠️ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ **System + full UI** |
+| QR payment links | ❌ | ✅ | ❌ | ✅ | ❌ | ✅ | ✅ **In-app QR** |
+| Onboarding UX | ⚠️ | ❌ | ⚠️ | ❌ | ❌ | ⚠️ | ✅ **4-slide carousel** |
 | Free tier | ❌ | ✅ | ❌ | ⚠️ | ✅ | ✅ | ✅ |
 | Admin dashboard | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ |
 | Public API/Swagger | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
@@ -72,7 +75,7 @@
 
 ---
 
-## Remaining Gaps (Honest Assessment — v3)
+## Remaining Gaps (Honest Assessment — v4)
 
 | Gap | Best-in-class | InvoiceFlow Status |
 |-----|---------------|-------------------|
@@ -80,11 +83,20 @@
 | 40+ payment gateways | Zoho, Invoice Ninja | Stripe + PayPal + manual (8 methods) |
 | 200+ invoice templates | Invoice Simple | 6 premium — applied to PDF/portal |
 | Native Tap to Pay hardware | HubSpark, Square | Stripe Terminal ready (config needed) |
-| CRM + scheduling bundle | HubSpark | Invoicing-focused (webhook integrations UI) |
-| Production push delivery | All incumbents | Expo push wired — needs physical device test |
-| App Store presence / reviews | All incumbents | Requires launch |
+| CRM + scheduling bundle | HubSpark | Webhook integrations UI |
+| App Store presence / reviews | All incumbents | **Publishing guide in PRODUCT_LAUNCH_REPORT.md** |
+| Team / multi-user roles | FreshBooks, Zoho | Schema-ready, UI not built |
 
-### Recently wired (v3)
+### v4 mobile polish (complete)
+
+- Onboarding carousel for first-time users
+- Skeleton loaders on dashboard
+- User currency across reports, time, mileage, dashboard
+- Time entries → prefilled invoice line items
+- All screens use design system (dark mode, haptics, empty states)
+- Notification deep links to invoices
+
+### v3 backend/mobile integration (complete)
 
 - Expo push token registration + server-side push dispatch
 - Offline invoice create queue with foreground sync
@@ -112,16 +124,17 @@
 
 ## Final Score vs Category
 
-| Dimension | v1 Score | v2 Score |
-|-----------|----------|----------|
-| Mobile UX speed | 10/10 | 10/10 |
-| Feature completeness | 9/10 | **9.8/10** |
-| Pricing value | 10/10 | 10/10 |
-| Payment processing | 8/10 | **9/10** |
-| Automation (reminders/recurring) | 5/10 | **9.5/10** |
-| Accounting depth | 6/10 | 6/10 |
-| Ecosystem/integrations | 7/10 | **8/10** |
-| **Weighted average** | **8.7/10** | **9.4/10** |
+| Dimension | v1 Score | v2 Score | v4 Score |
+|-----------|----------|----------|----------|
+| Mobile UX speed | 10/10 | 10/10 | **10/10** |
+| Feature completeness | 9/10 | 9.8/10 | **9.5/10** |
+| Pricing value | 10/10 | 10/10 | **10/10** |
+| Payment processing | 8/10 | 9/10 | **8.5/10** |
+| Automation (reminders/recurring) | 5/10 | 9.5/10 | **9.5/10** |
+| UX polish & retention | 6/10 | 7/10 | **9/10** |
+| Accounting depth | 6/10 | 6/10 | 6/10 |
+| Ecosystem/integrations | 7/10 | 8/10 | **8/10** |
+| **Weighted average** | **8.7/10** | **9.4/10** | **9.2/10** |
 
 ---
 
@@ -134,4 +147,4 @@
 - Beats **8/10** on automation (Zoho/FreshBooks parity)
 - Only trails QuickBooks on full accounting and Invoice Simple on template count
 
-**Ready for beta launch** after production Stripe keys, SMTP for email, and device testing of push notifications. Core mobile ↔ API integration gaps from v2 are closed.
+**Ready for closed beta** with production Stripe keys, SMTP, and EAS device testing. **Public launch** follows store submission per [PRODUCT_LAUNCH_REPORT.md](./PRODUCT_LAUNCH_REPORT.md).

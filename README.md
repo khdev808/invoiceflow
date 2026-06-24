@@ -85,6 +85,9 @@ Swagger UI: http://localhost:3001/api/docs
 - Admin analytics dashboard
 - Swagger documentation
 
+- 🎯 First-run onboarding carousel
+- 💱 User currency on dashboard and reports
+
 ### Client Portal (Web)
 - Public invoice view at `/portal/[id]`
 - Deposit-aware **Stripe + PayPal** pay buttons (no auth)
@@ -98,7 +101,7 @@ Swagger UI: http://localhost:3001/api/docs
 
 ## Competitive Position
 
-See [COMPETITIVE_ANALYSIS.md](./COMPETITIVE_ANALYSIS.md) for full feature comparison against Invoice Fly, Zoho Invoice, FreshBooks, Invoice Simple, Wave, Square, QuickBooks, Invoice Ninja, HubSpark, and Invoice2go.
+See [COMPETITIVE_ANALYSIS.md](./COMPETITIVE_ANALYSIS.md) and [PRODUCT_LAUNCH_REPORT.md](./PRODUCT_LAUNCH_REPORT.md) for competitive comparison, win probability, and App Store publishing guide.
 
 ## Project Structure
 
