@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInvoiceDto, UpdateInvoiceDto } from './dto/invoice.dto';
 import { calcInvoiceTotals, calcLineTotal } from './invoice.utils';
-import { DocumentType, InvoiceStatus } from '@prisma/client';
+import { DocumentType, InvoiceStatus } from '../generated/prisma/client';
 import { EmailService } from '../email/email.service';
 import { PlanService } from '../plan/plan.service';
 import { IntegrationsService } from '../integrations/integrations.service';
