@@ -63,8 +63,11 @@ model User {
   invoices      Invoice[]
   expenses      Expense[]
   timeEntries   TimeEntry[]
+  products      Product[]
+  mileageEntries MileageEntry[]
   notifications Notification[]
   settings      UserSettings?
+  recurringSchedules RecurringSchedule[]
 
   @@index([email])
 }
@@ -86,7 +89,11 @@ model UserSettings {
   reminderDaysBefore    Int     @default(3)
   reminderDaysAfter     Int     @default(7)
   enableLateFees        Boolean @default(false)
-  lateFeePercent        Float   @default(0)
+  lateFeePercent        Float   @default(5)
+  mileageRate           Float   @default(0.67)
+  defaultDepositPercent Float   @default(0)
+  pushToken             String?
+  webhookUrl            String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }
@@ -144,6 +151,14 @@ model Invoice {
   convertedFromId String?
   recurringRule   String?
   attachments     String[]
+  depositAmount   Float?
+  depositPercent  Float?
+  depositPaid     Boolean       @default(false)
+  clientSignature String?
+  lateFeeAmount   Float         @default(0)
+  linkedInvoiceId String?
+  reminderSentAt  DateTime?
+  lastReminderAt  DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -257,4 +272,53 @@ model AdminAuditLog {
   createdAt DateTime @default(now())
 
   @@index([adminId])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  unitPrice   Float
+  taxRate     Float    @default(0)
+  sku         String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, name])
+}
+
+model MileageEntry {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  description String
+  miles       Float
+  rate        Float    @default(0.67)
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, date])
+}
+
+model RecurringSchedule {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateInvoiceId String
+  clientId    String
+  frequency   String   @default("monthly")
+  nextRunAt   DateTime
+  active      Boolean  @default(true)
+  lineItemsJson Json
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([nextRunAt, active])
 }
