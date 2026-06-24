@@ -155,6 +155,10 @@ export class InvoicesService {
       include: { client: true, lineItems: true },
     });
 
+    if (docType === 'CREDIT_NOTE' && dto.linkedInvoiceId) {
+      await this.applyCreditToInvoice(userId, dto.linkedInvoiceId, Math.abs(totals.total));
+    }
+
     if (dto.recurringRule) {
       const nextRun = new Date();
       nextRun.setMonth(nextRun.getMonth() + 1);
@@ -433,5 +437,45 @@ export class InvoicesService {
         where: { userId, documentType: 'ESTIMATE', status: { in: ['DRAFT', 'SENT'] } },
       }),
     };
+  }
+
+  private async applyCreditToInvoice(userId: string, linkedInvoiceId: string, creditAmount: number) {
+    const linked = await this.prisma.invoice.findFirst({
+      where: { id: linkedInvoiceId, userId, documentType: 'INVOICE' },
+      include: { payments: true },
+    });
+    if (!linked || linked.status === 'PAID' || linked.status === 'CANCELLED') return;
+
+    const paidSoFar = linked.payments.reduce((s, p) => s + p.amount, 0);
+    const balance = linked.total + linked.lateFeeAmount - paidSoFar;
+    const applied = Math.min(creditAmount, Math.max(0, balance));
+
+    if (applied <= 0) return;
+
+    await this.prisma.payment.create({
+      data: {
+        invoiceId: linkedInvoiceId,
+        amount: applied,
+        method: 'BANK_TRANSFER',
+        notes: 'Applied from credit note',
+      },
+    });
+
+    const newPaid = paidSoFar + applied;
+    const newTotal = linked.total + linked.lateFeeAmount;
+    if (newPaid >= newTotal - 0.01) {
+      await this.prisma.invoice.update({
+        where: { id: linkedInvoiceId },
+        data: { status: 'PAID', paidAt: new Date() },
+      });
+    }
+
+    await this.prisma.invoiceActivity.create({
+      data: {
+        invoiceId: linkedInvoiceId,
+        action: 'CREDIT_APPLIED',
+        metadata: { creditAmount: applied },
+      },
+    });
   }
 }

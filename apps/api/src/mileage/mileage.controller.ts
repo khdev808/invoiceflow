@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { MileageService } from './mileage.service';
 import { JwtAuthGuard } from '../auth/guards';
 
@@ -13,13 +13,21 @@ export class MileageController {
   }
 
   @Get()
-  findAll(@Request() req: { user: { userId: string } }) {
-    return this.mileage.findAll(req.user.userId);
+  findAll(
+    @Request() req: { user: { userId: string } },
+    @Query('unbilled') unbilled?: string,
+  ) {
+    return this.mileage.findAll(req.user.userId, unbilled === 'true');
   }
 
   @Post()
   create(@Request() req: { user: { userId: string } }, @Body() body: any) {
     return this.mileage.create(req.user.userId, body);
+  }
+
+  @Post('to-line-items')
+  toLineItems(@Request() req: { user: { userId: string } }, @Body() body: { entryIds: string[] }) {
+    return this.mileage.toLineItems(req.user.userId, body.entryIds);
   }
 
   @Delete(':id')

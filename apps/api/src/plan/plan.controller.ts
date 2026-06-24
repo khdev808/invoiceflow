@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { PlanService } from './plan.service';
 import { JwtAuthGuard } from '../auth/guards';
 
@@ -10,5 +10,13 @@ export class PlanController {
   @Get('usage')
   usage(@Request() req: { user: { userId: string } }) {
     return this.plan.getUsage(req.user.userId);
+  }
+
+  @Post('upgrade')
+  upgrade(
+    @Request() req: { user: { userId: string } },
+    @Body() body: { plan: 'pro' | 'business' },
+  ) {
+    return this.plan.upgradePlan(req.user.userId, body.plan);
   }
 }

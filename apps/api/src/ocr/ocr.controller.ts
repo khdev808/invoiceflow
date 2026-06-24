@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { OcrService } from './ocr.service';
 import { JwtAuthGuard } from '../auth/guards';
 
@@ -8,7 +8,10 @@ export class OcrController {
   constructor(private ocr: OcrService) {}
 
   @Post('receipt')
-  parseReceipt(@Body() body: { imageUri: string; vendor?: string; amount?: number }) {
-    return this.ocr.parseReceipt(body.imageUri, body);
+  parseReceipt(
+    @Request() req: { user: { userId: string } },
+    @Body() body: { imageUri: string; vendor?: string; amount?: number; base64?: string; mimeType?: string },
+  ) {
+    return this.ocr.parseReceipt(req.user.userId, body.imageUri, body);
   }
 }

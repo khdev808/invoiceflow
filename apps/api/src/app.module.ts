@@ -19,6 +19,7 @@ import { EmailModule } from './email/email.module';
 import { PlanModule } from './plan/plan.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -43,5 +44,6 @@ import { UploadsModule } from './uploads/uploads.module';
     IntegrationsModule,
     UploadsModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}
