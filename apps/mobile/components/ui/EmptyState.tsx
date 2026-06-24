@@ -1,8 +1,9 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from './Button';
-import { spacing } from '@/constants/theme';
+import { radius, spacing } from '@/constants/theme';
+import { Text } from './Text';
 
 interface Props {
   icon: keyof typeof Ionicons.glyphMap;
@@ -16,21 +17,28 @@ export function EmptyState({ icon, title, message, actionLabel, onAction }: Prop
   const { colors } = useTheme();
   return (
     <View style={styles.wrap}>
-      <View style={[styles.iconWrap, { backgroundColor: colors.primary + '12' }]}>
-        <Ionicons name={icon} size={40} color={colors.primary} />
+      <View style={[styles.iconWrap, { backgroundColor: colors.primarySoft }]}>
+        <Ionicons name={icon} size={36} color={colors.primary} />
       </View>
-      <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-      {message ? <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text> : null}
+      <Text variant="heading" style={styles.title}>{title}</Text>
+      {message ? <Text variant="body" color="secondary" style={styles.message}>{message}</Text> : null}
       {actionLabel && onAction ? (
-        <Button label={actionLabel} onPress={onAction} style={{ marginTop: spacing.lg, minWidth: 200 }} />
+        <Button label={actionLabel} onPress={onAction} style={{ marginTop: spacing.lg, minWidth: 220 }} />
       ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: spacing.xl },
-  iconWrap: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
-  title: { fontSize: 18, fontWeight: '700', textAlign: 'center' },
-  message: { fontSize: 15, textAlign: 'center', marginTop: spacing.sm, lineHeight: 22 },
+  wrap: { alignItems: 'center', paddingVertical: 56, paddingHorizontal: spacing.xl },
+  iconWrap: {
+    width: 88,
+    height: 88,
+    borderRadius: radius.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  title: { textAlign: 'center' },
+  message: { textAlign: 'center', marginTop: spacing.sm, maxWidth: 280 },
 });

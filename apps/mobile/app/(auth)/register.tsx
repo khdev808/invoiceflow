@@ -1,12 +1,13 @@
-import { View, Text, StyleSheet, TextInput, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TextInput, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/Button';
+import { Text } from '@/components/ui/Text';
 import { devLogAction } from '@/lib/devLog';
-import { radius, spacing } from '@/constants/theme';
+import { fonts, layout, radius, shadows, spacing } from '@/constants/theme';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -46,20 +47,26 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: colors.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.back, { backgroundColor: colors.surfaceAlt }]}>
+          <Ionicons name="chevron-back" size={22} color={colors.text} />
         </TouchableOpacity>
 
-        <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Start invoicing free — no credit card required</Text>
+        <Text variant="title">Create Account</Text>
+        <Text variant="body" color="secondary" style={{ marginTop: 6, marginBottom: spacing.lg }}>
+          Start invoicing free — no credit card required
+        </Text>
 
         <View style={[styles.form, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
+          {error ? (
+            <View style={[styles.errorBox, { backgroundColor: colors.dangerSoft }]}>
+              <Text variant="caption" style={{ color: colors.danger }}>{error}</Text>
+            </View>
+          ) : null}
 
           {fields.map((field) => (
             <View key={field.label}>
-              <Text style={[styles.label, { color: colors.text }]}>{field.label}</Text>
+              <Text variant="label" style={{ marginBottom: spacing.xs, marginTop: spacing.sm }}>{field.label}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
                 value={field.value}
@@ -80,16 +87,27 @@ export default function RegisterScreen() {
   );
 }
 
-function makeStyles(colors: any) {
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
     container: { flex: 1 },
-    scroll: { flexGrow: 1, padding: spacing.lg, paddingTop: 56 },
-    back: { marginBottom: spacing.md, alignSelf: 'flex-start' },
-    title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.3 },
-    subtitle: { fontSize: 15, marginBottom: spacing.lg, marginTop: 4 },
-    form: { borderRadius: radius.xl, padding: spacing.lg, borderWidth: 1 },
-    label: { fontSize: 14, fontWeight: '600', marginBottom: spacing.xs, marginTop: spacing.sm },
-    input: { borderRadius: radius.md, padding: spacing.md, fontSize: 16, borderWidth: 1 },
-    error: { marginBottom: spacing.sm },
+    scroll: { flexGrow: 1, padding: layout.screenPadding, paddingTop: 56, paddingBottom: spacing.xxl },
+    back: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.lg,
+    },
+    form: { borderRadius: radius.xl, padding: spacing.lg, borderWidth: 1, ...shadows.md },
+    input: {
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 14,
+      fontSize: 16,
+      fontFamily: fonts.regular,
+      borderWidth: 1,
+    },
+    errorBox: { padding: spacing.md, borderRadius: radius.md, marginBottom: spacing.sm },
   });
 }

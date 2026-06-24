@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useI18n } from '@/hooks/useI18n';
 import { invoicesApi } from '@/lib/api';
@@ -9,10 +10,11 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { IconButton } from '@/components/ui/IconButton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Text } from '@/components/ui/Text';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { hapticLight } from '@/lib/haptics';
 import { devPress } from '@/lib/devLog';
-import { radius, spacing } from '@/constants/theme';
+import { fonts, layout, radius, spacing } from '@/constants/theme';
 
 const FILTERS = [
   { key: 'all', label: 'All' },
@@ -57,7 +59,7 @@ export default function InvoicesScreen() {
   const styles = makeStyles(colors);
 
   return (
-    <Screen edges={['top']}>
+    <Screen edges={['top']} tabSafe>
       <AppHeader
         isTabScreen
         title={t('invoices')}
@@ -71,17 +73,30 @@ export default function InvoicesScreen() {
         keyExtractor={(f) => f.key}
         showsHorizontalScrollIndicator={false}
         style={styles.filterList}
-        contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.filterChip, { borderColor: colors.border, backgroundColor: colors.surface }, filter === item.key && { backgroundColor: colors.primary, borderColor: colors.primary }]}
-            onPress={() => { hapticLight(`filter:${item.key}`); setFilter(item.key); }}
-          >
-            <Text style={[styles.filterText, { color: colors.textSecondary }, filter === item.key && styles.filterTextActive]}>
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        )}
+        contentContainerStyle={{ paddingHorizontal: layout.screenPadding, gap: spacing.sm }}
+        renderItem={({ item }) => {
+          const active = filter === item.key;
+          return (
+            <TouchableOpacity
+              style={[
+                styles.filterChip,
+                { borderColor: colors.border, backgroundColor: colors.surfaceAlt },
+                active && { backgroundColor: colors.primary, borderColor: colors.primary },
+              ]}
+              onPress={() => { hapticLight(`filter:${item.key}`); setFilter(item.key); }}
+            >
+              <Text
+                variant="caption"
+                style={[
+                  { color: colors.textSecondary, fontFamily: fonts.semiBold },
+                  active && { color: '#fff' },
+                ]}
+              >
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
       />
 
       {loading ? (
@@ -90,7 +105,7 @@ export default function InvoicesScreen() {
         <FlatList
           data={invoices}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: spacing.lg, paddingTop: spacing.sm, flexGrow: 1 }}
+          contentContainerStyle={{ paddingHorizontal: layout.screenPadding, paddingTop: spacing.sm, flexGrow: 1 }}
           refreshing={refreshing}
           onRefresh={() => { setRefreshing(true); load(); }}
           ListEmptyComponent={
@@ -106,19 +121,28 @@ export default function InvoicesScreen() {
             <TouchableOpacity
               style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
               onPress={devPress(`invoice:open:${item.documentNumber}`, () => router.push(`/invoice/${item.id}`))}
-              activeOpacity={0.7}
+              activeOpacity={0.75}
             >
-              <View style={styles.cardTop}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.docNum, { color: colors.text }]}>{item.documentNumber}</Text>
-                  <Text style={[styles.clientName, { color: colors.textSecondary }]}>{item.client?.name}</Text>
-                </View>
-                <Text style={[styles.amount, { color: colors.text }]}>{formatCurrency(item.total, item.currency)}</Text>
+              <View style={[styles.docIcon, { backgroundColor: colors.primarySoft }]}>
+                <Ionicons name="document-text-outline" size={20} color={colors.primary} />
               </View>
-              <View style={styles.cardBottom}>
-                <StatusBadge status={item.status} />
-                <Text style={[styles.type, { color: colors.textMuted }]}>{item.documentType.replace('_', ' ')}</Text>
-                <Text style={[styles.date, { color: colors.textMuted }]}>{formatDate(item.issueDate)}</Text>
+              <View style={styles.cardBody}>
+                <View style={styles.cardTop}>
+                  <View style={{ flex: 1 }}>
+                    <Text variant="bodyBold">{item.documentNumber}</Text>
+                    <Text variant="caption" color="secondary">{item.client?.name}</Text>
+                  </View>
+                  <Text variant="subheading" style={{ letterSpacing: -0.3 }}>
+                    {formatCurrency(item.total, item.currency)}
+                  </Text>
+                </View>
+                <View style={styles.cardBottom}>
+                  <StatusBadge status={item.status} />
+                  <Text variant="micro" color="muted">{item.documentType.replace('_', ' ')}</Text>
+                  <Text variant="micro" color="muted" style={{ marginLeft: 'auto' }}>
+                    {formatDate(item.issueDate)}
+                  </Text>
+                </View>
               </View>
             </TouchableOpacity>
           )}
@@ -128,19 +152,33 @@ export default function InvoicesScreen() {
   );
 }
 
-function makeStyles(colors: any) {
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
-    filterList: { maxHeight: 44, marginBottom: spacing.sm },
-    filterChip: { paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.full, borderWidth: 1 },
-    filterText: { fontSize: 14, fontWeight: '600' },
-    filterTextActive: { color: '#fff' },
-    card: { borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1 },
+    filterList: { maxHeight: 48, marginBottom: spacing.sm },
+    filterChip: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: 10,
+      borderRadius: radius.full,
+      borderWidth: 1,
+    },
+    card: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      gap: spacing.md,
+    },
+    docIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cardBody: { flex: 1 },
     cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-    docNum: { fontSize: 16, fontWeight: '700' },
-    clientName: { fontSize: 14, marginTop: 2 },
-    amount: { fontSize: 18, fontWeight: '800' },
     cardBottom: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm, gap: spacing.sm },
-    type: { fontSize: 12, fontWeight: '500' },
-    date: { fontSize: 12, marginLeft: 'auto' },
   });
 }

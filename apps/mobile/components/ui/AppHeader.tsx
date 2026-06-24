@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
-import { spacing } from '@/constants/theme';
+import { layout, spacing } from '@/constants/theme';
 import { devLogAction } from '@/lib/devLog';
 import { hapticLight } from '@/lib/haptics';
 import { getTabHeaderTopSpacing } from '@/lib/safeArea';
+import { Text } from './Text';
 
 interface Props {
   title: string;
@@ -12,13 +13,13 @@ interface Props {
   right?: React.ReactNode;
   onBack?: () => void;
   style?: ViewStyle;
-  /** Apply extra top spacing on Android tab screens. */
   isTabScreen?: boolean;
 }
 
 export function AppHeader({ title, subtitle, right, onBack, style, isTabScreen }: Props) {
   const { colors } = useTheme();
   const headerTopGap = isTabScreen ? getTabHeaderTopSpacing() : spacing.sm;
+
   return (
     <View style={[styles.row, { paddingTop: headerTopGap }, style]}>
       {onBack ? (
@@ -28,14 +29,14 @@ export function AppHeader({ title, subtitle, right, onBack, style, isTabScreen }
             hapticLight();
             onBack();
           }}
-          style={styles.backBtn}
+          style={[styles.backBtn, { backgroundColor: colors.surfaceAlt }]}
         >
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
+          <Ionicons name="chevron-back" size={22} color={colors.text} />
         </TouchableOpacity>
       ) : null}
       <View style={styles.textWrap}>
-        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-        {subtitle ? <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text> : null}
+        <Text variant="title" style={{ fontSize: 30 }}>{title}</Text>
+        {subtitle ? <Text variant="caption" color="secondary" style={{ marginTop: 4 }}>{subtitle}</Text> : null}
       </View>
       {right ? <View style={styles.right}>{right}</View> : null}
     </View>
@@ -43,10 +44,20 @@ export function AppHeader({ title, subtitle, right, onBack, style, isTabScreen }
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
-  backBtn: { marginRight: spacing.sm, marginLeft: -4 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: layout.screenPadding,
+    paddingBottom: spacing.md,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
   textWrap: { flex: 1 },
-  title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.3 },
-  subtitle: { fontSize: 14, marginTop: 2 },
   right: { marginLeft: spacing.sm },
 });

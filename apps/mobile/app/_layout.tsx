@@ -1,4 +1,11 @@
 import { useFonts } from 'expo-font';
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -11,6 +18,7 @@ import { DevNavigationLogger } from '@/components/DevNavigationLogger';
 import { registerForPushNotifications } from '@/lib/pushNotifications';
 import { syncPendingOps } from '@/lib/offline';
 import { useAuthStore } from '@/stores/auth';
+import { fonts } from '@/constants/theme';
 import 'react-native-reanimated';
 
 SplashScreen.preventAutoHideAsync();
@@ -62,7 +70,7 @@ function ThemedNavigation() {
   const headerOptions = {
     headerStyle: { backgroundColor: colors.background },
     headerTintColor: colors.primary,
-    headerTitleStyle: { color: colors.text, fontWeight: '700' as const, fontSize: 17 },
+    headerTitleStyle: { color: colors.text, fontFamily: fonts.bold, fontSize: 17 },
     headerShadowVisible: false,
     headerBackTitle: 'Back',
   };
@@ -92,7 +100,11 @@ function ThemedNavigation() {
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
   });
 
   useEffect(() => { if (error) throw error; }, [error]);

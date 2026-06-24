@@ -1,12 +1,13 @@
-import { View, Text, StyleSheet, Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, StyleSheet, Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/Button';
+import { Text } from '@/components/ui/Text';
 import { completeOnboarding } from '@/lib/onboarding';
-import { radius, spacing } from '@/constants/theme';
+import { fonts, layout, radius, shadows, spacing } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -15,21 +16,25 @@ const SLIDES = [
     icon: 'flash' as const,
     title: 'Invoice in 30 seconds',
     body: 'Create professional invoices, estimates, and credit notes faster than any competitor.',
+    tint: '#4F46E5',
   },
   {
     icon: 'card' as const,
     title: 'Get paid your way',
     body: 'Stripe, PayPal, QR codes, and client portal payments — with deposit support built in.',
+    tint: '#059669',
   },
   {
     icon: 'notifications' as const,
     title: 'Never chase payments',
     body: 'Automated reminders, late fees, open tracking, and push alerts when clients pay.',
+    tint: '#D97706',
   },
   {
     icon: 'globe' as const,
     title: 'Run your business anywhere',
     body: 'Offline mode, 5 languages, mileage, time tracking, and expense OCR in one app.',
+    tint: '#7C3AED',
   },
 ];
 
@@ -48,9 +53,19 @@ export default function OnboardingScreen() {
     setIndex(i);
   };
 
+  const slide = SLIDES[index];
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.topBar} />
+      <LinearGradient
+        colors={[colors.gradientStart, colors.gradientMid, colors.gradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <Text style={styles.brand}>InvoiceFlow</Text>
+        <Text style={styles.brandSub}>Built for freelancers & trades</Text>
+      </LinearGradient>
 
       <FlatList
         ref={listRef}
@@ -59,23 +74,35 @@ export default function OnboardingScreen() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onScroll={onScroll}
+        scrollEventThrottle={16}
         keyExtractor={(item) => item.title}
         renderItem={({ item }) => (
           <View style={[styles.slide, { width }]}>
-            <View style={[styles.iconWrap, { backgroundColor: colors.primary + '15' }]}>
-              <Ionicons name={item.icon} size={48} color={colors.primary} />
+            <View style={[styles.iconWrap, { backgroundColor: item.tint + '14' }, shadows.md]}>
+              <LinearGradient
+                colors={[item.tint, item.tint + 'CC']}
+                style={styles.iconGradient}
+              >
+                <Ionicons name={item.icon} size={40} color="#fff" />
+              </LinearGradient>
             </View>
-            <Text style={[styles.title, { color: colors.text }]}>{item.title}</Text>
-            <Text style={[styles.body, { color: colors.textSecondary }]}>{item.body}</Text>
+            <Text variant="title" style={styles.slideTitle}>{item.title}</Text>
+            <Text variant="body" color="secondary" style={styles.slideBody}>{item.body}</Text>
           </View>
         )}
       />
 
       <View style={styles.dots}>
-        {SLIDES.map((_, i) => (
+        {SLIDES.map((s, i) => (
           <View
-            key={i}
-            style={[styles.dot, { backgroundColor: i === index ? colors.primary : colors.border }]}
+            key={s.title}
+            style={[
+              styles.dot,
+              {
+                backgroundColor: i === index ? slide.tint : colors.border,
+                width: i === index ? 24 : 8,
+              },
+            ]}
           />
         ))}
       </View>
@@ -88,10 +115,11 @@ export default function OnboardingScreen() {
               label="Next"
               onPress={() => listRef.current?.scrollToIndex({ index: index + 1, animated: true })}
               style={{ flex: 1 }}
+              icon="arrow-forward"
             />
           </>
         ) : (
-          <Button label="Get Started" onPress={finish} icon="rocket-outline" fullWidth />
+          <Button label="Get Started" onPress={finish} icon="rocket-outline" fullWidth size="lg" />
         )}
       </View>
     </View>
@@ -100,12 +128,39 @@ export default function OnboardingScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  topBar: { height: 6, width: '100%' },
-  slide: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl, paddingTop: 40 },
-  iconWrap: { width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xl },
-  title: { fontSize: 28, fontWeight: '800', textAlign: 'center', letterSpacing: -0.3, marginBottom: spacing.md },
-  body: { fontSize: 17, textAlign: 'center', lineHeight: 26 },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: spacing.lg },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  footer: { flexDirection: 'row', gap: spacing.sm, padding: spacing.lg, paddingBottom: spacing.xxl },
+  header: {
+    paddingTop: 64,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: layout.screenPadding,
+    borderBottomLeftRadius: radius.xxl,
+    borderBottomRightRadius: radius.xxl,
+  },
+  brand: { color: '#fff', fontSize: 28, fontFamily: fonts.extraBold, letterSpacing: -0.5 },
+  brandSub: { color: 'rgba(255,255,255,0.85)', fontSize: 15, fontFamily: fonts.medium, marginTop: 4 },
+  slide: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+  },
+  iconWrap: {
+    width: 108,
+    height: 108,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xl,
+  },
+  iconGradient: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  slideTitle: { textAlign: 'center', marginBottom: spacing.md },
+  slideBody: { textAlign: 'center', lineHeight: 26, maxWidth: 320 },
+  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginBottom: spacing.lg },
+  dot: { height: 8, borderRadius: 4 },
+  footer: { flexDirection: 'row', gap: spacing.sm, padding: layout.screenPadding, paddingBottom: spacing.xxl },
 });

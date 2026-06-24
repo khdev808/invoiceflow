@@ -1,5 +1,4 @@
 import { Tabs, Redirect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/auth';
 import { useEffect, useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -7,11 +6,11 @@ import { useI18n } from '@/hooks/useI18n';
 import { ActivityIndicator, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isOnboardingComplete } from '@/lib/onboarding';
-import { getBottomInset } from '@/lib/safeArea';
+import { CustomTabBar, getTabBarScrollPadding } from '@/components/ui/CustomTabBar';
 
 export default function TabLayout() {
   const { isAuthenticated, isLoading, loadUser } = useAuthStore();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
@@ -35,36 +34,20 @@ export default function TabLayout() {
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
   if (!onboardingDone) return <Redirect href="/onboarding" />;
 
-  const tabBarPaddingTop = 8;
-  const tabBarContentHeight = 56;
-  const bottomInset = getBottomInset(insets);
-  const tabHeight = tabBarContentHeight + tabBarPaddingTop + bottomInset;
+  const scenePadding = getTabBarScrollPadding(insets);
 
   return (
     <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          height: tabHeight,
-          paddingTop: tabBarPaddingTop,
-          paddingBottom: bottomInset,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: isDark ? 0.3 : 0.06,
-          shadowRadius: 8,
-        },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
         headerShown: false,
+        sceneStyle: { backgroundColor: colors.background, paddingBottom: scenePadding },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: t('home'), tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} /> }} />
-      <Tabs.Screen name="invoices" options={{ title: t('invoices'), tabBarIcon: ({ color, size }) => <Ionicons name="document-text" size={size} color={color} /> }} />
-      <Tabs.Screen name="clients" options={{ title: t('clients'), tabBarIcon: ({ color, size }) => <Ionicons name="people" size={size} color={color} /> }} />
-      <Tabs.Screen name="more" options={{ title: t('more'), tabBarIcon: ({ color, size }) => <Ionicons name="grid" size={size} color={color} /> }} />
+      <Tabs.Screen name="index" options={{ title: t('home') }} />
+      <Tabs.Screen name="invoices" options={{ title: t('invoices') }} />
+      <Tabs.Screen name="clients" options={{ title: t('clients') }} />
+      <Tabs.Screen name="more" options={{ title: t('more') }} />
       <Tabs.Screen name="two" options={{ href: null }} />
     </Tabs>
   );

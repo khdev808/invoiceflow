@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,13 +11,14 @@ import { Screen } from '@/components/ui/Screen';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Text } from '@/components/ui/Text';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { useUserCurrency } from '@/hooks/useUserCurrency';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { hapticLight } from '@/lib/haptics';
 import { devPress } from '@/lib/devLog';
 import { getTabHeaderTopSpacing } from '@/lib/safeArea';
-import { radius, spacing, shadows } from '@/constants/theme';
+import { fonts, layout, radius, shadows, spacing } from '@/constants/theme';
 
 export default function DashboardScreen() {
   const user = useAuthStore((s) => s.user);
@@ -53,7 +54,7 @@ export default function DashboardScreen() {
 
   if (loading && !stats) {
     return (
-      <Screen>
+      <Screen tabSafe>
         <View style={{ paddingTop: getTabHeaderTopSpacing() }}>
           <DashboardSkeleton />
         </View>
@@ -62,11 +63,16 @@ export default function DashboardScreen() {
   }
 
   return (
-    <Screen scroll refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }}>
+    <Screen scroll tabSafe refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }}>
       <View style={[styles.header, { paddingTop: getTabHeaderTopSpacing() }]}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.greeting}>{t('home')}, {user?.name?.split(' ')[0] || 'there'} 👋</Text>
-          <Text style={styles.business}>{user?.businessName || 'Your Business'}</Text>
+          <Text variant="caption" color="secondary" style={styles.welcomeLabel}>
+            {t('home')}
+          </Text>
+          <Text variant="title" style={{ fontSize: 30 }}>
+            {user?.name?.split(' ')[0] || 'there'} 👋
+          </Text>
+          <Text variant="caption" color="muted">{user?.businessName || 'Your Business'}</Text>
         </View>
         <TouchableOpacity
           style={[styles.notifBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -75,7 +81,7 @@ export default function DashboardScreen() {
           <Ionicons name="notifications-outline" size={22} color={colors.text} />
           {unread > 0 && (
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unread > 9 ? '9+' : unread}</Text>
+              <Text variant="micro" style={styles.badgeText}>{unread > 9 ? '9+' : unread}</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -83,38 +89,41 @@ export default function DashboardScreen() {
 
       <Pressable
         onPress={() => { hapticLight('home:create-invoice'); router.push('/invoice/create'); }}
-        style={({ pressed }) => [pressed && { opacity: 0.95, transform: [{ scale: 0.99 }] }]}
+        style={({ pressed }) => [pressed && { opacity: 0.96, transform: [{ scale: 0.99 }] }]}
       >
         <LinearGradient
-          colors={[colors.gradientStart, colors.gradientEnd]}
+          colors={[colors.gradientStart, colors.gradientMid, colors.gradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.hero}
         >
+          <View style={styles.heroGlow} />
           <View style={styles.heroIcon}>
-            <Ionicons name="flash" size={22} color="#fff" />
+            <Ionicons name="flash" size={24} color="#fff" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.heroTitle}>{t('createInvoice')}</Text>
-            <Text style={styles.heroSub}>Ready in under 30 seconds</Text>
+            <Text style={styles.heroSub}>Professional invoice in under 30 seconds</Text>
           </View>
-          <Ionicons name="arrow-forward-circle" size={32} color="rgba(255,255,255,0.9)" />
+          <View style={styles.heroArrow}>
+            <Ionicons name="arrow-forward" size={20} color="#fff" />
+          </View>
         </LinearGradient>
       </Pressable>
 
       <View style={styles.statsGrid}>
         {[
-          { label: t('revenue'), value: formatCurrency(stats?.totalRevenue || 0, currency), icon: 'trending-up', color: colors.accent },
-          { label: t('outstanding'), value: formatCurrency(stats?.outstandingAmount || 0, currency), icon: 'time', color: colors.warning },
-          { label: t('overdue'), value: formatCurrency(stats?.overdueAmount || 0, currency), icon: 'alert-circle', color: colors.danger },
-          { label: t('expenses'), value: formatCurrency(stats?.totalExpenses || 0, currency), icon: 'receipt', color: colors.textSecondary },
+          { label: t('revenue'), value: formatCurrency(stats?.totalRevenue || 0, currency), icon: 'trending-up', color: colors.accent, soft: colors.accentSoft },
+          { label: t('outstanding'), value: formatCurrency(stats?.outstandingAmount || 0, currency), icon: 'time', color: colors.warning, soft: colors.warningSoft },
+          { label: t('overdue'), value: formatCurrency(stats?.overdueAmount || 0, currency), icon: 'alert-circle', color: colors.danger, soft: colors.dangerSoft },
+          { label: t('expenses'), value: formatCurrency(stats?.totalExpenses || 0, currency), icon: 'receipt', color: colors.primary, soft: colors.primarySoft },
         ].map((s) => (
-          <Card key={s.label} style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: s.color + '15' }]}>
+          <Card key={s.label} style={styles.statCard} borderless elevated>
+            <View style={[styles.statIcon, { backgroundColor: s.soft }]}>
               <Ionicons name={s.icon as any} size={20} color={s.color} />
             </View>
             <Text style={[styles.statValue, { color: colors.text }]}>{loading ? '—' : s.value}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{s.label}</Text>
+            <Text variant="caption" color="secondary">{s.label}</Text>
           </Card>
         ))}
       </View>
@@ -133,10 +142,10 @@ export default function DashboardScreen() {
               style={styles.actionBtn}
               onPress={() => { hapticLight(`home:quick:${a.label}`); router.push(a.route as any); }}
             >
-              <View style={[styles.actionIcon, { backgroundColor: a.bg + '18' }]}>
+              <View style={[styles.actionIcon, { backgroundColor: a.bg + '14' }]}>
                 <Ionicons name={a.icon as any} size={22} color={a.bg} />
               </View>
-              <Text style={[styles.actionLabel, { color: colors.textSecondary }]}>{a.label}</Text>
+              <Text variant="caption" style={{ textAlign: 'center' }}>{a.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -151,26 +160,30 @@ export default function DashboardScreen() {
         ].map((s) => (
           <View key={s.label} style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.summaryNum, { color: s.color }]}>{s.num}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>{s.label}</Text>
+            <Text variant="micro" color="muted">{s.label}</Text>
           </View>
         ))}
       </View>
 
       {recent.length > 0 && (
-        <View style={[styles.section, { paddingBottom: spacing.xxl }]}>
+        <View style={styles.section}>
           <SectionHeader title="Recent Invoices" actionLabel="See all" onAction={() => router.push('/(tabs)/invoices')} />
           {recent.map((inv) => (
             <TouchableOpacity
               key={inv.id}
               style={[styles.recentRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
               onPress={devPress(`invoice:open:${inv.documentNumber}`, () => router.push(`/invoice/${inv.id}`))}
+              activeOpacity={0.75}
             >
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.recentNum, { color: colors.text }]}>{inv.documentNumber}</Text>
-                <Text style={[styles.recentClient, { color: colors.textSecondary }]}>{inv.client?.name}</Text>
+              <View style={[styles.recentIcon, { backgroundColor: colors.primarySoft }]}>
+                <Ionicons name="document-text-outline" size={18} color={colors.primary} />
               </View>
-              <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                <Text style={[styles.recentAmount, { color: colors.text }]}>{formatCurrency(inv.total, inv.currency)}</Text>
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyBold">{inv.documentNumber}</Text>
+                <Text variant="caption" color="secondary">{inv.client?.name}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                <Text variant="bodyBold">{formatCurrency(inv.total, inv.currency)}</Text>
                 <StatusBadge status={inv.status} />
               </View>
             </TouchableOpacity>
@@ -181,35 +194,135 @@ export default function DashboardScreen() {
   );
 }
 
-function makeStyles(colors: any) {
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
-    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, marginBottom: spacing.md },
-    greeting: { fontSize: 26, fontWeight: '800', color: colors.text, letterSpacing: -0.3 },
-    business: { fontSize: 14, color: colors.textSecondary, marginTop: 2 },
-    notifBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1, ...shadows.sm },
-    badge: { position: 'absolute', top: -2, right: -2, backgroundColor: colors.danger, borderRadius: 10, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-    badgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-    hero: { flexDirection: 'row', alignItems: 'center', marginHorizontal: spacing.lg, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, marginBottom: spacing.lg, ...shadows.md },
-    heroIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-    heroTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-    heroSub: { color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 2 },
-    statsGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg, gap: spacing.sm, marginBottom: spacing.lg },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: layout.screenPadding,
+      marginBottom: spacing.lg,
+    },
+    welcomeLabel: { textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
+    notifBtn: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      ...shadows.sm,
+    },
+    badge: {
+      position: 'absolute',
+      top: -2,
+      right: -2,
+      backgroundColor: colors.danger,
+      borderRadius: 10,
+      minWidth: 18,
+      height: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 4,
+      borderWidth: 2,
+      borderColor: colors.background,
+    },
+    badgeText: { color: '#fff', fontSize: 10, fontFamily: fonts.extraBold },
+    hero: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: layout.screenPadding,
+      borderRadius: radius.xl,
+      padding: spacing.lg,
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+      overflow: 'hidden',
+      ...shadows.lg,
+    },
+    heroGlow: {
+      position: 'absolute',
+      top: -40,
+      right: -20,
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: 'rgba(255,255,255,0.12)',
+    },
+    heroIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 16,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    heroTitle: { color: '#fff', fontSize: 18, fontFamily: fonts.extraBold, letterSpacing: -0.3 },
+    heroSub: { color: 'rgba(255,255,255,0.88)', fontSize: 13, fontFamily: fonts.medium, marginTop: 4 },
+    heroArrow: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      paddingHorizontal: layout.screenPadding,
+      gap: spacing.sm,
+      marginBottom: spacing.lg,
+    },
     statCard: { width: '48.5%', marginBottom: 0 },
-    statIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
-    statValue: { fontSize: 18, fontWeight: '800' },
-    statLabel: { fontSize: 12, marginTop: 2, fontWeight: '500' },
-    section: { paddingHorizontal: spacing.lg, marginBottom: spacing.lg },
+    statIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.sm,
+    },
+    statValue: { fontSize: 19, fontFamily: fonts.extraBold, letterSpacing: -0.4, marginBottom: 2 },
+    section: { paddingHorizontal: layout.screenPadding, marginBottom: spacing.lg },
     actionRow: { flexDirection: 'row', justifyContent: 'space-between' },
     actionBtn: { alignItems: 'center', width: '23%' },
-    actionIcon: { width: 56, height: 56, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs },
-    actionLabel: { fontSize: 12, fontWeight: '600', textAlign: 'center' },
-    summaryRow: { flexDirection: 'row', paddingHorizontal: spacing.lg, gap: spacing.sm, marginBottom: spacing.lg },
-    summaryCard: { flex: 1, borderRadius: radius.md, padding: spacing.md, alignItems: 'center', borderWidth: 1 },
-    summaryNum: { fontSize: 22, fontWeight: '800' },
-    summaryLabel: { fontSize: 11, marginTop: 2, fontWeight: '600' },
-    recentRow: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, borderRadius: radius.md, borderWidth: 1, marginBottom: spacing.sm },
-    recentNum: { fontSize: 15, fontWeight: '700' },
-    recentClient: { fontSize: 13, marginTop: 2 },
-    recentAmount: { fontSize: 16, fontWeight: '800' },
+    actionIcon: {
+      width: 58,
+      height: 58,
+      borderRadius: radius.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.sm,
+    },
+    summaryRow: {
+      flexDirection: 'row',
+      paddingHorizontal: layout.screenPadding,
+      gap: spacing.sm,
+      marginBottom: spacing.lg,
+    },
+    summaryCard: {
+      flex: 1,
+      borderRadius: radius.md,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.sm,
+      alignItems: 'center',
+      borderWidth: 1,
+    },
+    summaryNum: { fontSize: 24, fontFamily: fonts.extraBold, letterSpacing: -0.5 },
+    recentRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.md,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      marginBottom: spacing.sm,
+      gap: spacing.md,
+    },
+    recentIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
   });
 }

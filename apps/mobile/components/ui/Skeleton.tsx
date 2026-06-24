@@ -1,7 +1,7 @@
 import { View, StyleSheet, Animated, Easing } from 'react-native';
 import { useEffect, useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/constants/theme';
+import { layout, radius, spacing } from '@/constants/theme';
 
 interface Props {
   width?: number | `${number}%`;
@@ -12,13 +12,13 @@ interface Props {
 
 export function Skeleton({ width = '100%', height = 16, borderRadius = radius.sm, style }: Props) {
   const { colors } = useTheme();
-  const opacity = useRef(new Animated.Value(0.4)).current;
+  const opacity = useRef(new Animated.Value(0.35)).current;
 
   useEffect(() => {
     const anim = Animated.loop(
       Animated.sequence([
-        Animated.timing(opacity, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.4, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.75, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.35, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ]),
     );
     anim.start();
@@ -39,15 +39,17 @@ export function Skeleton({ width = '100%', height = 16, borderRadius = radius.sm
 export function DashboardSkeleton() {
   const { colors } = useTheme();
   return (
-    <View style={{ padding: 20, gap: 16, backgroundColor: colors.background, flex: 1 }}>
-      <Skeleton height={32} width="60%" />
-      <Skeleton height={100} borderRadius={radius.xl} />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        <Skeleton height={90} width="48%" borderRadius={radius.lg} />
-        <Skeleton height={90} width="48%" borderRadius={radius.lg} />
-        <Skeleton height={90} width="48%" borderRadius={radius.lg} />
-        <Skeleton height={90} width="48%" borderRadius={radius.lg} />
+    <View style={{ padding: layout.screenPadding, gap: spacing.md, backgroundColor: colors.background, flex: 1 }}>
+      <Skeleton height={28} width="55%" borderRadius={radius.md} />
+      <Skeleton height={14} width="40%" />
+      <Skeleton height={108} borderRadius={radius.xl} style={{ marginTop: spacing.sm }} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+        <Skeleton height={96} width="48%" borderRadius={radius.lg} />
+        <Skeleton height={96} width="48%" borderRadius={radius.lg} />
+        <Skeleton height={96} width="48%" borderRadius={radius.lg} />
+        <Skeleton height={96} width="48%" borderRadius={radius.lg} />
       </View>
+      <Skeleton height={72} borderRadius={radius.lg} />
     </View>
   );
 }
