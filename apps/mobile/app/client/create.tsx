@@ -1,10 +1,15 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { clientsApi } from '@/lib/api';
-import { colors, radius, spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
+import { FormField } from '@/components/ui/FormField';
+import { Button } from '@/components/ui/Button';
+import { spacing } from '@/constants/theme';
+import { hapticSuccess } from '@/lib/haptics';
 
 export default function CreateClientScreen() {
+  const { colors } = useTheme();
   const [form, setForm] = useState({ name: '', email: '', phone: '', company: '', address: '', city: '', state: '', zip: '' });
   const [loading, setLoading] = useState(false);
 
@@ -15,6 +20,7 @@ export default function CreateClientScreen() {
     setLoading(true);
     try {
       await clientsApi.create(form);
+      hapticSuccess();
       router.back();
     } catch {
       Alert.alert('Error', 'Failed to create client');
@@ -23,43 +29,37 @@ export default function CreateClientScreen() {
     }
   };
 
+  const fields = [
+    { key: 'name', label: 'Name *', placeholder: 'John Smith' },
+    { key: 'company', label: 'Company', placeholder: 'Smith Corp' },
+    { key: 'email', label: 'Email', placeholder: 'john@company.com', keyboard: 'email-address' as const },
+    { key: 'phone', label: 'Phone', placeholder: '+1 (555) 123-4567', keyboard: 'phone-pad' as const },
+    { key: 'address', label: 'Address', placeholder: '123 Main St' },
+    { key: 'city', label: 'City', placeholder: 'Austin' },
+    { key: 'state', label: 'State', placeholder: 'TX' },
+    { key: 'zip', label: 'ZIP', placeholder: '78701' },
+  ];
+
   return (
-    <View style={styles.container}>
-      {[
-        { key: 'name', label: 'Name *', placeholder: 'John Smith' },
-        { key: 'company', label: 'Company', placeholder: 'Smith Corp' },
-        { key: 'email', label: 'Email', placeholder: 'john@company.com', keyboard: 'email-address' },
-        { key: 'phone', label: 'Phone', placeholder: '+1 (555) 123-4567', keyboard: 'phone-pad' },
-        { key: 'address', label: 'Address', placeholder: '123 Main St' },
-        { key: 'city', label: 'City', placeholder: 'Austin' },
-        { key: 'state', label: 'State', placeholder: 'TX' },
-        { key: 'zip', label: 'ZIP', placeholder: '78701' },
-      ].map((field) => (
-        <View key={field.key}>
-          <Text style={styles.label}>{field.label}</Text>
-          <TextInput
-            style={styles.input}
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} keyboardShouldPersistTaps="handled">
+      <View style={{ padding: spacing.lg }}>
+        {fields.map((field) => (
+          <FormField
+            key={field.key}
+            label={field.label}
             value={(form as any)[field.key]}
             onChangeText={(v) => update(field.key, v)}
             placeholder={field.placeholder}
-            placeholderTextColor={colors.textMuted}
-            keyboardType={field.keyboard as any}
+            keyboardType={field.keyboard}
             autoCapitalize={field.key === 'email' ? 'none' : 'words'}
           />
-        </View>
-      ))}
-
-      <TouchableOpacity style={styles.button} onPress={handleSave} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Save Client</Text>}
-      </TouchableOpacity>
-    </View>
+        ))}
+        <Button label="Save Client" onPress={handleSave} loading={loading} fullWidth icon="person-add-outline" />
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
-  label: { fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: spacing.xs, marginTop: spacing.sm },
-  input: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, fontSize: 16, color: colors.text, borderWidth: 1, borderColor: colors.border },
-  button: { backgroundColor: colors.primary, borderRadius: radius.md, padding: spacing.md, alignItems: 'center', marginTop: spacing.lg },
-  buttonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  container: { flex: 1 },
 });

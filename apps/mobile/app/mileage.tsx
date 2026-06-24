@@ -1,65 +1,87 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { mileageApi } from '@/lib/api';
-import { colors, radius, spacing, shadows } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useUserCurrency } from '@/hooks/useUserCurrency';
+import { Screen } from '@/components/ui/Screen';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { formatCurrency, formatDate } from '@/lib/format';
+import { radius, spacing } from '@/constants/theme';
 
 export default function MileageScreen() {
+  const { colors } = useTheme();
+  const currency = useUserCurrency();
   const [entries, setEntries] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const load = async () => {
     try {
       const [listRes, sumRes] = await Promise.all([mileageApi.list(), mileageApi.summary()]);
       setEntries(listRes.data);
       setSummary(sumRes.data);
-    } catch { setEntries([]); }
-    finally { setLoading(false); }
+    } catch {
+      setEntries([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   useFocusEffect(useCallback(() => { load(); }, []));
 
+  const rate = summary?.totalMiles ? summary.totalDeduction / summary.totalMiles : 0.67;
+
   return (
-    <View style={styles.container}>
-      <View style={styles.summary}>
-        <Text style={styles.summaryLabel}>Mileage Deduction (IRS ${summary?.totalMiles ? (summary.totalDeduction / summary.totalMiles).toFixed(2) : '0.67'}/mi)</Text>
-        <Text style={styles.summaryValue}>${(summary?.totalDeduction || 0).toFixed(2)}</Text>
+    <Screen edges={[]}>
+      <LinearGradient colors={['#7C3AED', '#5B21B6']} style={styles.summary}>
+        <Text style={styles.summaryLabel}>Mileage Deduction (IRS {formatCurrency(rate, currency)}/mi)</Text>
+        <Text style={styles.summaryValue}>{formatCurrency(summary?.totalDeduction || 0, currency)}</Text>
         <Text style={styles.summarySub}>{(summary?.totalMiles || 0).toFixed(1)} miles logged</Text>
+      </LinearGradient>
+
+      <View style={{ padding: spacing.lg }}>
+        <Button label="Log Mileage" icon="car" onPress={() => router.push('/mileage/create')} fullWidth />
       </View>
-      <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/mileage/create')}>
-        <Ionicons name="car" size={20} color="#fff" />
-        <Text style={styles.addText}>Log Mileage</Text>
-      </TouchableOpacity>
-      {loading ? <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} /> : (
-        <FlatList data={entries} keyExtractor={(i) => i.id} contentContainerStyle={{ padding: spacing.lg }}
-          refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}
+
+      {loading ? (
+        <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
+      ) : (
+        <FlatList
+          data={entries}
+          keyExtractor={(i) => i.id}
+          contentContainerStyle={{ padding: spacing.lg, paddingTop: 0, flexGrow: 1 }}
+          refreshing={refreshing}
+          onRefresh={() => { setRefreshing(true); load(); }}
+          ListEmptyComponent={
+            <EmptyState icon="car-outline" title="No mileage yet" message="Log business trips for IRS-ready deductions." actionLabel="Log Mileage" onAction={() => router.push('/mileage/create')} />
+          }
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.desc}>{item.description}</Text>
-                <Text style={styles.meta}>{item.miles} mi × ${item.rate}/mi • {new Date(item.date).toLocaleDateString()}</Text>
+                <Text style={[styles.desc, { color: colors.text }]}>{item.description}</Text>
+                <Text style={[styles.meta, { color: colors.textSecondary }]}>{item.miles} mi × {formatCurrency(item.rate, currency)}/mi · {formatDate(item.date)}</Text>
               </View>
-              <Text style={styles.amount}>${(item.miles * item.rate).toFixed(2)}</Text>
+              <Text style={[styles.amount, { color: colors.text }]}>{formatCurrency(item.miles * item.rate, currency)}</Text>
             </View>
           )}
         />
       )}
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  summary: { backgroundColor: '#7C3AED', padding: spacing.lg, alignItems: 'center' },
-  summaryLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-  summaryValue: { color: '#fff', fontSize: 36, fontWeight: '800' },
-  summarySub: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
-  addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.primary, margin: spacing.lg, padding: spacing.md, borderRadius: radius.md },
-  addText: { color: '#fff', fontWeight: '700' },
-  card: { flexDirection: 'row', backgroundColor: colors.surface, padding: spacing.md, borderRadius: radius.md, marginBottom: spacing.sm, ...shadows.sm },
-  desc: { fontSize: 15, fontWeight: '600', color: colors.text },
-  meta: { fontSize: 13, color: colors.textSecondary },
-  amount: { fontSize: 16, fontWeight: '800', color: colors.text },
+  summary: { padding: spacing.xl, alignItems: 'center' },
+  summaryLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 13, textAlign: 'center' },
+  summaryValue: { color: '#fff', fontSize: 36, fontWeight: '800', marginTop: 4 },
+  summarySub: { color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 4 },
+  card: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, borderRadius: radius.lg, marginBottom: spacing.sm, borderWidth: 1 },
+  desc: { fontSize: 15, fontWeight: '600' },
+  meta: { fontSize: 13, marginTop: 2 },
+  amount: { fontSize: 16, fontWeight: '800' },
 });

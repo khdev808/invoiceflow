@@ -1,14 +1,24 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { timeApi } from '@/lib/api';
-import { colors, radius, spacing, shadows } from '@/constants/theme';
-import { Alert } from 'react-native';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useUserCurrency } from '@/hooks/useUserCurrency';
+import { Screen } from '@/components/ui/Screen';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { formatCurrency, formatDate } from '@/lib/format';
+import { hapticLight } from '@/lib/haptics';
+import { radius, spacing } from '@/constants/theme';
 
 export default function TimeScreen() {
+  const { colors } = useTheme();
+  const currency = useUserCurrency();
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const load = async () => {
@@ -19,6 +29,7 @@ export default function TimeScreen() {
       setEntries([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -27,36 +38,40 @@ export default function TimeScreen() {
   const totalBillable = entries.filter((e) => e.billable && !e.invoiced).reduce((s, e) => s + e.hours * e.rate, 0);
 
   const toggleSelect = (id: string) => {
+    hapticLight();
     const next = new Set(selected);
     if (next.has(id)) next.delete(id); else next.add(id);
     setSelected(next);
   };
 
   const billSelected = async () => {
-    if (selected.size === 0) { Alert.alert('Select entries', 'Tap entries to select, then bill them'); return; }
+    if (selected.size === 0) {
+      Alert.alert('Select entries', 'Tap unbilled entries to select them first.');
+      return;
+    }
     try {
       const { data: lineItems } = await timeApi.toLineItems([...selected]);
       router.push({ pathname: '/invoice/create', params: { prefilled: JSON.stringify(lineItems) } });
-    } catch { Alert.alert('Error', 'Failed to convert time entries'); }
+    } catch {
+      Alert.alert('Error', 'Failed to convert time entries');
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.summary}>
+    <Screen edges={[]}>
+      <LinearGradient colors={[colors.accent, colors.accentDark]} style={styles.summary}>
         <Text style={styles.summaryLabel}>Unbilled Time</Text>
-        <Text style={styles.summaryValue}>${totalBillable.toFixed(2)}</Text>
+        <Text style={styles.summaryValue}>{formatCurrency(totalBillable, currency)}</Text>
+      </LinearGradient>
+
+      <View style={styles.actions}>
+        <Button label="Log Time Entry" icon="timer-outline" onPress={() => router.push('/time/create')} fullWidth />
       </View>
 
-      <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/time/create')}>
-        <Ionicons name="add" size={20} color="#fff" />
-        <Text style={styles.addText}>Log Time Entry</Text>
-      </TouchableOpacity>
-
       {selected.size > 0 && (
-        <TouchableOpacity style={styles.billBtn} onPress={billSelected}>
-          <Ionicons name="document-text" size={20} color="#fff" />
-          <Text style={styles.addText}>Bill {selected.size} entries to Invoice</Text>
-        </TouchableOpacity>
+        <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.sm }}>
+          <Button label={`Bill ${selected.size} entries to Invoice`} icon="document-text" onPress={billSelected} variant="accent" fullWidth />
+        </View>
       )}
 
       {loading ? (
@@ -65,40 +80,48 @@ export default function TimeScreen() {
         <FlatList
           data={entries}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: spacing.lg }}
-          refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}
+          contentContainerStyle={{ padding: spacing.lg, flexGrow: 1 }}
+          refreshing={refreshing}
+          onRefresh={() => { setRefreshing(true); load(); }}
+          ListEmptyComponent={
+            <EmptyState icon="timer-outline" title="No time logged" message="Track billable hours and convert them to invoice line items." actionLabel="Log Time" onAction={() => router.push('/time/create')} />
+          }
           renderItem={({ item }) => (
-            <TouchableOpacity style={[styles.card, selected.has(item.id) && styles.cardSelected]} onPress={() => !item.invoiced && toggleSelect(item.id)}>
+            <TouchableOpacity
+              style={[
+                styles.card,
+                { backgroundColor: colors.surface, borderColor: selected.has(item.id) ? colors.primary : colors.border },
+                selected.has(item.id) && { borderWidth: 2 },
+              ]}
+              onPress={() => !item.invoiced && toggleSelect(item.id)}
+              disabled={item.invoiced}
+            >
               <View style={{ flex: 1 }}>
-                <Text style={styles.desc}>{item.description}</Text>
-                <Text style={styles.meta}>{item.client?.name || 'No client'} • {item.hours}h @ ${item.rate}/hr</Text>
-                <Text style={styles.date}>{new Date(item.date).toLocaleDateString()}</Text>
+                <Text style={[styles.desc, { color: colors.text }]}>{item.description}</Text>
+                <Text style={[styles.meta, { color: colors.textSecondary }]}>{item.client?.name || 'No client'} · {item.hours}h @ {formatCurrency(item.rate, currency)}/hr</Text>
+                <Text style={[styles.date, { color: colors.textMuted }]}>{formatDate(item.date)}</Text>
               </View>
-              <View>
-                <Text style={styles.amount}>${(item.hours * item.rate).toFixed(2)}</Text>
-                {item.invoiced && <Text style={styles.invoiced}>Invoiced</Text>}
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={[styles.amount, { color: colors.text }]}>{formatCurrency(item.hours * item.rate, currency)}</Text>
+                {item.invoiced && <Text style={[styles.invoiced, { color: colors.accent }]}>Invoiced</Text>}
               </View>
             </TouchableOpacity>
           )}
         />
       )}
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  summary: { backgroundColor: colors.accent, padding: spacing.lg, alignItems: 'center' },
-  summaryLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 14 },
-  summaryValue: { color: '#fff', fontSize: 36, fontWeight: '800' },
-  addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.primary, margin: spacing.lg, padding: spacing.md, borderRadius: radius.md },
-  addText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  billBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.accent, marginHorizontal: spacing.lg, marginBottom: spacing.sm, padding: spacing.md, borderRadius: radius.md },
-  card: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, ...shadows.sm },
-  cardSelected: { borderWidth: 2, borderColor: colors.primary },
-  desc: { fontSize: 15, fontWeight: '600', color: colors.text },
-  meta: { fontSize: 13, color: colors.textSecondary },
-  date: { fontSize: 12, color: colors.textMuted },
-  amount: { fontSize: 18, fontWeight: '800', color: colors.text, textAlign: 'right' },
-  invoiced: { fontSize: 11, color: colors.accent, fontWeight: '700', textAlign: 'right' },
+  summary: { padding: spacing.xl, alignItems: 'center' },
+  summaryLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 14 },
+  summaryValue: { color: '#fff', fontSize: 36, fontWeight: '800', marginTop: 4 },
+  actions: { padding: spacing.lg, paddingBottom: spacing.sm },
+  card: { flexDirection: 'row', borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1 },
+  desc: { fontSize: 15, fontWeight: '600' },
+  meta: { fontSize: 13, marginTop: 2 },
+  date: { fontSize: 12, marginTop: 2 },
+  amount: { fontSize: 17, fontWeight: '800' },
+  invoiced: { fontSize: 11, fontWeight: '700', marginTop: 4 },
 });

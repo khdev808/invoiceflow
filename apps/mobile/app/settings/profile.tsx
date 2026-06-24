@@ -1,11 +1,18 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import { usersApi } from '@/lib/api';
-import { colors, radius, spacing, currencies } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Screen } from '@/components/ui/Screen';
+import { FormField } from '@/components/ui/FormField';
+import { Button } from '@/components/ui/Button';
+import { currencies } from '@/constants/theme';
+import { radius, spacing } from '@/constants/theme';
+import { hapticSuccess } from '@/lib/haptics';
 
 export default function ProfileSettingsScreen() {
   const { user, setUser } = useAuthStore();
+  const { colors } = useTheme();
   const [form, setForm] = useState({
     name: user?.name || '',
     businessName: user?.businessName || '',
@@ -24,6 +31,7 @@ export default function ProfileSettingsScreen() {
     try {
       const { data } = await usersApi.updateProfile(form);
       setUser(data);
+      hapticSuccess();
       Alert.alert('Saved', 'Business profile updated');
     } catch {
       Alert.alert('Error', 'Failed to save profile');
@@ -33,45 +41,40 @@ export default function ProfileSettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-      {[
-        { key: 'name', label: 'Your Name' },
-        { key: 'businessName', label: 'Business Name' },
-        { key: 'businessPhone', label: 'Phone' },
-        { key: 'businessEmail', label: 'Email', keyboard: 'email-address' },
-        { key: 'businessAddress', label: 'Address' },
-        { key: 'taxId', label: 'Tax ID / EIN' },
-      ].map((field) => (
-        <View key={field.key}>
-          <Text style={styles.label}>{field.label}</Text>
-          <TextInput style={styles.input} value={(form as any)[field.key]} onChangeText={(v) => update(field.key, v)} keyboardType={field.keyboard as any} />
-        </View>
-      ))}
+    <Screen scroll edges={[]}>
+      <View style={{ padding: spacing.lg }}>
+        <Text style={[styles.intro, { color: colors.textSecondary }]}>This info appears on invoices, estimates, and your client portal.</Text>
 
-      <Text style={styles.label}>Currency</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {currencies.map((c) => (
-          <TouchableOpacity key={c.code} style={[styles.currencyChip, form.currency === c.code && styles.currencyActive]} onPress={() => update('currency', c.code)}>
-            <Text style={[styles.currencyText, form.currency === c.code && styles.currencyTextActive]}>{c.symbol} {c.code}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+        <FormField label="Your Name" value={form.name} onChangeText={(v) => update('name', v)} />
+        <FormField label="Business Name" value={form.businessName} onChangeText={(v) => update('businessName', v)} />
+        <FormField label="Phone" value={form.businessPhone} onChangeText={(v) => update('businessPhone', v)} keyboardType="phone-pad" />
+        <FormField label="Email" value={form.businessEmail} onChangeText={(v) => update('businessEmail', v)} keyboardType="email-address" autoCapitalize="none" />
+        <FormField label="Address" value={form.businessAddress} onChangeText={(v) => update('businessAddress', v)} />
+        <FormField label="Tax ID / EIN" value={form.taxId} onChangeText={(v) => update('taxId', v)} />
 
-      <TouchableOpacity style={styles.button} onPress={handleSave} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Save Profile</Text>}
-      </TouchableOpacity>
-    </ScrollView>
+        <Text style={[styles.label, { color: colors.text }]}>Default Currency</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.md }}>
+          {currencies.map((c) => (
+            <TouchableOpacity
+              key={c.code}
+              style={[styles.currencyChip, { borderColor: colors.border, backgroundColor: colors.surface }, form.currency === c.code && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+              onPress={() => update('currency', c.code)}
+            >
+              <Text style={[styles.currencyText, { color: colors.textSecondary }, form.currency === c.code && styles.currencyTextActive]}>{c.symbol} {c.code}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <Button label="Save Profile" onPress={handleSave} loading={loading} fullWidth icon="save-outline" />
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
-  label: { fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: spacing.xs, marginTop: spacing.sm },
-  input: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, fontSize: 16, color: colors.text, borderWidth: 1, borderColor: colors.border },
-  currencyChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.full, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, marginRight: spacing.sm, marginVertical: spacing.sm },
-  currencyActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  currencyText: { fontSize: 14, color: colors.textSecondary, fontWeight: '600' },
+  intro: { fontSize: 15, lineHeight: 22, marginBottom: spacing.lg },
+  label: { fontSize: 14, fontWeight: '600', marginBottom: spacing.sm },
+  currencyChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.full, borderWidth: 1, marginRight: spacing.sm },
+  currencyText: { fontSize: 14, fontWeight: '600' },
   currencyTextActive: { color: '#fff' },
-  button: { backgroundColor: colors.primary, borderRadius: radius.md, padding: spacing.md, alignItems: 'center', marginTop: spacing.lg, marginBottom: spacing.xxl },
-  buttonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
 });

@@ -72,6 +72,7 @@ function ThemedNavigation() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
+        <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="(tabs)" />
         {modalScreens.map((s) => (
           <Stack.Screen

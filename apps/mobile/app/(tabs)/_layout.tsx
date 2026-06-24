@@ -1,21 +1,29 @@
 import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/auth';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useI18n } from '@/hooks/useI18n';
 import { ActivityIndicator, View, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { isOnboardingComplete } from '@/lib/onboarding';
 
 export default function TabLayout() {
   const { isAuthenticated, isLoading, loadUser } = useAuthStore();
   const { colors, isDark } = useTheme();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
   useEffect(() => { loadUser(); }, []);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (isAuthenticated) {
+      isOnboardingComplete().then(setOnboardingDone);
+    }
+  }, [isAuthenticated]);
+
+  if (isLoading || (isAuthenticated && onboardingDone === null)) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator color={colors.primary} size="large" />
@@ -24,6 +32,7 @@ export default function TabLayout() {
   }
 
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
+  if (!onboardingDone) return <Redirect href="/onboarding" />;
 
   const tabHeight = 56 + (Platform.OS === 'ios' ? insets.bottom : 12);
 

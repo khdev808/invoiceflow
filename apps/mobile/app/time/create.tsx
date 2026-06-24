@@ -1,10 +1,18 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { timeApi } from '@/lib/api';
-import { colors, radius, spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useUserCurrency } from '@/hooks/useUserCurrency';
+import { FormField } from '@/components/ui/FormField';
+import { Button } from '@/components/ui/Button';
+import { formatCurrency } from '@/lib/format';
+import { spacing } from '@/constants/theme';
+import { Alert } from 'react-native';
 
 export default function CreateTimeScreen() {
+  const { colors } = useTheme();
+  const currency = useUserCurrency();
   const [description, setDescription] = useState('');
   const [hours, setHours] = useState('');
   const [rate, setRate] = useState('75');
@@ -23,38 +31,29 @@ export default function CreateTimeScreen() {
     }
   };
 
+  const total = hours && rate ? parseFloat(hours) * parseFloat(rate) : 0;
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Description</Text>
-      <TextInput style={styles.input} value={description} onChangeText={setDescription} placeholder="What did you work on?" placeholderTextColor={colors.textMuted} />
-
-      <Text style={styles.label}>Hours</Text>
-      <TextInput style={styles.input} value={hours} onChangeText={setHours} keyboardType="decimal-pad" placeholder="2.5" placeholderTextColor={colors.textMuted} />
-
-      <Text style={styles.label}>Hourly Rate ($)</Text>
-      <TextInput style={styles.input} value={rate} onChangeText={setRate} keyboardType="decimal-pad" placeholder="75" placeholderTextColor={colors.textMuted} />
-
-      {hours && rate && (
-        <View style={styles.preview}>
-          <Text style={styles.previewLabel}>Total</Text>
-          <Text style={styles.previewValue}>${(parseFloat(hours) * parseFloat(rate)).toFixed(2)}</Text>
-        </View>
-      )}
-
-      <TouchableOpacity style={styles.button} onPress={handleSave} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Log Time</Text>}
-      </TouchableOpacity>
-    </View>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={{ padding: spacing.lg }}>
+        <FormField label="Description" value={description} onChangeText={setDescription} placeholder="What did you work on?" />
+        <FormField label="Hours" value={hours} onChangeText={setHours} keyboardType="decimal-pad" placeholder="2.5" />
+        <FormField label="Hourly Rate" value={rate} onChangeText={setRate} keyboardType="decimal-pad" placeholder="75" />
+        {total > 0 && (
+          <View style={styles.preview}>
+            <Text style={[styles.previewLabel, { color: colors.textSecondary }]}>Total</Text>
+            <Text style={[styles.previewValue, { color: colors.accent }]}>{formatCurrency(total, currency)}</Text>
+          </View>
+        )}
+        <Button label="Log Time" onPress={handleSave} loading={loading} fullWidth icon="timer-outline" />
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
-  label: { fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: spacing.xs, marginTop: spacing.sm },
-  input: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, fontSize: 16, color: colors.text, borderWidth: 1, borderColor: colors.border },
-  preview: { alignItems: 'center', padding: spacing.lg, marginTop: spacing.md },
-  previewLabel: { fontSize: 14, color: colors.textSecondary },
-  previewValue: { fontSize: 32, fontWeight: '800', color: colors.accent },
-  button: { backgroundColor: colors.primary, borderRadius: radius.md, padding: spacing.md, alignItems: 'center', marginTop: spacing.lg },
-  buttonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  container: { flex: 1 },
+  preview: { alignItems: 'center', padding: spacing.lg },
+  previewLabel: { fontSize: 14 },
+  previewValue: { fontSize: 32, fontWeight: '800', marginTop: 4 },
 });

@@ -17,7 +17,7 @@ interface LineItem {
 }
 
 export default function CreateInvoiceScreen() {
-  const { type, clientId: paramClientId } = useLocalSearchParams<{ type?: string; clientId?: string }>();
+  const { type, clientId: paramClientId, prefilled } = useLocalSearchParams<{ type?: string; clientId?: string; prefilled?: string }>();
   const { colors } = useTheme();
   const docType = type === 'ESTIMATE' ? 'ESTIMATE' : type === 'CREDIT_NOTE' ? 'CREDIT_NOTE' : 'INVOICE';
 
@@ -46,6 +46,22 @@ export default function CreateInvoiceScreen() {
       }
     }).finally(() => setLoadingClients(false));
   }, [paramClientId]);
+
+  useEffect(() => {
+    if (!prefilled) return;
+    try {
+      const items = JSON.parse(prefilled);
+      if (Array.isArray(items) && items.length > 0) {
+        setLineItems(items.map((i: any) => ({
+          description: i.description || '',
+          quantity: String(i.quantity ?? 1),
+          unitPrice: String(i.unitPrice ?? 0),
+          taxRate: String(i.taxRate ?? 0),
+          discount: String(i.discount ?? 0),
+        })));
+      }
+    } catch { /* ignore bad payload */ }
+  }, [prefilled]);
 
   const addProductLine = (product: any) => {
     setLineItems([...lineItems, {

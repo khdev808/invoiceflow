@@ -12,6 +12,8 @@ import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { useUserCurrency } from '@/hooks/useUserCurrency';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { hapticLight } from '@/lib/haptics';
 import { radius, spacing, shadows } from '@/constants/theme';
 
@@ -25,7 +27,7 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const currency = user?.currency || 'USD';
+  const currency = useUserCurrency();
 
   const load = async () => {
     try {
@@ -43,9 +45,13 @@ export default function DashboardScreen() {
     }
   };
 
-  useFocusEffect(useCallback(() => { load(); }, []));
+  useFocusEffect(useCallback(() => { setLoading(true); load(); }, []));
 
   const styles = makeStyles(colors);
+
+  if (loading && !stats) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <Screen scroll refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }}>

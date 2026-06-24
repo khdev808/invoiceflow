@@ -1,10 +1,18 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { mileageApi } from '@/lib/api';
-import { colors, radius, spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useUserCurrency } from '@/hooks/useUserCurrency';
+import { FormField } from '@/components/ui/FormField';
+import { Button } from '@/components/ui/Button';
+import { formatCurrency } from '@/lib/format';
+import { spacing } from '@/constants/theme';
+import { Alert } from 'react-native';
 
 export default function CreateMileageScreen() {
+  const { colors } = useTheme();
+  const currency = useUserCurrency();
   const [description, setDescription] = useState('');
   const [miles, setMiles] = useState('');
   const [rate, setRate] = useState('0.67');
@@ -16,31 +24,31 @@ export default function CreateMileageScreen() {
     try {
       await mileageApi.create({ description, miles: parseFloat(miles), rate: parseFloat(rate) });
       router.back();
-    } catch { Alert.alert('Error', 'Failed to log mileage'); }
-    finally { setLoading(false); }
+    } catch {
+      Alert.alert('Error', 'Failed to log mileage');
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const deduction = miles && rate ? parseFloat(miles) * parseFloat(rate) : 0;
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Trip Description</Text>
-      <TextInput style={styles.input} value={description} onChangeText={setDescription} placeholder="Client site visit - Dallas" placeholderTextColor={colors.textMuted} />
-      <Text style={styles.label}>Miles</Text>
-      <TextInput style={styles.input} value={miles} onChangeText={setMiles} keyboardType="decimal-pad" placeholder="42.5" placeholderTextColor={colors.textMuted} />
-      <Text style={styles.label}>Rate per Mile ($)</Text>
-      <TextInput style={styles.input} value={rate} onChangeText={setRate} keyboardType="decimal-pad" placeholderTextColor={colors.textMuted} />
-      {miles && <Text style={styles.preview}>Deduction: ${(parseFloat(miles) * parseFloat(rate)).toFixed(2)}</Text>}
-      <TouchableOpacity style={styles.button} onPress={handleSave} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Log Mileage</Text>}
-      </TouchableOpacity>
-    </View>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={{ padding: spacing.lg }}>
+        <FormField label="Trip Description" value={description} onChangeText={setDescription} placeholder="Client site visit" />
+        <FormField label="Miles" value={miles} onChangeText={setMiles} keyboardType="decimal-pad" placeholder="42.5" />
+        <FormField label="Rate per Mile" value={rate} onChangeText={setRate} keyboardType="decimal-pad" />
+        {deduction > 0 && (
+          <Text style={[styles.preview, { color: '#7C3AED' }]}>Deduction: {formatCurrency(deduction, currency)}</Text>
+        )}
+        <Button label="Log Mileage" onPress={handleSave} loading={loading} fullWidth icon="car-outline" />
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
-  label: { fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: spacing.xs, marginTop: spacing.sm },
-  input: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, fontSize: 16, color: colors.text, borderWidth: 1, borderColor: colors.border },
-  preview: { fontSize: 20, fontWeight: '800', color: '#7C3AED', textAlign: 'center', marginTop: spacing.lg },
-  button: { backgroundColor: colors.primary, borderRadius: radius.md, padding: spacing.md, alignItems: 'center', marginTop: spacing.lg },
-  buttonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  container: { flex: 1 },
+  preview: { fontSize: 20, fontWeight: '800', textAlign: 'center', marginVertical: spacing.lg },
 });

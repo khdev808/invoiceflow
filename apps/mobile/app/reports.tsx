@@ -1,9 +1,18 @@
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useEffect, useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 import { reportsApi } from '@/lib/api';
-import { colors, radius, spacing, shadows } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useUserCurrency } from '@/hooks/useUserCurrency';
+import { Screen } from '@/components/ui/Screen';
+import { Card } from '@/components/ui/Card';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { formatCurrency } from '@/lib/format';
+import { radius, spacing } from '@/constants/theme';
 
 export default function ReportsScreen() {
+  const { colors } = useTheme();
+  const currency = useUserCurrency();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -11,55 +20,66 @@ export default function ReportsScreen() {
     reportsApi.profitLoss().then(({ data: d }) => setData(d)).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />;
+  const profit = data?.profit || 0;
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.hero}>
+    <Screen scroll edges={[]}>
+      <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.hero}>
         <Text style={styles.heroLabel}>Net Profit</Text>
-        <Text style={[styles.heroValue, { color: (data?.profit || 0) >= 0 ? colors.accent : colors.danger }]}>
-          ${(data?.profit || 0).toFixed(2)}
-        </Text>
-      </View>
+        {loading ? (
+          <Skeleton height={48} width={180} borderRadius={radius.md} style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+        ) : (
+          <Text style={[styles.heroValue, { color: profit >= 0 ? '#fff' : '#FCA5A5' }]}>
+            {formatCurrency(profit, currency)}
+          </Text>
+        )}
+      </LinearGradient>
 
       <View style={styles.row}>
-        <View style={[styles.card, { borderLeftColor: colors.accent }]}>
-          <Text style={styles.cardLabel}>Income</Text>
-          <Text style={styles.cardValue}>${(data?.income || 0).toFixed(2)}</Text>
-        </View>
-        <View style={[styles.card, { borderLeftColor: colors.danger }]}>
-          <Text style={styles.cardLabel}>Expenses</Text>
-          <Text style={styles.cardValue}>${(data?.expenses || 0).toFixed(2)}</Text>
-        </View>
+        <Card style={styles.halfCard}>
+          <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>Income</Text>
+          {loading ? <Skeleton height={28} width="70%" /> : (
+            <Text style={[styles.cardValue, { color: colors.accent }]}>{formatCurrency(data?.income || 0, currency)}</Text>
+          )}
+        </Card>
+        <Card style={styles.halfCard}>
+          <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>Expenses</Text>
+          {loading ? <Skeleton height={28} width="70%" /> : (
+            <Text style={[styles.cardValue, { color: colors.danger }]}>{formatCurrency(data?.expenses || 0, currency)}</Text>
+          )}
+        </Card>
       </View>
 
-      <Text style={styles.sectionTitle}>Income by Month</Text>
-      {data?.incomeByMonth && Object.entries(data.incomeByMonth).map(([month, amount]) => (
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Income by Month</Text>
+      {loading ? (
+        <View style={{ paddingHorizontal: spacing.lg, gap: 12 }}>
+          {[1, 2, 3, 4].map((i) => <Skeleton key={i} height={32} borderRadius={radius.md} />)}
+        </View>
+      ) : data?.incomeByMonth && Object.entries(data.incomeByMonth).map(([month, amount]) => (
         <View key={month} style={styles.monthRow}>
-          <Text style={styles.monthLabel}>{month}</Text>
-          <View style={styles.barContainer}>
-            <View style={[styles.bar, { width: `${Math.min(100, ((amount as number) / (data.income || 1)) * 100)}%` }]} />
+          <Text style={[styles.monthLabel, { color: colors.textSecondary }]}>{month}</Text>
+          <View style={[styles.barContainer, { backgroundColor: colors.surfaceAlt }]}>
+            <View style={[styles.bar, { width: `${Math.min(100, ((amount as number) / (data.income || 1)) * 100)}%`, backgroundColor: colors.primary }]} />
           </View>
-          <Text style={styles.monthValue}>${(amount as number).toFixed(0)}</Text>
+          <Text style={[styles.monthValue, { color: colors.text }]}>{formatCurrency(amount as number, currency)}</Text>
         </View>
       ))}
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  hero: { backgroundColor: colors.primary, padding: spacing.xl, alignItems: 'center' },
-  heroLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 16 },
-  heroValue: { fontSize: 42, fontWeight: '800', color: '#fff', marginTop: spacing.xs },
+  hero: { padding: spacing.xl, alignItems: 'center' },
+  heroLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 16, fontWeight: '500' },
+  heroValue: { fontSize: 42, fontWeight: '800', marginTop: spacing.xs },
   row: { flexDirection: 'row', padding: spacing.lg, gap: spacing.sm },
-  card: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, borderLeftWidth: 4, ...shadows.sm },
-  cardLabel: { fontSize: 13, color: colors.textSecondary },
-  cardValue: { fontSize: 22, fontWeight: '800', color: colors.text, marginTop: 4 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: colors.text, paddingHorizontal: spacing.lg, marginBottom: spacing.md },
+  halfCard: { flex: 1 },
+  cardLabel: { fontSize: 13, fontWeight: '600' },
+  cardValue: { fontSize: 22, fontWeight: '800', marginTop: 6 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', paddingHorizontal: spacing.lg, marginBottom: spacing.md },
   monthRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, gap: spacing.sm },
-  monthLabel: { width: 70, fontSize: 13, color: colors.textSecondary },
-  barContainer: { flex: 1, height: 8, backgroundColor: colors.surfaceAlt, borderRadius: 4 },
-  bar: { height: 8, backgroundColor: colors.primary, borderRadius: 4 },
-  monthValue: { width: 60, fontSize: 13, fontWeight: '700', color: colors.text, textAlign: 'right' },
+  monthLabel: { width: 72, fontSize: 13, fontWeight: '500' },
+  barContainer: { flex: 1, height: 10, borderRadius: 5, overflow: 'hidden' },
+  bar: { height: 10, borderRadius: 5 },
+  monthValue: { width: 72, fontSize: 13, fontWeight: '700', textAlign: 'right' },
 });
