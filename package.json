@@ -1,0 +1,15 @@
+{
+  "name": "invoiceflow",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "api": "npm run start:dev --workspace=api",
+    "mobile": "npm run start --workspace=mobile",
+    "admin": "npm run dev --workspace=admin",
+    "db:up": "docker compose up -d",
+    "db:seed": "npm run db:seed --workspace=api",
+    "setup": "docker compose up -d && npm run db:push --workspace=api && npm run db:seed --workspace=api"
+  }
+}
