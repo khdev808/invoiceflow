@@ -6,33 +6,25 @@ A next-generation mobile invoicing platform built to outperform Invoice Fly and 
 
 | Layer | Technology |
 |-------|-----------|
-| Mobile (iOS + Android) | Expo / React Native |
-| Backend API | NestJS + Prisma + PostgreSQL |
-| Admin Panel | Next.js 15 + Tailwind |
+| Mobile (iOS + Android) | Expo SDK 56 / React Native 0.85 |
+| Backend API | NestJS 11 + Prisma 7 + PostgreSQL |
+| Admin Panel | Next.js 16 + Tailwind 4 |
 | Payments | Stripe (with mock fallback) |
 
 ## Quick Start
 
+See **[DEV_SETUP.md](./DEV_SETUP.md)** for the full local dev, testing, and debugging guide.
+
 ```bash
-# Start database
-docker compose up -d
-
-# Setup API
-cd apps/api
+# One-time setup (from repo root)
 npm install
-npx prisma db push
-npx ts-node prisma/seed.ts
-npm run start:dev
+cp apps/api/.env.example apps/api/.env
+npm run setup
 
-# Mobile app (new terminal)
-cd apps/mobile
-npm install
-npx expo start
-
-# Admin panel (new terminal)
-cd apps/admin
-npm install
-npm run dev
+# Daily dev — use 3 terminals:
+npm run api                  # Terminal 1 — API on :3001
+npm run dev:mobile:ios       # Terminal 2 — iOS (or dev:mobile:android)
+npm run dev:admin            # Terminal 3 — Admin on :3000
 ```
 
 ## Demo Credentials
