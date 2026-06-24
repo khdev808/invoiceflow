@@ -7,6 +7,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from './payments.service';
 import { PayPalService } from './paypal.service';
 import { JwtAuthGuard } from '../auth/guards';
+import { NotificationsService } from '../notifications/notifications.service';
+import { IntegrationsService } from '../integrations/integrations.service';
 
 @Controller('payments')
 export class PaymentsController {
@@ -17,6 +19,8 @@ export class PaymentsController {
     private payments: PaymentsService,
     private paypal: PayPalService,
     private config: ConfigService,
+    private notifications: NotificationsService,
+    private integrations: IntegrationsService,
   ) {
     const key = this.config.get('STRIPE_SECRET_KEY');
     if (key && !key.includes('placeholder')) this.stripe = new Stripe(key);
@@ -56,29 +60,25 @@ export class PaymentsController {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       const invoiceId = session.metadata?.invoiceId;
-      if (invoiceId) {
+      const amount = (session.amount_total || 0) / 100;
+      if (invoiceId && amount > 0) {
         const invoice = await this.prisma.invoice.findUnique({ where: { id: invoiceId } });
         if (invoice) {
-          await this.prisma.payment.create({
-            data: {
-              invoiceId,
-              amount: invoice.total,
-              method: 'STRIPE',
-              transactionId: session.payment_intent as string,
-            },
+          await this.payments.processStripePayment(
+            invoiceId,
+            amount,
+            session.payment_intent as string,
+          );
+          await this.notifications.notify(invoice.userId, {
+            title: 'Payment Received',
+            body: `Stripe payment of $${amount.toFixed(2)} for ${invoice.documentNumber}`,
+            type: 'payment_received',
+            data: { invoiceId },
           });
-          await this.prisma.invoice.update({
-            where: { id: invoiceId },
-            data: { status: 'PAID', paidAt: new Date() },
-          });
-          await this.prisma.notification.create({
-            data: {
-              userId: invoice.userId,
-              title: 'Payment Received',
-              body: `Stripe payment for ${invoice.documentNumber}`,
-              type: 'payment_received',
-              data: { invoiceId },
-            },
+          await this.integrations.dispatch(invoice.userId, 'payment.received', {
+            invoiceId,
+            amount,
+            method: 'stripe',
           });
         }
       }

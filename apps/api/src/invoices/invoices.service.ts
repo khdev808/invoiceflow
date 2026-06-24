@@ -6,6 +6,8 @@ import { DocumentType, InvoiceStatus } from '@prisma/client';
 import { EmailService } from '../email/email.service';
 import { PlanService } from '../plan/plan.service';
 import { IntegrationsService } from '../integrations/integrations.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { getDepositDue } from '../payments/payment.utils';
 
 @Injectable()
 export class InvoicesService {
@@ -14,6 +16,7 @@ export class InvoicesService {
     private email: EmailService,
     private plan: PlanService,
     private integrations: IntegrationsService,
+    private notifications: NotificationsService,
   ) {}
 
   async findAll(userId: string, filters?: { status?: string; type?: string; clientId?: string }) {
@@ -236,14 +239,11 @@ export class InvoicesService {
       data: { invoiceId: id, action: 'SENT', metadata: { email: invoice.client.email } },
     });
 
-    await this.prisma.notification.create({
-      data: {
-        userId,
-        title: 'Invoice Sent',
-        body: `${invoice.documentNumber} sent to ${invoice.client.name}`,
-        type: 'invoice_sent',
-        data: { invoiceId: id },
-      },
+    await this.notifications.notify(userId, {
+      title: 'Invoice Sent',
+      body: `${invoice.documentNumber} sent to ${invoice.client.name}`,
+      type: 'invoice_sent',
+      data: { invoiceId: id },
     });
 
     await this.integrations.dispatch(userId, 'invoice.sent', { invoiceId: id, documentNumber: invoice.documentNumber });
@@ -267,14 +267,11 @@ export class InvoicesService {
       data: { invoiceId: id, action: 'VIEWED' },
     });
 
-    await this.prisma.notification.create({
-      data: {
-        userId: invoice.userId,
-        title: 'Invoice Opened',
-        body: `${invoice.client.name} opened ${invoice.documentNumber}`,
-        type: 'invoice_viewed',
-        data: { invoiceId: id },
-      },
+    await this.notifications.notify(invoice.userId, {
+      title: 'Invoice Opened',
+      body: `${invoice.client.name} opened ${invoice.documentNumber}`,
+      type: 'invoice_viewed',
+      data: { invoiceId: id },
     });
 
     return updated;
@@ -338,21 +335,26 @@ export class InvoicesService {
     });
 
     const paidTotal = invoice!.payments.reduce((s, p) => s + p.amount, 0);
+    const depositDue = getDepositDue(invoice!);
+    const updates: Record<string, unknown> = {};
+
+    if (depositDue > 0 && !invoice!.depositPaid && amount >= depositDue) {
+      updates.depositPaid = true;
+    }
     if (paidTotal >= invoice!.total) {
-      await this.prisma.invoice.update({
-        where: { id: invoiceId },
-        data: { status: 'PAID', paidAt: new Date() },
-      });
+      updates.status = 'PAID';
+      updates.paidAt = new Date();
     }
 
-    await this.prisma.notification.create({
-      data: {
-        userId,
-        title: 'Payment Received',
-        body: `$${amount.toFixed(2)} received for ${invoice!.documentNumber}`,
-        type: 'payment_received',
-        data: { invoiceId, paymentId: payment.id },
-      },
+    if (Object.keys(updates).length > 0) {
+      await this.prisma.invoice.update({ where: { id: invoiceId }, data: updates });
+    }
+
+    await this.notifications.notify(userId, {
+      title: 'Payment Received',
+      body: `$${amount.toFixed(2)} received for ${invoice!.documentNumber}`,
+      type: 'payment_received',
+      data: { invoiceId, paymentId: payment.id },
     });
 
     return payment;
@@ -371,14 +373,11 @@ export class InvoicesService {
       data: { invoiceId: id, action: 'CLIENT_SIGNED', metadata: { signerName } },
     });
 
-    await this.prisma.notification.create({
-      data: {
-        userId: invoice.userId,
-        title: 'Client Signed',
-        body: `${signerName || invoice.client.name} signed ${invoice.documentNumber}`,
-        type: 'client_signed',
-        data: { invoiceId: id },
-      },
+    await this.notifications.notify(invoice.userId, {
+      title: 'Client Signed',
+      body: `${signerName || invoice.client.name} signed ${invoice.documentNumber}`,
+      type: 'client_signed',
+      data: { invoiceId: id },
     });
 
     return updated;

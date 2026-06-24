@@ -43,6 +43,6 @@ export class PlanService {
     const used = await this.prisma.invoice.count({
       where: { userId, documentType: 'INVOICE', createdAt: { gte: startOfMonth } },
     });
-    return { used, limit, plan: user?.plan ?? 'free' };
+    return { used, limit, plan: user?.plan ?? 'free', remaining: Math.max(0, limit - used) };
   }
 }
