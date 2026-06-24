@@ -17,6 +17,7 @@ import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { DevNavigationLogger } from '@/components/DevNavigationLogger';
 import { registerForPushNotifications } from '@/lib/pushNotifications';
 import { syncPendingOps } from '@/lib/offline';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { useAuthStore } from '@/stores/auth';
 import { fonts } from '@/constants/theme';
 import 'react-native-reanimated';
@@ -79,6 +80,7 @@ function ThemedNavigation() {
     <>
       <DevNavigationLogger />
       <StatusBar style={isDark ? 'light' : 'dark'} />
+      <OfflineBanner />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />

@@ -119,6 +119,7 @@ export const paymentsApi = {
 // Plan
 export const planApi = {
   usage: () => api.get('/plan/usage'),
+  upgrade: (plan: 'pro' | 'business') => api.post('/plan/upgrade', { plan }),
 };
 
 // Integrations
@@ -134,17 +135,25 @@ export const productsApi = {
   delete: (id: string) => api.delete(`/products/${id}`),
 };
 
+// Uploads
+export const uploadsApi = {
+  receipt: (base64: string, mimeType?: string) =>
+    api.post('/uploads/receipt', { base64, mimeType }),
+};
+
 // Mileage
 export const mileageApi = {
-  list: () => api.get('/mileage'),
+  list: (unbilled?: boolean) => api.get('/mileage', { params: unbilled ? { unbilled: 'true' } : undefined }),
   summary: () => api.get('/mileage/summary'),
   create: (data: any) => api.post('/mileage', data),
+  toLineItems: (entryIds: string[]) => api.post('/mileage/to-line-items', { entryIds }),
   delete: (id: string) => api.delete(`/mileage/${id}`),
 };
 
 // OCR
 export const ocrApi = {
-  parseReceipt: (imageUri: string) => api.post('/ocr/receipt', { imageUri }),
+  parseReceipt: (imageUri: string, base64?: string, mimeType?: string) =>
+    api.post('/ocr/receipt', { imageUri, base64, mimeType }),
 };
 
 // Recurring
