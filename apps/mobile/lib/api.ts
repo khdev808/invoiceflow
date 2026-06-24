@@ -1,15 +1,9 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
-
-const API_URL = Platform.select({
-  ios: 'http://localhost:3001',
-  android: 'http://10.0.2.2:3001',
-  default: 'http://localhost:3001',
-});
+import { getApiUrl, getPortalBase } from './config';
 
 export const api = axios.create({
-  baseURL: API_URL,
+  baseURL: getApiUrl(),
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -143,4 +137,4 @@ export const recurringApi = {
   delete: (id: string) => api.delete(`/invoices/recurring/${id}`),
 };
 
-export const PORTAL_BASE = 'http://localhost:3000/portal';
+export const PORTAL_BASE = getPortalBase();
