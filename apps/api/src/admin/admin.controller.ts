@@ -1,6 +1,18 @@
-import { Controller, Get, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Req,
+  ParseIntPipe,
+  DefaultValuePipe,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard, AdminGuard } from '../auth/guards';
+import { UpdatePlanDto, AdminUsersQueryDto } from './dto/admin.dto';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -13,20 +25,23 @@ export class AdminController {
   }
 
   @Get('users')
-  users(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('search') search?: string,
+  users(@Query() query: AdminUsersQueryDto) {
+    return this.admin.getUsers(query.page ?? 1, query.limit ?? 20, query.search);
+  }
+
+  @Get('audit-logs')
+  auditLogs(
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {
-    return this.admin.getUsers(
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
-      search,
-    );
+    return this.admin.getAuditLogs(limit);
   }
 
   @Patch('users/:id/plan')
-  updatePlan(@Param('id') id: string, @Body() body: { plan: string }) {
-    return this.admin.updateUserPlan(id, body.plan);
+  updatePlan(
+    @Req() req: { user: { userId: string } },
+    @Param('id') id: string,
+    @Body() body: UpdatePlanDto,
+  ) {
+    return this.admin.updateUserPlan(req.user.userId, id, body.plan);
   }
 }
