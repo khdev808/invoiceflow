@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { spacing } from '@/constants/theme';
+import { devPress } from '@/lib/devLog';
 
 interface Props {
   title: string;
@@ -15,7 +16,10 @@ export function SectionHeader({ title, actionLabel, onAction }: Props) {
     <View style={styles.row}>
       <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
       {actionLabel && onAction ? (
-        <TouchableOpacity onPress={onAction} style={styles.action}>
+        <TouchableOpacity
+          onPress={devPress(`section:${title}:${actionLabel}`, onAction)}
+          style={styles.action}
+        >
           <Text style={[styles.actionText, { color: colors.primary }]}>{actionLabel}</Text>
           <Ionicons name="chevron-forward" size={16} color={colors.primary} />
         </TouchableOpacity>

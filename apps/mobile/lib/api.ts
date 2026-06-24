@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { getApiUrl, getPortalBase } from './config';
+import { devLogApiError } from './devLog';
 
 export const api = axios.create({
   timeout: 15000,
@@ -13,6 +14,22 @@ api.interceptors.request.use(async (config) => {
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    devLogApiError(
+      error.config?.method?.toUpperCase() ?? 'REQUEST',
+      error.config?.url ?? 'unknown',
+      {
+        status: error.response?.status,
+        message: error.message,
+        data: error.response?.data,
+      },
+    );
+    return Promise.reject(error);
+  },
+);
 
 export async function setAuthToken(token: string | null) {
   if (token) await SecureStore.setItemAsync('token', token);

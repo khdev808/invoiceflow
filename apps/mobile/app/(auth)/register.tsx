@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/Button';
+import { devLogAction } from '@/lib/devLog';
 import { radius, spacing } from '@/constants/theme';
 
 export default function RegisterScreen() {
@@ -18,6 +19,7 @@ export default function RegisterScreen() {
   const { colors } = useTheme();
 
   const handleRegister = async () => {
+    devLogAction('auth:register');
     if (!name || !email || password.length < 6) {
       setError('Please fill all fields. Password must be 6+ characters.');
       return;

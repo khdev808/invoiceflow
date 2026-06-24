@@ -13,7 +13,7 @@ export default function TemplatesScreen() {
   const [selected, setSelected] = useState('modern');
 
   const handleSelect = async (id: string) => {
-    hapticLight();
+    hapticLight(`template:select:${id}`);
     setSelected(id);
     try {
       await usersApi.updateSettings({ templateId: id, primaryColor: templates.find((t) => t.id === id)?.color });

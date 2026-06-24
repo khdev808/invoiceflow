@@ -4,9 +4,10 @@ import { useAuthStore } from '@/stores/auth';
 import { useEffect, useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useI18n } from '@/hooks/useI18n';
-import { ActivityIndicator, View, Platform } from 'react-native';
-import { initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isOnboardingComplete } from '@/lib/onboarding';
+import { getBottomInset } from '@/lib/safeArea';
 
 export default function TabLayout() {
   const { isAuthenticated, isLoading, loadUser } = useAuthStore();
@@ -36,12 +37,7 @@ export default function TabLayout() {
 
   const tabBarPaddingTop = 8;
   const tabBarContentHeight = 56;
-  const measuredBottomInset = Math.max(
-    insets.bottom,
-    initialWindowMetrics?.insets.bottom ?? 0,
-  );
-  const bottomInset =
-    Platform.OS === 'android' && measuredBottomInset === 0 ? 48 : measuredBottomInset;
+  const bottomInset = getBottomInset(insets);
   const tabHeight = tabBarContentHeight + tabBarPaddingTop + bottomInset;
 
   return (

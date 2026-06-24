@@ -12,6 +12,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { hapticLight, hapticSuccess } from '@/lib/haptics';
+import { devLogAction, devPress } from '@/lib/devLog';
 import { radius, spacing } from '@/constants/theme';
 
 export default function ClientsScreen() {
@@ -46,6 +47,7 @@ export default function ClientsScreen() {
   }, [search]);
 
   const importFromContacts = async () => {
+    devLogAction('clients:import-contacts');
     const { status } = await Contacts.requestPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission needed', 'Allow contacts access to import clients.');
@@ -75,6 +77,7 @@ export default function ClientsScreen() {
   return (
     <Screen edges={['top']}>
       <AppHeader
+        isTabScreen
         title={t('clients')}
         subtitle={`${clients.length} total`}
         right={
@@ -85,7 +88,7 @@ export default function ClientsScreen() {
             >
               <Ionicons name="people" size={20} color={colors.primary} />
             </TouchableOpacity>
-            <IconButton onPress={() => router.push('/client/create')} />
+            <IconButton action="client:create" onPress={() => router.push('/client/create')} />
           </View>
         }
       />
@@ -118,7 +121,7 @@ export default function ClientsScreen() {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={() => { hapticLight(); router.push(`/client/${item.id}`); }}
+              onPress={() => { hapticLight(`client:open:${item.name}`); router.push(`/client/${item.id}`); }}
               activeOpacity={0.7}
             >
               <View style={[styles.avatar, { backgroundColor: colors.primary }]}>

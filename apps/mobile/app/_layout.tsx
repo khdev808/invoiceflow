@@ -7,6 +7,7 @@ import { AppState } from 'react-native';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
+import { DevNavigationLogger } from '@/components/DevNavigationLogger';
 import { registerForPushNotifications } from '@/lib/pushNotifications';
 import { syncPendingOps } from '@/lib/offline';
 import { useAuthStore } from '@/stores/auth';
@@ -68,6 +69,7 @@ function ThemedNavigation() {
 
   return (
     <>
+      <DevNavigationLogger />
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />

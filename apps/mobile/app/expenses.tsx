@@ -10,6 +10,7 @@ import { Screen } from '@/components/ui/Screen';
 import { IconButton } from '@/components/ui/IconButton';
 import { formatCurrency } from '@/lib/format';
 import { hapticLight } from '@/lib/haptics';
+import { devLogAction } from '@/lib/devLog';
 import { radius, spacing } from '@/constants/theme';
 
 export default function ExpensesScreen() {
@@ -35,6 +36,7 @@ export default function ExpensesScreen() {
   useFocusEffect(useCallback(() => { load(); }, []));
 
   const scanReceipt = async () => {
+    devLogAction('expenses:scan-receipt');
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission needed', 'Camera access required for receipt scanning');
@@ -42,7 +44,7 @@ export default function ExpensesScreen() {
     }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
     if (!result.canceled) {
-      hapticLight();
+      hapticLight('expenses:scan-complete');
       router.push({ pathname: '/expense/create', params: { receiptUri: result.assets[0].uri } });
     }
   };
@@ -62,7 +64,7 @@ export default function ExpensesScreen() {
           <Ionicons name="camera" size={20} color="#fff" />
           <Text style={styles.scanText}>Scan Receipt</Text>
         </TouchableOpacity>
-        <IconButton icon="add" onPress={() => router.push('/expense/create')} />
+        <IconButton action="expense:create" icon="add" onPress={() => router.push('/expense/create')} />
       </View>
 
       {loading ? (

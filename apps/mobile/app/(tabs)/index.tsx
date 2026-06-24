@@ -15,6 +15,8 @@ import { formatCurrency, formatDate } from '@/lib/format';
 import { useUserCurrency } from '@/hooks/useUserCurrency';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { hapticLight } from '@/lib/haptics';
+import { devPress } from '@/lib/devLog';
+import { getTabHeaderTopSpacing } from '@/lib/safeArea';
 import { radius, spacing, shadows } from '@/constants/theme';
 
 export default function DashboardScreen() {
@@ -50,19 +52,25 @@ export default function DashboardScreen() {
   const styles = makeStyles(colors);
 
   if (loading && !stats) {
-    return <DashboardSkeleton />;
+    return (
+      <Screen>
+        <View style={{ paddingTop: getTabHeaderTopSpacing() }}>
+          <DashboardSkeleton />
+        </View>
+      </Screen>
+    );
   }
 
   return (
     <Screen scroll refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: getTabHeaderTopSpacing() }]}>
         <View style={{ flex: 1 }}>
           <Text style={styles.greeting}>{t('home')}, {user?.name?.split(' ')[0] || 'there'} 👋</Text>
           <Text style={styles.business}>{user?.businessName || 'Your Business'}</Text>
         </View>
         <TouchableOpacity
           style={[styles.notifBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={() => { hapticLight(); router.push('/notifications'); }}
+          onPress={() => { hapticLight('home:notifications'); router.push('/notifications'); }}
         >
           <Ionicons name="notifications-outline" size={22} color={colors.text} />
           {unread > 0 && (
@@ -74,7 +82,7 @@ export default function DashboardScreen() {
       </View>
 
       <Pressable
-        onPress={() => { hapticLight(); router.push('/invoice/create'); }}
+        onPress={() => { hapticLight('home:create-invoice'); router.push('/invoice/create'); }}
         style={({ pressed }) => [pressed && { opacity: 0.95, transform: [{ scale: 0.99 }] }]}
       >
         <LinearGradient
@@ -123,7 +131,7 @@ export default function DashboardScreen() {
             <TouchableOpacity
               key={a.label}
               style={styles.actionBtn}
-              onPress={() => { hapticLight(); router.push(a.route as any); }}
+              onPress={() => { hapticLight(`home:quick:${a.label}`); router.push(a.route as any); }}
             >
               <View style={[styles.actionIcon, { backgroundColor: a.bg + '18' }]}>
                 <Ionicons name={a.icon as any} size={22} color={a.bg} />
@@ -155,7 +163,7 @@ export default function DashboardScreen() {
             <TouchableOpacity
               key={inv.id}
               style={[styles.recentRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={() => router.push(`/invoice/${inv.id}`)}
+              onPress={devPress(`invoice:open:${inv.documentNumber}`, () => router.push(`/invoice/${inv.id}`))}
             >
               <View style={{ flex: 1 }}>
                 <Text style={[styles.recentNum, { color: colors.text }]}>{inv.documentNumber}</Text>
@@ -175,7 +183,7 @@ export default function DashboardScreen() {
 
 function makeStyles(colors: any) {
   return StyleSheet.create({
-    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.sm, marginBottom: spacing.md },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, marginBottom: spacing.md },
     greeting: { fontSize: 26, fontWeight: '800', color: colors.text, letterSpacing: -0.3 },
     business: { fontSize: 14, color: colors.textSecondary, marginTop: 2 },
     notifBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1, ...shadows.sm },

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { hapticLight } from '@/lib/haptics';
+import { devLogAction } from '@/lib/devLog';
 import { radius, spacing } from '@/constants/theme';
 
 export default function TimeScreen() {
@@ -38,13 +39,14 @@ export default function TimeScreen() {
   const totalBillable = entries.filter((e) => e.billable && !e.invoiced).reduce((s, e) => s + e.hours * e.rate, 0);
 
   const toggleSelect = (id: string) => {
-    hapticLight();
+    hapticLight('time:toggle-entry');
     const next = new Set(selected);
     if (next.has(id)) next.delete(id); else next.add(id);
     setSelected(next);
   };
 
   const billSelected = async () => {
+    devLogAction('time:bill-selected', { count: selected.size });
     if (selected.size === 0) {
       Alert.alert('Select entries', 'Tap unbilled entries to select them first.');
       return;

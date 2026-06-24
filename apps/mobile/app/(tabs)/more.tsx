@@ -8,6 +8,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useI18n } from '@/hooks/useI18n';
 import { Screen } from '@/components/ui/Screen';
 import { hapticLight } from '@/lib/haptics';
+import { devLogAction, devPress } from '@/lib/devLog';
+import { getTabHeaderTopSpacing } from '@/lib/safeArea';
 import { radius, spacing } from '@/constants/theme';
 
 export default function MoreScreen() {
@@ -51,6 +53,7 @@ export default function MoreScreen() {
   ];
 
   const handleLogout = () => {
+    devLogAction('auth:logout-prompt');
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: async () => { await logout(); router.replace('/(auth)/login'); } },
@@ -61,14 +64,19 @@ export default function MoreScreen() {
 
   return (
     <Screen scroll edges={['top']}>
-      <View style={[styles.profile, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View
+        style={[
+          styles.profile,
+          { backgroundColor: colors.surface, borderColor: colors.border, marginTop: getTabHeaderTopSpacing() },
+        ]}
+      >
         <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
           <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'U'}</Text>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.name, { color: colors.text }]}>{user?.name}</Text>
           <Text style={[styles.email, { color: colors.textSecondary }]}>{user?.email}</Text>
-          <TouchableOpacity onPress={() => router.push('/settings/plan')}>
+          <TouchableOpacity onPress={devPress('more:plan', () => router.push('/settings/plan'))}>
             <View style={[styles.planBadge, { backgroundColor: colors.primary + '12' }]}>
               <Text style={[styles.planText, { color: colors.primary }]}>{planLabel}</Text>
             </View>
@@ -84,7 +92,7 @@ export default function MoreScreen() {
               <TouchableOpacity
                 key={item.label}
                 style={[styles.menuItem, idx < section.items.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 1 }]}
-                onPress={() => { hapticLight(); router.push(item.route as any); }}
+                onPress={() => { hapticLight(`more:${item.label}`); router.push(item.route as any); }}
               >
                 <View style={[styles.menuIcon, { backgroundColor: item.color + '14' }]}>
                   <Ionicons name={item.icon as any} size={20} color={item.color} />
@@ -109,7 +117,7 @@ export default function MoreScreen() {
 
 function makeStyles(colors: any) {
   return StyleSheet.create({
-    profile: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginHorizontal: spacing.lg, marginTop: spacing.sm, marginBottom: spacing.lg, padding: spacing.lg, borderRadius: radius.xl, borderWidth: 1 },
+    profile: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginHorizontal: spacing.lg, marginBottom: spacing.lg, padding: spacing.lg, borderRadius: radius.xl, borderWidth: 1 },
     avatar: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
     avatarText: { color: '#fff', fontSize: 24, fontWeight: '800' },
     name: { fontSize: 18, fontWeight: '800' },

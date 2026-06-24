@@ -2,7 +2,9 @@ import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-nativ
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { spacing } from '@/constants/theme';
+import { devLogAction } from '@/lib/devLog';
 import { hapticLight } from '@/lib/haptics';
+import { getTabHeaderTopSpacing } from '@/lib/safeArea';
 
 interface Props {
   title: string;
@@ -10,14 +12,24 @@ interface Props {
   right?: React.ReactNode;
   onBack?: () => void;
   style?: ViewStyle;
+  /** Apply extra top spacing on Android tab screens. */
+  isTabScreen?: boolean;
 }
 
-export function AppHeader({ title, subtitle, right, onBack, style }: Props) {
+export function AppHeader({ title, subtitle, right, onBack, style, isTabScreen }: Props) {
   const { colors } = useTheme();
+  const headerTopGap = isTabScreen ? getTabHeaderTopSpacing() : spacing.sm;
   return (
-    <View style={[styles.row, style]}>
+    <View style={[styles.row, { paddingTop: headerTopGap }, style]}>
       {onBack ? (
-        <TouchableOpacity onPress={() => { hapticLight(); onBack(); }} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => {
+            devLogAction('header:back');
+            hapticLight();
+            onBack();
+          }}
+          style={styles.backBtn}
+        >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
       ) : null}
@@ -31,7 +43,7 @@ export function AppHeader({ title, subtitle, right, onBack, style }: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.md },
+  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
   backBtn: { marginRight: spacing.sm, marginLeft: -4 },
   textWrap: { flex: 1 },
   title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.3 },

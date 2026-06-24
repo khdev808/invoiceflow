@@ -10,6 +10,7 @@ import { buildInvoicePdfHtml } from '@/lib/invoicePdf';
 import { PaymentQRCode } from '@/components/PaymentQRCode';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useI18n } from '@/hooks/useI18n';
+import { devLogAction, devPress } from '@/lib/devLog';
 import { radius, spacing, shadows } from '@/constants/theme';
 
 export default function InvoiceDetailScreen() {
@@ -38,6 +39,7 @@ export default function InvoiceDetailScreen() {
   useFocusEffect(useCallback(() => { load(); }, [id]));
 
   const handleSend = async () => {
+    devLogAction('invoice:send', { id });
     setActionLoading(true);
     try {
       await invoicesApi.send(id);
@@ -51,6 +53,7 @@ export default function InvoiceDetailScreen() {
   };
 
   const handleConvert = async () => {
+    devLogAction('invoice:convert', { id });
     setActionLoading(true);
     try {
       const { data } = await invoicesApi.convert(id);
@@ -64,6 +67,7 @@ export default function InvoiceDetailScreen() {
   };
 
   const handlePaymentLink = async () => {
+    devLogAction('invoice:payment-link', { id });
     setActionLoading(true);
     try {
       const { data } = await paymentsApi.createLink(id);
@@ -79,6 +83,7 @@ export default function InvoiceDetailScreen() {
   };
 
   const handlePayPal = async () => {
+    devLogAction('invoice:paypal', { id });
     setActionLoading(true);
     try {
       const { data } = await paymentsApi.publicPayPal(id);
@@ -92,6 +97,7 @@ export default function InvoiceDetailScreen() {
   };
 
   const handleWhatsApp = async () => {
+    devLogAction('invoice:whatsapp', { id });
     setActionLoading(true);
     try {
       let paymentUrl;
@@ -106,11 +112,13 @@ export default function InvoiceDetailScreen() {
   };
 
   const handleSharePortal = async () => {
+    devLogAction('invoice:share-portal', { id });
     const url = `${PORTAL_BASE}/${id}`;
     await Share.share({ message: `View invoice ${invoice.documentNumber}: ${url}`, url });
   };
 
   const handleSharePDF = async () => {
+    devLogAction('invoice:share-pdf', { id });
     if (!invoice) return;
     const html = buildInvoicePdfHtml(invoice);
     const { uri } = await Print.printToFileAsync({ html });
@@ -118,6 +126,7 @@ export default function InvoiceDetailScreen() {
   };
 
   const handleMarkPaid = async () => {
+    devLogAction('invoice:mark-paid', { id });
     setActionLoading(true);
     try {
       const depositDue = invoice.depositPercent && !invoice.depositPaid
@@ -199,7 +208,10 @@ export default function InvoiceDetailScreen() {
         <View style={styles.actions}>
           {invoice.status === 'DRAFT' && (
             <>
-              <TouchableOpacity style={styles.secondaryBtn} onPress={() => router.push(`/invoice/edit/${id}`)}>
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={devPress('invoice:edit', () => router.push(`/invoice/edit/${id}`))}
+              >
                 <Ionicons name="create-outline" size={20} color={colors.primary} />
                 <Text style={styles.secondaryBtnText}>{t('editInvoice')}</Text>
               </TouchableOpacity>

@@ -5,12 +5,14 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useI18n } from '@/hooks/useI18n';
 import { radius, spacing } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { devLogAction } from '@/lib/devLog';
 
 export default function LanguageSettingsScreen() {
   const { colors } = useTheme();
   const { t, lang, changeLanguage } = useI18n();
 
   const handleSelect = async (code: string) => {
+    devLogAction('settings:language', { code });
     await changeLanguage(code);
     try {
       await usersApi.updateProfile({ language: code });

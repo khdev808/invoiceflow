@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { radius, spacing } from '@/constants/theme';
 import { hapticLight } from '@/lib/haptics';
+import { devLogAction } from '@/lib/devLog';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'accent';
 
@@ -44,6 +45,7 @@ export function Button({
       ]}
       onPress={() => {
         if (disabled || loading) return;
+        devLogAction(`button:${label}`);
         hapticLight();
         onPress();
       }}

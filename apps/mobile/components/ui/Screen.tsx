@@ -1,6 +1,7 @@
 import { View, StyleSheet, ScrollView, RefreshControl, ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
+import { getBottomInset, getTopInset } from '@/lib/safeArea';
 
 interface Props {
   children: React.ReactNode;
@@ -22,6 +23,13 @@ export function Screen({
   edges = ['top'],
 }: Props) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const safeStyle = {
+    paddingTop: edges.includes('top') ? getTopInset(insets) : 0,
+    paddingBottom: edges.includes('bottom') ? getBottomInset(insets) : 0,
+    paddingLeft: edges.includes('left') ? insets.left : 0,
+    paddingRight: edges.includes('right') ? insets.right : 0,
+  };
 
   const content = scroll ? (
     <ScrollView
@@ -43,9 +51,9 @@ export function Screen({
   );
 
   return (
-    <SafeAreaView style={[styles.flex, { backgroundColor: colors.background }]} edges={edges}>
+    <View style={[styles.flex, { backgroundColor: colors.background }, safeStyle]}>
       {content}
-    </SafeAreaView>
+    </View>
   );
 }
 

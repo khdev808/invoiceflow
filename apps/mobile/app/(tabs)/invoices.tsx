@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { hapticLight } from '@/lib/haptics';
+import { devPress } from '@/lib/devLog';
 import { radius, spacing } from '@/constants/theme';
 
 const FILTERS = [
@@ -58,9 +59,10 @@ export default function InvoicesScreen() {
   return (
     <Screen edges={['top']}>
       <AppHeader
+        isTabScreen
         title={t('invoices')}
         subtitle={`${invoices.length} document${invoices.length === 1 ? '' : 's'}`}
-        right={<IconButton onPress={() => router.push('/invoice/create')} />}
+        right={<IconButton action="invoice:create" onPress={() => router.push('/invoice/create')} />}
       />
 
       <FlatList
@@ -73,7 +75,7 @@ export default function InvoicesScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[styles.filterChip, { borderColor: colors.border, backgroundColor: colors.surface }, filter === item.key && { backgroundColor: colors.primary, borderColor: colors.primary }]}
-            onPress={() => { hapticLight(); setFilter(item.key); }}
+            onPress={() => { hapticLight(`filter:${item.key}`); setFilter(item.key); }}
           >
             <Text style={[styles.filterText, { color: colors.textSecondary }, filter === item.key && styles.filterTextActive]}>
               {item.label}
@@ -103,7 +105,7 @@ export default function InvoicesScreen() {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={() => router.push(`/invoice/${item.id}`)}
+              onPress={devPress(`invoice:open:${item.documentNumber}`, () => router.push(`/invoice/${item.id}`))}
               activeOpacity={0.7}
             >
               <View style={styles.cardTop}>

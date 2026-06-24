@@ -41,7 +41,7 @@ export default function ProductsScreen() {
 
   return (
     <Screen edges={[]}>
-      <AppHeader title="Products & Services" subtitle={`${products.length} items`} right={<IconButton onPress={() => router.push('/product/create')} />} />
+      <AppHeader title="Products & Services" subtitle={`${products.length} items`} right={<IconButton action="product:create" onPress={() => router.push('/product/create')} />} />
       <SearchBar value={search} onChangeText={setSearch} placeholder="Search catalog..." onClear={() => setSearch('')} />
 
       {loading ? (

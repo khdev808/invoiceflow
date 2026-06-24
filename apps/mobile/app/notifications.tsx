@@ -47,7 +47,7 @@ export default function NotificationsScreen() {
   };
 
   const handlePress = (item: any) => {
-    hapticLight();
+    hapticLight(`notification:${item.type}`);
     const invoiceId = item.data?.invoiceId;
     if (invoiceId) router.push(`/invoice/${invoiceId}`);
   };

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getApiUrl } from '@/lib/config';
+import { devLogAction } from '@/lib/devLog';
 import { Button } from '@/components/ui/Button';
 import { radius, spacing } from '@/constants/theme';
 
@@ -18,6 +19,7 @@ export default function LoginScreen() {
   const { colors } = useTheme();
 
   const handleLogin = async () => {
+    devLogAction('auth:login');
     setError('');
     setLoading(true);
     try {
