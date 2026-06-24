@@ -67,8 +67,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     apiUrl: process.env.EXPO_PUBLIC_API_URL ?? (IS_DEV ? undefined : 'https://api.invoiceflow.app'),
     portalUrl: process.env.EXPO_PUBLIC_PORTAL_URL ?? (IS_DEV ? undefined : 'https://invoiceflow.app/portal'),
     eas: {
-      projectId: process.env.EAS_PROJECT_ID,
+      projectId: '5be40599-752d-4be8-8f57-1895687a4ad1',
     },
   },
-  owner: process.env.EXPO_OWNER,
+  owner: 'khdev4678',
 });
