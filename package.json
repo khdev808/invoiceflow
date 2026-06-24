@@ -5,13 +5,21 @@
     "apps/*"
   ],
   "scripts": {
-    "postinstall": "ln -sfn ../apps/mobile/node_modules/expo-router node_modules/expo-router 2>/dev/null || true",
+    "postinstall": "ln -sfn ../apps/mobile/node_modules/expo-router node_modules/expo-router 2>/dev/null || true && npm run db:generate --workspace=api 2>/dev/null || true",
     "api": "npm run start:dev --workspace=api",
     "mobile": "npm run start --workspace=mobile",
     "admin": "npm run dev --workspace=admin",
     "db:up": "docker compose up -d",
     "db:seed": "npm run db:seed --workspace=api",
-    "setup": "docker compose up -d && npm run db:push --workspace=api && npm run db:seed --workspace=api"
+    "setup": "docker compose up -d && npm run db:push --workspace=api && npm run db:seed --workspace=api",
+    "dev:api": "npm run start:dev --workspace=api",
+    "dev:mobile": "npm run start:dev --workspace=mobile",
+    "dev:mobile:android": "npm run android --workspace=mobile",
+    "dev:mobile:ios": "npm run ios --workspace=mobile",
+    "dev:admin": "npm run dev --workspace=admin"
+  },
+  "overrides": {
+    "react-native-worklets": "0.10.0"
   },
   "devDependencies": {
     "@nestjs/platform-express": "^11.1.27",
