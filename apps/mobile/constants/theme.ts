@@ -15,6 +15,27 @@ export const colors = {
   border: '#E2E8F0',
   success: '#22C55E',
   overlay: 'rgba(15, 23, 42, 0.5)',
+  gradientStart: '#2563EB',
+  gradientEnd: '#1D4ED8',
+};
+
+export const typography = {
+  hero: { fontSize: 32, fontWeight: '800' as const, letterSpacing: -0.5 },
+  title: { fontSize: 28, fontWeight: '800' as const, letterSpacing: -0.3 },
+  heading: { fontSize: 20, fontWeight: '700' as const },
+  body: { fontSize: 16, fontWeight: '400' as const },
+  bodyBold: { fontSize: 16, fontWeight: '600' as const },
+  caption: { fontSize: 13, fontWeight: '500' as const },
+  micro: { fontSize: 11, fontWeight: '600' as const },
+};
+
+export const statusColors: Record<string, string> = {
+  DRAFT: '#94A3B8',
+  SENT: '#2563EB',
+  VIEWED: '#F59E0B',
+  PAID: '#10B981',
+  OVERDUE: '#EF4444',
+  CANCELLED: '#94A3B8',
 };
 
 export const spacing = {

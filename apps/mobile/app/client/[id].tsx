@@ -1,12 +1,19 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useCallback, useState } from 'react';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { clientsApi } from '@/lib/api';
-import { colors, radius, spacing, shadows } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Screen } from '@/components/ui/Screen';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { formatCurrency } from '@/lib/format';
+import { radius, spacing } from '@/constants/theme';
 
 export default function ClientDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { colors } = useTheme();
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -14,67 +21,93 @@ export default function ClientDetailScreen() {
     clientsApi.get(id).then(({ data }) => setClient(data)).finally(() => setLoading(false));
   }, [id]));
 
+  const styles = makeStyles(colors);
+
   if (loading) return <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />;
-  if (!client) return <Text style={{ textAlign: 'center', marginTop: 40 }}>Client not found</Text>;
+  if (!client) return <Text style={{ textAlign: 'center', marginTop: 40, color: colors.text }}>Client not found</Text>;
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.avatar}><Text style={styles.avatarText}>{client.name.charAt(0)}</Text></View>
-        <Text style={styles.name}>{client.name}</Text>
-        {client.company && <Text style={styles.company}>{client.company}</Text>}
+    <Screen scroll>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+          <Text style={styles.avatarText}>{client.name.charAt(0)}</Text>
+        </View>
+        <Text style={[styles.name, { color: colors.text }]}>{client.name}</Text>
+        {client.company ? <Text style={[styles.company, { color: colors.textSecondary }]}>{client.company}</Text> : null}
       </View>
 
-      <View style={styles.infoCard}>
-        {client.email && <InfoRow icon="mail" label="Email" value={client.email} />}
-        {client.phone && <InfoRow icon="call" label="Phone" value={client.phone} />}
-        {client.address && <InfoRow icon="location" label="Address" value={`${client.address}${client.city ? `, ${client.city}` : ''}${client.state ? ` ${client.state}` : ''}`} />}
+      <Card style={{ marginHorizontal: spacing.lg, marginBottom: spacing.md }}>
+        {client.email ? <InfoRow colors={colors} icon="mail" label="Email" value={client.email} /> : null}
+        {client.phone ? <InfoRow colors={colors} icon="call" label="Phone" value={client.phone} /> : null}
+        {client.address ? (
+          <InfoRow
+            colors={colors}
+            icon="location"
+            label="Address"
+            value={`${client.address}${client.city ? `, ${client.city}` : ''}${client.state ? ` ${client.state}` : ''}`}
+          />
+        ) : null}
+      </Card>
+
+      <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.lg }}>
+        <Button
+          label={`New Invoice for ${client.name.split(' ')[0]}`}
+          icon="add-circle"
+          onPress={() => router.push({ pathname: '/invoice/create', params: { clientId: id } })}
+          fullWidth
+        />
       </View>
 
-      <TouchableOpacity style={styles.createBtn} onPress={() => router.push({ pathname: '/invoice/create', params: { clientId: id } })}>
-        <Ionicons name="add-circle" size={22} color="#fff" />
-        <Text style={styles.createBtnText}>New Invoice for {client.name.split(' ')[0]}</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.sectionTitle}>Recent Invoices</Text>
-      {client.invoices?.length === 0 && <Text style={styles.empty}>No invoices yet</Text>}
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Invoices</Text>
+      {client.invoices?.length === 0 && (
+        <Text style={[styles.empty, { color: colors.textMuted }]}>No invoices yet for this client.</Text>
+      )}
       {client.invoices?.map((inv: any) => (
-        <TouchableOpacity key={inv.id} style={styles.invCard} onPress={() => router.push(`/invoice/${inv.id}`)}>
-          <Text style={styles.invNum}>{inv.documentNumber}</Text>
-          <Text style={styles.invAmount}>${inv.total.toFixed(2)}</Text>
-          <Text style={styles.invStatus}>{inv.status}</Text>
+        <TouchableOpacity
+          key={inv.id}
+          style={[styles.invCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          onPress={() => router.push(`/invoice/${inv.id}`)}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.invNum, { color: colors.text }]}>{inv.documentNumber}</Text>
+            <StatusBadge status={inv.status} />
+          </View>
+          <Text style={[styles.invAmount, { color: colors.text }]}>{formatCurrency(inv.total)}</Text>
         </TouchableOpacity>
       ))}
-    </ScrollView>
+    </Screen>
   );
 }
 
-function InfoRow({ icon, label, value }: { icon: string; label: string; value: string }) {
+function InfoRow({ icon, label, value, colors }: { icon: string; label: string; value: string; colors: any }) {
   return (
-    <View style={styles.infoRow}>
+    <View style={[infoStyles.row, { borderBottomColor: colors.border }]}>
       <Ionicons name={icon as any} size={18} color={colors.primary} />
-      <View><Text style={styles.infoLabel}>{label}</Text><Text style={styles.infoValue}>{value}</Text></View>
+      <View style={{ flex: 1 }}>
+        <Text style={[infoStyles.label, { color: colors.textMuted }]}>{label}</Text>
+        <Text style={[infoStyles.value, { color: colors.text }]}>{value}</Text>
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { alignItems: 'center', padding: spacing.xl, backgroundColor: colors.surface },
-  avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
-  avatarText: { color: '#fff', fontSize: 28, fontWeight: '800' },
-  name: { fontSize: 24, fontWeight: '800', color: colors.text },
-  company: { fontSize: 16, color: colors.textSecondary },
-  infoCard: { backgroundColor: colors.surface, margin: spacing.lg, borderRadius: radius.md, padding: spacing.md, ...shadows.sm },
-  infoRow: { flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
-  infoLabel: { fontSize: 12, color: colors.textMuted },
-  infoValue: { fontSize: 15, color: colors.text, fontWeight: '500' },
-  createBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.primary, marginHorizontal: spacing.lg, padding: spacing.md, borderRadius: radius.md },
-  createBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: colors.text, paddingHorizontal: spacing.lg, marginTop: spacing.lg, marginBottom: spacing.sm },
-  empty: { textAlign: 'center', color: colors.textMuted, padding: spacing.lg },
-  invCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, marginHorizontal: spacing.lg, marginBottom: spacing.sm, padding: spacing.md, borderRadius: radius.md, ...shadows.sm },
-  invNum: { flex: 1, fontWeight: '700', color: colors.text },
-  invAmount: { fontWeight: '800', color: colors.text, marginRight: spacing.md },
-  invStatus: { fontSize: 12, color: colors.primary, fontWeight: '700' },
+const infoStyles = StyleSheet.create({
+  row: { flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1 },
+  label: { fontSize: 12, fontWeight: '600' },
+  value: { fontSize: 15, fontWeight: '500', marginTop: 2 },
 });
+
+function makeStyles(colors: any) {
+  return StyleSheet.create({
+    header: { alignItems: 'center', padding: spacing.xl, marginHorizontal: spacing.lg, marginTop: spacing.sm, borderRadius: radius.xl, borderWidth: 1, marginBottom: spacing.md },
+    avatar: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
+    avatarText: { color: '#fff', fontSize: 28, fontWeight: '800' },
+    name: { fontSize: 24, fontWeight: '800' },
+    company: { fontSize: 16, marginTop: 4 },
+    sectionTitle: { fontSize: 18, fontWeight: '700', paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
+    empty: { textAlign: 'center', padding: spacing.lg },
+    invCard: { flexDirection: 'row', alignItems: 'center', marginHorizontal: spacing.lg, marginBottom: spacing.sm, padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, gap: spacing.md },
+    invNum: { fontWeight: '700', fontSize: 15, marginBottom: 4 },
+    invAmount: { fontWeight: '800', fontSize: 16 },
+  });
+}

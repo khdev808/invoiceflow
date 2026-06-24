@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { clientsApi, invoicesApi, productsApi } from '@/lib/api';
 import { queueOfflineOp } from '@/lib/offline';
 import { SignaturePad } from '@/components/SignaturePad';
-import { colors, radius, spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
+import { radius, spacing } from '@/constants/theme';
 
 interface LineItem {
   description: string;
@@ -16,7 +17,8 @@ interface LineItem {
 }
 
 export default function CreateInvoiceScreen() {
-  const { type } = useLocalSearchParams<{ type?: string }>();
+  const { type, clientId: paramClientId } = useLocalSearchParams<{ type?: string; clientId?: string }>();
+  const { colors } = useTheme();
   const docType = type === 'ESTIMATE' ? 'ESTIMATE' : type === 'CREDIT_NOTE' ? 'CREDIT_NOTE' : 'INVOICE';
 
   const [clients, setClients] = useState<any[]>([]);
@@ -37,9 +39,13 @@ export default function CreateInvoiceScreen() {
     Promise.all([clientsApi.list(), productsApi.list()]).then(([c, p]) => {
       setClients(c.data);
       setProducts(p.data);
-      if (c.data.length > 0) setClientId(c.data[0].id);
+      if (paramClientId && c.data.some((x: any) => x.id === paramClientId)) {
+        setClientId(paramClientId);
+      } else if (c.data.length > 0) {
+        setClientId(c.data[0].id);
+      }
     }).finally(() => setLoadingClients(false));
-  }, []);
+  }, [paramClientId]);
 
   const addProductLine = (product: any) => {
     setLineItems([...lineItems, {
@@ -119,6 +125,8 @@ export default function CreateInvoiceScreen() {
   };
 
   if (loadingClients) return <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />;
+
+  const styles = makeStyles(colors);
 
   return (
     <>
@@ -233,7 +241,7 @@ export default function CreateInvoiceScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
   label: { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginTop: spacing.md, marginBottom: spacing.sm },

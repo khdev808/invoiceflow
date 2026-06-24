@@ -1,32 +1,42 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/stores/auth';
 import { invoicesApi, notificationsApi } from '@/lib/api';
-import { colors, radius, spacing, shadows } from '@/constants/theme';
-
-function formatCurrency(n: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
-}
+import { useTheme } from '@/contexts/ThemeContext';
+import { useI18n } from '@/hooks/useI18n';
+import { Screen } from '@/components/ui/Screen';
+import { Card } from '@/components/ui/Card';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { formatCurrency, formatDate } from '@/lib/format';
+import { hapticLight } from '@/lib/haptics';
+import { radius, spacing, shadows } from '@/constants/theme';
 
 export default function DashboardScreen() {
   const user = useAuthStore((s) => s.user);
+  const { colors } = useTheme();
+  const { t } = useI18n();
   const [stats, setStats] = useState<any>(null);
+  const [recent, setRecent] = useState<any[]>([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const currency = user?.currency || 'USD';
+
   const load = async () => {
     try {
-      const [dashRes, notifRes] = await Promise.all([
+      const [dashRes, notifRes, listRes] = await Promise.all([
         invoicesApi.dashboard(),
         notificationsApi.unreadCount().catch(() => ({ data: 0 })),
+        invoicesApi.list().catch(() => ({ data: [] })),
       ]);
       setStats(dashRes.data);
       setUnread(typeof notifRes.data === 'number' ? notifRes.data : notifRes.data);
-    } catch {
-      // offline fallback
+      setRecent((listRes.data || []).slice(0, 5));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -35,113 +45,157 @@ export default function DashboardScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, []));
 
-  if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>;
-  }
+  const styles = makeStyles(colors);
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
-    >
+    <Screen scroll refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0] || 'there'} 👋</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.greeting}>{t('home')}, {user?.name?.split(' ')[0] || 'there'} 👋</Text>
           <Text style={styles.business}>{user?.businessName || 'Your Business'}</Text>
         </View>
-        <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/notifications')}>
-          <Ionicons name="notifications-outline" size={24} color={colors.text} />
-          {unread > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{unread}</Text></View>}
+        <TouchableOpacity
+          style={[styles.notifBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          onPress={() => { hapticLight(); router.push('/notifications'); }}
+        >
+          <Ionicons name="notifications-outline" size={22} color={colors.text} />
+          {unread > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unread > 9 ? '9+' : unread}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.createBtn} onPress={() => router.push('/invoice/create')}>
-        <Ionicons name="add-circle" size={28} color="#fff" />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.createTitle}>Create Invoice</Text>
-          <Text style={styles.createSub}>Ready in under 30 seconds</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.8)" />
-      </TouchableOpacity>
+      <Pressable
+        onPress={() => { hapticLight(); router.push('/invoice/create'); }}
+        style={({ pressed }) => [pressed && { opacity: 0.95, transform: [{ scale: 0.99 }] }]}
+      >
+        <LinearGradient
+          colors={[colors.gradientStart, colors.gradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.hero}
+        >
+          <View style={styles.heroIcon}>
+            <Ionicons name="flash" size={22} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.heroTitle}>{t('createInvoice')}</Text>
+            <Text style={styles.heroSub}>Ready in under 30 seconds</Text>
+          </View>
+          <Ionicons name="arrow-forward-circle" size={32} color="rgba(255,255,255,0.9)" />
+        </LinearGradient>
+      </Pressable>
 
       <View style={styles.statsGrid}>
         {[
-          { label: 'Revenue', value: formatCurrency(stats?.totalRevenue || 0), icon: 'trending-up', color: colors.accent },
-          { label: 'Outstanding', value: formatCurrency(stats?.outstandingAmount || 0), icon: 'time', color: colors.warning },
-          { label: 'Overdue', value: formatCurrency(stats?.overdueAmount || 0), icon: 'alert-circle', color: colors.danger },
-          { label: 'Expenses', value: formatCurrency(stats?.totalExpenses || 0), icon: 'receipt', color: colors.textSecondary },
+          { label: t('revenue'), value: formatCurrency(stats?.totalRevenue || 0, currency), icon: 'trending-up', color: colors.accent },
+          { label: t('outstanding'), value: formatCurrency(stats?.outstandingAmount || 0, currency), icon: 'time', color: colors.warning },
+          { label: t('overdue'), value: formatCurrency(stats?.overdueAmount || 0, currency), icon: 'alert-circle', color: colors.danger },
+          { label: t('expenses'), value: formatCurrency(stats?.totalExpenses || 0, currency), icon: 'receipt', color: colors.textSecondary },
         ].map((s) => (
-          <View key={s.label} style={styles.statCard}>
-            <Ionicons name={s.icon as any} size={22} color={s.color} />
-            <Text style={styles.statValue}>{s.value}</Text>
-            <Text style={styles.statLabel}>{s.label}</Text>
-          </View>
+          <Card key={s.label} style={styles.statCard}>
+            <View style={[styles.statIcon, { backgroundColor: s.color + '15' }]}>
+              <Ionicons name={s.icon as any} size={20} color={s.color} />
+            </View>
+            <Text style={[styles.statValue, { color: colors.text }]}>{loading ? '—' : s.value}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{s.label}</Text>
+          </Card>
         ))}
       </View>
 
-      <View style={styles.quickActions}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+      <View style={styles.section}>
+        <SectionHeader title="Quick Actions" />
         <View style={styles.actionRow}>
           {[
-            { label: 'Estimate', icon: 'document-text', route: '/invoice/create?type=ESTIMATE' },
-            { label: 'Client', icon: 'person-add', route: '/client/create' },
-            { label: 'Expense', icon: 'camera', route: '/expense/create' },
-            { label: 'Time', icon: 'timer', route: '/time/create' },
+            { label: 'Estimate', icon: 'document-text', route: '/invoice/create?type=ESTIMATE', bg: '#7C3AED' },
+            { label: 'Client', icon: 'person-add', route: '/client/create', bg: colors.primary },
+            { label: 'Expense', icon: 'camera', route: '/expense/create', bg: colors.warning },
+            { label: 'Time', icon: 'timer', route: '/time/create', bg: colors.accent },
           ].map((a) => (
-            <TouchableOpacity key={a.label} style={styles.actionBtn} onPress={() => router.push(a.route as any)}>
-              <View style={styles.actionIcon}><Ionicons name={a.icon as any} size={22} color={colors.primary} /></View>
-              <Text style={styles.actionLabel}>{a.label}</Text>
+            <TouchableOpacity
+              key={a.label}
+              style={styles.actionBtn}
+              onPress={() => { hapticLight(); router.push(a.route as any); }}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: a.bg + '18' }]}>
+                <Ionicons name={a.icon as any} size={22} color={a.bg} />
+              </View>
+              <Text style={[styles.actionLabel, { color: colors.textSecondary }]}>{a.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
       <View style={styles.summaryRow}>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryNum}>{stats?.paidCount || 0}</Text>
-          <Text style={styles.summaryLabel}>Paid</Text>
-        </View>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryNum}>{stats?.outstandingCount || 0}</Text>
-          <Text style={styles.summaryLabel}>Pending</Text>
-        </View>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryNum}>{stats?.clientCount || 0}</Text>
-          <Text style={styles.summaryLabel}>Clients</Text>
-        </View>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryNum}>{stats?.estimatesPending || 0}</Text>
-          <Text style={styles.summaryLabel}>Estimates</Text>
-        </View>
+        {[
+          { num: stats?.paidCount || 0, label: 'Paid', color: colors.accent },
+          { num: stats?.outstandingCount || 0, label: 'Pending', color: colors.warning },
+          { num: stats?.clientCount || 0, label: 'Clients', color: colors.primary },
+          { num: stats?.estimatesPending || 0, label: 'Estimates', color: '#7C3AED' },
+        ].map((s) => (
+          <View key={s.label} style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.summaryNum, { color: s.color }]}>{s.num}</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>{s.label}</Text>
+          </View>
+        ))}
       </View>
-    </ScrollView>
+
+      {recent.length > 0 && (
+        <View style={[styles.section, { paddingBottom: spacing.xxl }]}>
+          <SectionHeader title="Recent Invoices" actionLabel="See all" onAction={() => router.push('/(tabs)/invoices')} />
+          {recent.map((inv) => (
+            <TouchableOpacity
+              key={inv.id}
+              style={[styles.recentRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => router.push(`/invoice/${inv.id}`)}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.recentNum, { color: colors.text }]}>{inv.documentNumber}</Text>
+                <Text style={[styles.recentClient, { color: colors.textSecondary }]}>{inv.client?.name}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                <Text style={[styles.recentAmount, { color: colors.text }]}>{formatCurrency(inv.total, inv.currency)}</Text>
+                <StatusBadge status={inv.status} />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.lg, paddingTop: spacing.md },
-  greeting: { fontSize: 24, fontWeight: '800', color: colors.text },
-  business: { fontSize: 14, color: colors.textSecondary, marginTop: 2 },
-  notifBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', ...shadows.sm },
-  badge: { position: 'absolute', top: 4, right: 4, backgroundColor: colors.danger, borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  createBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, marginHorizontal: spacing.lg, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md, ...shadows.md },
-  createTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  createSub: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: spacing.lg, gap: spacing.sm },
-  statCard: { width: '48%', backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, ...shadows.sm },
-  statValue: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: spacing.xs },
-  statLabel: { fontSize: 13, color: colors.textSecondary },
-  quickActions: { paddingHorizontal: spacing.lg },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: spacing.md },
-  actionRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  actionBtn: { alignItems: 'center', width: '23%' },
-  actionIcon: { width: 52, height: 52, borderRadius: radius.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', ...shadows.sm },
-  actionLabel: { fontSize: 12, color: colors.textSecondary, marginTop: spacing.xs, fontWeight: '600' },
-  summaryRow: { flexDirection: 'row', padding: spacing.lg, gap: spacing.sm, marginBottom: spacing.xl },
-  summaryCard: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, alignItems: 'center', ...shadows.sm },
-  summaryNum: { fontSize: 22, fontWeight: '800', color: colors.primary },
-  summaryLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
-});
+function makeStyles(colors: any) {
+  return StyleSheet.create({
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.sm, marginBottom: spacing.md },
+    greeting: { fontSize: 26, fontWeight: '800', color: colors.text, letterSpacing: -0.3 },
+    business: { fontSize: 14, color: colors.textSecondary, marginTop: 2 },
+    notifBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1, ...shadows.sm },
+    badge: { position: 'absolute', top: -2, right: -2, backgroundColor: colors.danger, borderRadius: 10, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+    badgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+    hero: { flexDirection: 'row', alignItems: 'center', marginHorizontal: spacing.lg, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, marginBottom: spacing.lg, ...shadows.md },
+    heroIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+    heroTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
+    heroSub: { color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 2 },
+    statsGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg, gap: spacing.sm, marginBottom: spacing.lg },
+    statCard: { width: '48.5%', marginBottom: 0 },
+    statIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+    statValue: { fontSize: 18, fontWeight: '800' },
+    statLabel: { fontSize: 12, marginTop: 2, fontWeight: '500' },
+    section: { paddingHorizontal: spacing.lg, marginBottom: spacing.lg },
+    actionRow: { flexDirection: 'row', justifyContent: 'space-between' },
+    actionBtn: { alignItems: 'center', width: '23%' },
+    actionIcon: { width: 56, height: 56, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs },
+    actionLabel: { fontSize: 12, fontWeight: '600', textAlign: 'center' },
+    summaryRow: { flexDirection: 'row', paddingHorizontal: spacing.lg, gap: spacing.sm, marginBottom: spacing.lg },
+    summaryCard: { flex: 1, borderRadius: radius.md, padding: spacing.md, alignItems: 'center', borderWidth: 1 },
+    summaryNum: { fontSize: 22, fontWeight: '800' },
+    summaryLabel: { fontSize: 11, marginTop: 2, fontWeight: '600' },
+    recentRow: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, borderRadius: radius.md, borderWidth: 1, marginBottom: spacing.sm },
+    recentNum: { fontSize: 15, fontWeight: '700' },
+    recentClient: { fontSize: 13, marginTop: 2 },
+    recentAmount: { fontSize: 16, fontWeight: '800' },
+  });
+}

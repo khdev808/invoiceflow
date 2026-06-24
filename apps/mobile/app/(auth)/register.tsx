@@ -1,8 +1,11 @@
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/auth';
-import { colors, radius, spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Button } from '@/components/ui/Button';
+import { radius, spacing } from '@/constants/theme';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -12,6 +15,7 @@ export default function RegisterScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const register = useAuthStore((s) => s.register);
+  const { colors } = useTheme();
 
   const handleRegister = async () => {
     if (!name || !email || password.length < 6) {
@@ -30,58 +34,60 @@ export default function RegisterScreen() {
     }
   };
 
+  const styles = makeStyles(colors);
+  const fields = [
+    { label: 'Your Name', value: name, set: setName, placeholder: 'John Smith' },
+    { label: 'Business Name', value: businessName, set: setBusinessName, placeholder: 'Acme Services LLC' },
+    { label: 'Email', value: email, set: setEmail, placeholder: 'you@business.com', keyboard: 'email-address' as const },
+    { label: 'Password', value: password, set: setPassword, placeholder: 'Min 6 characters', secure: true },
+  ];
+
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={[styles.container, { backgroundColor: colors.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Start invoicing free — no credit card required</Text>
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        {[
-          { label: 'Your Name', value: name, set: setName, placeholder: 'John Smith' },
-          { label: 'Business Name', value: businessName, set: setBusinessName, placeholder: 'Acme Services LLC' },
-          { label: 'Email', value: email, set: setEmail, placeholder: 'you@business.com', keyboard: 'email-address' as const },
-          { label: 'Password', value: password, set: setPassword, placeholder: 'Min 6 characters', secure: true },
-        ].map((field) => (
-          <View key={field.label}>
-            <Text style={styles.label}>{field.label}</Text>
-            <TextInput
-              style={styles.input}
-              value={field.value}
-              onChangeText={field.set}
-              placeholder={field.placeholder}
-              placeholderTextColor={colors.textMuted}
-              autoCapitalize={field.keyboard === 'email-address' ? 'none' : 'words'}
-              keyboardType={field.keyboard}
-              secureTextEntry={field.secure}
-            />
-          </View>
-        ))}
-
-        <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Create Free Account</Text>}
+        <TouchableOpacity onPress={() => router.back()} style={styles.back}>
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.back()} style={styles.linkBtn}>
-          <Text style={styles.linkText}>Already have an account? <Text style={styles.linkBold}>Sign in</Text></Text>
-        </TouchableOpacity>
+        <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Start invoicing free — no credit card required</Text>
+
+        <View style={[styles.form, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
+
+          {fields.map((field) => (
+            <View key={field.label}>
+              <Text style={[styles.label, { color: colors.text }]}>{field.label}</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
+                value={field.value}
+                onChangeText={field.set}
+                placeholder={field.placeholder}
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize={field.keyboard === 'email-address' ? 'none' : 'words'}
+                keyboardType={field.keyboard}
+                secureTextEntry={field.secure}
+              />
+            </View>
+          ))}
+
+          <Button label="Create Free Account" onPress={handleRegister} loading={loading} fullWidth icon="rocket-outline" style={{ marginTop: spacing.lg }} />
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scroll: { flexGrow: 1, padding: spacing.lg, paddingTop: 60 },
-  title: { fontSize: 28, fontWeight: '800', color: colors.text },
-  subtitle: { fontSize: 15, color: colors.textSecondary, marginBottom: spacing.lg },
-  label: { fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: spacing.xs, marginTop: spacing.sm },
-  input: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, fontSize: 16, color: colors.text, borderWidth: 1, borderColor: colors.border },
-  button: { backgroundColor: colors.primary, borderRadius: radius.md, padding: spacing.md, alignItems: 'center', marginTop: spacing.lg },
-  buttonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  linkBtn: { marginTop: spacing.md, alignItems: 'center' },
-  linkText: { color: colors.textSecondary, fontSize: 15 },
-  linkBold: { color: colors.primary, fontWeight: '700' },
-  error: { color: colors.danger, marginBottom: spacing.sm },
-});
+function makeStyles(colors: any) {
+  return StyleSheet.create({
+    container: { flex: 1 },
+    scroll: { flexGrow: 1, padding: spacing.lg, paddingTop: 56 },
+    back: { marginBottom: spacing.md, alignSelf: 'flex-start' },
+    title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.3 },
+    subtitle: { fontSize: 15, marginBottom: spacing.lg, marginTop: 4 },
+    form: { borderRadius: radius.xl, padding: spacing.lg, borderWidth: 1 },
+    label: { fontSize: 14, fontWeight: '600', marginBottom: spacing.xs, marginTop: spacing.sm },
+    input: { borderRadius: radius.md, padding: spacing.md, fontSize: 16, borderWidth: 1 },
+    error: { marginBottom: spacing.sm },
+  });
+}

@@ -4,13 +4,15 @@ import { colors as lightColors } from '@/constants/theme';
 
 const darkColors = {
   ...lightColors,
-  background: '#0F172A',
-  surface: '#1E293B',
-  surfaceAlt: '#334155',
+  background: '#0B1220',
+  surface: '#151F32',
+  surfaceAlt: '#1E293B',
   text: '#F8FAFC',
   textSecondary: '#94A3B8',
   textMuted: '#64748B',
-  border: '#334155',
+  border: '#2A3548',
+  gradientStart: '#1E3A8A',
+  gradientEnd: '#1E40AF',
 };
 
 type ThemeColors = typeof lightColors;

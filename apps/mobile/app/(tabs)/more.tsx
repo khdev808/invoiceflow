@@ -6,7 +6,9 @@ import { useAuthStore } from '@/stores/auth';
 import { planApi } from '@/lib/api';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useI18n } from '@/hooks/useI18n';
-import { radius, spacing, shadows } from '@/constants/theme';
+import { Screen } from '@/components/ui/Screen';
+import { hapticLight } from '@/lib/haptics';
+import { radius, spacing } from '@/constants/theme';
 
 export default function MoreScreen() {
   const { user, logout } = useAuthStore();
@@ -16,7 +18,7 @@ export default function MoreScreen() {
 
   useEffect(() => {
     planApi.usage().then(({ data }) => {
-      setPlanLabel(`${data.plan} — ${data.used}/${data.limit} invoices`);
+      setPlanLabel(`${String(data.plan).toUpperCase()} · ${data.used}/${data.limit} invoices`);
     }).catch(() => {});
   }, []);
 
@@ -58,62 +60,70 @@ export default function MoreScreen() {
   const styles = makeStyles(colors);
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.profile}>
-        <View style={styles.avatar}>
+    <Screen scroll edges={['top']}>
+      <View style={[styles.profile, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
           <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'U'}</Text>
         </View>
-        <View>
-          <Text style={styles.name}>{user?.name}</Text>
-          <Text style={styles.email}>{user?.email}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.name, { color: colors.text }]}>{user?.name}</Text>
+          <Text style={[styles.email, { color: colors.textSecondary }]}>{user?.email}</Text>
           <TouchableOpacity onPress={() => router.push('/settings/plan')}>
-            <View style={styles.planBadge}><Text style={styles.planText}>{planLabel}</Text></View>
+            <View style={[styles.planBadge, { backgroundColor: colors.primary + '12' }]}>
+              <Text style={[styles.planText, { color: colors.primary }]}>{planLabel}</Text>
+            </View>
           </TouchableOpacity>
         </View>
       </View>
 
       {MENU_SECTIONS.map((section) => (
         <View key={section.title} style={styles.section}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
-          {section.items.map((item) => (
-            <TouchableOpacity key={item.label} style={styles.menuItem} onPress={() => router.push(item.route as any)}>
-              <View style={[styles.menuIcon, { backgroundColor: item.color + '15' }]}>
-                <Ionicons name={item.icon as any} size={20} color={item.color} />
-              </View>
-              <Text style={styles.menuLabel}>{item.label}</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-            </TouchableOpacity>
-          ))}
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>{section.title}</Text>
+          <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            {section.items.map((item, idx) => (
+              <TouchableOpacity
+                key={item.label}
+                style={[styles.menuItem, idx < section.items.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 1 }]}
+                onPress={() => { hapticLight(); router.push(item.route as any); }}
+              >
+                <View style={[styles.menuIcon, { backgroundColor: item.color + '14' }]}>
+                  <Ionicons name={item.icon as any} size={20} color={item.color} />
+                </View>
+                <Text style={[styles.menuLabel, { color: colors.text }]}>{item.label}</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       ))}
 
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <Ionicons name="log-out-outline" size={22} color={colors.danger} />
-        <Text style={styles.logoutText}>Sign Out</Text>
+        <Text style={[styles.logoutText, { color: colors.danger }]}>Sign Out</Text>
       </TouchableOpacity>
 
-      <Text style={styles.version}>InvoiceFlow v1.0.0</Text>
-    </ScrollView>
+      <Text style={[styles.version, { color: colors.textMuted }]}>InvoiceFlow v1.0.0</Text>
+    </Screen>
   );
 }
 
 function makeStyles(colors: any) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    profile: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, backgroundColor: colors.surface, marginBottom: spacing.md },
-    avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-    avatarText: { color: '#fff', fontSize: 24, fontWeight: '700' },
-    name: { fontSize: 18, fontWeight: '700', color: colors.text },
-    email: { fontSize: 14, color: colors.textSecondary },
-    planBadge: { marginTop: 6, backgroundColor: colors.primary + '15', paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.full, alignSelf: 'flex-start' },
-    planText: { fontSize: 12, fontWeight: '700', color: colors.primary },
-    section: { marginBottom: spacing.md },
-    sectionTitle: { fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
-    menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, paddingHorizontal: spacing.lg, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
+    profile: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginHorizontal: spacing.lg, marginTop: spacing.sm, marginBottom: spacing.lg, padding: spacing.lg, borderRadius: radius.xl, borderWidth: 1 },
+    avatar: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+    avatarText: { color: '#fff', fontSize: 24, fontWeight: '800' },
+    name: { fontSize: 18, fontWeight: '800' },
+    email: { fontSize: 14, marginTop: 2 },
+    planBadge: { marginTop: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.full, alignSelf: 'flex-start' },
+    planText: { fontSize: 12, fontWeight: '700' },
+    section: { marginBottom: spacing.md, paddingHorizontal: spacing.lg },
+    sectionTitle: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: spacing.sm },
+    sectionCard: { borderRadius: radius.lg, borderWidth: 1, overflow: 'hidden' },
+    menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: spacing.md },
     menuIcon: { width: 36, height: 36, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
-    menuLabel: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.text },
+    menuLabel: { flex: 1, fontSize: 16, fontWeight: '600' },
     logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, margin: spacing.lg, padding: spacing.md },
-    logoutText: { fontSize: 16, fontWeight: '600', color: colors.danger },
-    version: { textAlign: 'center', color: colors.textMuted, fontSize: 12, marginBottom: spacing.xxl },
+    logoutText: { fontSize: 16, fontWeight: '600' },
+    version: { textAlign: 'center', fontSize: 12, marginBottom: spacing.xxl },
   });
 }

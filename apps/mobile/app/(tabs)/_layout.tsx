@@ -4,28 +4,47 @@ import { useAuthStore } from '@/stores/auth';
 import { useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useI18n } from '@/hooks/useI18n';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const { isAuthenticated, isLoading, loadUser } = useAuthStore();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => { loadUser(); }, []);
 
   if (isLoading) {
-    return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}><ActivityIndicator color={colors.primary} /></View>;
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
   }
 
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
+
+  const tabHeight = 56 + (Platform.OS === 'ios' ? insets.bottom : 12);
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: 4, height: 88 },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+          height: tabHeight,
+          paddingTop: 8,
+          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 12,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: isDark ? 0.3 : 0.06,
+          shadowRadius: 8,
+        },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
         headerShown: false,
       }}
     >

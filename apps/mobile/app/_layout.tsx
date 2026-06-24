@@ -1,10 +1,11 @@
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from '@/contexts/ThemeContext';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { registerForPushNotifications } from '@/lib/pushNotifications';
 import { syncPendingOps } from '@/lib/offline';
 import { useAuthStore } from '@/stores/auth';
@@ -16,7 +17,37 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
-function AppBootstrap() {
+const modalScreens = [
+  { name: 'invoice/create', title: 'New Invoice' },
+  { name: 'invoice/edit/[id]', title: 'Edit Invoice' },
+  { name: 'client/create', title: 'New Client' },
+  { name: 'expense/create', title: 'Add Expense' },
+  { name: 'time/create', title: 'Log Time' },
+  { name: 'product/create', title: 'New Product' },
+  { name: 'mileage/create', title: 'Log Mileage' },
+] as const;
+
+const stackScreens = [
+  { name: 'invoice/[id]', title: 'Invoice' },
+  { name: 'client/[id]', title: 'Client' },
+  { name: 'expenses', title: 'Expenses' },
+  { name: 'time', title: 'Time Tracking' },
+  { name: 'reports', title: 'Reports' },
+  { name: 'notifications', title: 'Notifications' },
+  { name: 'recurring', title: 'Recurring' },
+  { name: 'settings/profile', title: 'Business Profile' },
+  { name: 'settings/templates', title: 'Templates' },
+  { name: 'settings/payments', title: 'Payments' },
+  { name: 'settings/language', title: 'Language' },
+  { name: 'settings/reminders', title: 'Reminders & Late Fees' },
+  { name: 'settings/plan', title: 'Plan & Usage' },
+  { name: 'settings/integrations', title: 'Integrations' },
+  { name: 'products', title: 'Products' },
+  { name: 'mileage', title: 'Mileage' },
+] as const;
+
+function ThemedNavigation() {
+  const { colors, isDark } = useTheme();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   useEffect(() => {
@@ -28,34 +59,32 @@ function AppBootstrap() {
     return () => sub.remove();
   }, [isAuthenticated]);
 
+  const headerOptions = {
+    headerStyle: { backgroundColor: colors.background },
+    headerTintColor: colors.primary,
+    headerTitleStyle: { color: colors.text, fontWeight: '700' as const, fontSize: 17 },
+    headerShadowVisible: false,
+    headerBackTitle: 'Back',
+  };
+
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="invoice/create" options={{ presentation: 'modal', headerShown: true, title: 'New Invoice' }} />
-      <Stack.Screen name="invoice/[id]" options={{ headerShown: true, title: 'Invoice' }} />
-      <Stack.Screen name="invoice/edit/[id]" options={{ presentation: 'modal', headerShown: true, title: 'Edit Invoice' }} />
-      <Stack.Screen name="client/create" options={{ presentation: 'modal', headerShown: true, title: 'New Client' }} />
-      <Stack.Screen name="client/[id]" options={{ headerShown: true, title: 'Client' }} />
-      <Stack.Screen name="expenses" options={{ headerShown: true, title: 'Expenses' }} />
-      <Stack.Screen name="expense/create" options={{ presentation: 'modal', headerShown: true, title: 'Add Expense' }} />
-      <Stack.Screen name="time" options={{ headerShown: true, title: 'Time Tracking' }} />
-      <Stack.Screen name="time/create" options={{ presentation: 'modal', headerShown: true, title: 'Log Time' }} />
-      <Stack.Screen name="reports" options={{ headerShown: true, title: 'Reports' }} />
-      <Stack.Screen name="notifications" options={{ headerShown: true, title: 'Notifications' }} />
-      <Stack.Screen name="recurring" options={{ headerShown: true, title: 'Recurring' }} />
-      <Stack.Screen name="settings/profile" options={{ headerShown: true, title: 'Business Profile' }} />
-      <Stack.Screen name="settings/templates" options={{ headerShown: true, title: 'Templates' }} />
-      <Stack.Screen name="settings/payments" options={{ headerShown: true, title: 'Payments' }} />
-      <Stack.Screen name="settings/language" options={{ headerShown: true, title: 'Language' }} />
-      <Stack.Screen name="settings/reminders" options={{ headerShown: true, title: 'Reminders & Late Fees' }} />
-      <Stack.Screen name="settings/plan" options={{ headerShown: true, title: 'Plan & Usage' }} />
-      <Stack.Screen name="settings/integrations" options={{ headerShown: true, title: 'Integrations' }} />
-      <Stack.Screen name="products" options={{ headerShown: true, title: 'Products' }} />
-      <Stack.Screen name="product/create" options={{ presentation: 'modal', headerShown: true, title: 'New Product' }} />
-      <Stack.Screen name="mileage" options={{ headerShown: true, title: 'Mileage' }} />
-      <Stack.Screen name="mileage/create" options={{ presentation: 'modal', headerShown: true, title: 'Log Mileage' }} />
-    </Stack>
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+        {modalScreens.map((s) => (
+          <Stack.Screen
+            key={s.name}
+            name={s.name}
+            options={{ presentation: 'modal', headerShown: true, title: s.title, ...headerOptions }}
+          />
+        ))}
+        {stackScreens.map((s) => (
+          <Stack.Screen key={s.name} name={s.name} options={{ headerShown: true, title: s.title, ...headerOptions }} />
+        ))}
+      </Stack>
+    </>
   );
 }
 
@@ -72,7 +101,7 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AppBootstrap />
+        <ThemedNavigation />
       </ThemeProvider>
     </QueryClientProvider>
   );

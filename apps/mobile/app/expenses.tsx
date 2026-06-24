@@ -1,15 +1,23 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { expensesApi } from '@/lib/api';
-import { colors, radius, spacing, shadows } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Screen } from '@/components/ui/Screen';
+import { IconButton } from '@/components/ui/IconButton';
+import { formatCurrency } from '@/lib/format';
+import { hapticLight } from '@/lib/haptics';
+import { radius, spacing } from '@/constants/theme';
 
 export default function ExpensesScreen() {
+  const { colors } = useTheme();
   const [expenses, setExpenses] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const load = async () => {
     try {
@@ -20,6 +28,7 @@ export default function ExpensesScreen() {
       setExpenses([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -27,30 +36,33 @@ export default function ExpensesScreen() {
 
   const scanReceipt = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('Permission needed', 'Camera access required for receipt scanning'); return; }
-
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Camera access required for receipt scanning');
+      return;
+    }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
     if (!result.canceled) {
+      hapticLight();
       router.push({ pathname: '/expense/create', params: { receiptUri: result.assets[0].uri } });
     }
   };
 
+  const styles = makeStyles(colors);
+
   return (
-    <View style={styles.container}>
-      <View style={styles.summary}>
+    <Screen edges={[]}>
+      <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.summary}>
         <Text style={styles.summaryLabel}>Total Expenses</Text>
-        <Text style={styles.summaryValue}>${(summary?.total || 0).toFixed(2)}</Text>
+        <Text style={styles.summaryValue}>{formatCurrency(summary?.total || 0)}</Text>
         <Text style={styles.summaryCount}>{summary?.count || 0} expenses tracked</Text>
-      </View>
+      </LinearGradient>
 
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.scanBtn} onPress={scanReceipt}>
+        <TouchableOpacity style={[styles.scanBtn, { backgroundColor: colors.warning }]} onPress={scanReceipt}>
           <Ionicons name="camera" size={20} color="#fff" />
           <Text style={styles.scanText}>Scan Receipt</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/expense/create')}>
-          <Ionicons name="add" size={24} color={colors.primary} />
-        </TouchableOpacity>
+        <IconButton icon="add" onPress={() => router.push('/expense/create')} />
       </View>
 
       {loading ? (
@@ -60,36 +72,43 @@ export default function ExpensesScreen() {
           data={expenses}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: spacing.lg }}
-          refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}
+          refreshing={refreshing}
+          onRefresh={() => { setRefreshing(true); load(); }}
+          ListEmptyComponent={
+            <Text style={[styles.empty, { color: colors.textMuted }]}>No expenses yet. Scan a receipt to get started.</Text>
+          }
           renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.cardIcon}><Ionicons name="receipt" size={20} color={colors.warning} /></View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.desc}>{item.description}</Text>
-                <Text style={styles.meta}>{item.category} • {item.vendor || 'No vendor'} • {new Date(item.date).toLocaleDateString()}</Text>
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.cardIcon, { backgroundColor: colors.warning + '15' }]}>
+                <Ionicons name="receipt" size={20} color={colors.warning} />
               </View>
-              <Text style={styles.amount}>${item.amount.toFixed(2)}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.desc, { color: colors.text }]}>{item.description}</Text>
+                <Text style={[styles.meta, { color: colors.textMuted }]}>{item.category} · {item.vendor || 'No vendor'}</Text>
+              </View>
+              <Text style={[styles.amount, { color: colors.text }]}>{formatCurrency(item.amount)}</Text>
             </View>
           )}
         />
       )}
-    </View>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  summary: { backgroundColor: colors.primary, padding: spacing.lg, alignItems: 'center' },
-  summaryLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 14 },
-  summaryValue: { color: '#fff', fontSize: 36, fontWeight: '800' },
-  summaryCount: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
-  actions: { flexDirection: 'row', padding: spacing.lg, gap: spacing.sm },
-  scanBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.warning, padding: spacing.md, borderRadius: radius.md },
-  scanText: { color: '#fff', fontWeight: '700' },
-  addBtn: { width: 48, height: 48, borderRadius: radius.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, gap: spacing.md, ...shadows.sm },
-  cardIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.warning + '15', alignItems: 'center', justifyContent: 'center' },
-  desc: { fontSize: 15, fontWeight: '600', color: colors.text },
-  meta: { fontSize: 12, color: colors.textMuted },
-  amount: { fontSize: 16, fontWeight: '800', color: colors.text },
-});
+function makeStyles(colors: any) {
+  return StyleSheet.create({
+    summary: { padding: spacing.xl, alignItems: 'center' },
+    summaryLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '500' },
+    summaryValue: { color: '#fff', fontSize: 36, fontWeight: '800', marginTop: 4 },
+    summaryCount: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 4 },
+    actions: { flexDirection: 'row', padding: spacing.lg, gap: spacing.sm, alignItems: 'center' },
+    scanBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radius.lg },
+    scanText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+    card: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm, gap: spacing.md, borderWidth: 1 },
+    cardIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+    desc: { fontSize: 15, fontWeight: '600' },
+    meta: { fontSize: 12, marginTop: 2 },
+    amount: { fontSize: 16, fontWeight: '800' },
+    empty: { textAlign: 'center', marginTop: 40, fontSize: 15, lineHeight: 22 },
+  });
+}

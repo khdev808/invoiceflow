@@ -1,8 +1,12 @@
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/auth';
-import { colors, radius, spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Button } from '@/components/ui/Button';
+import { radius, spacing } from '@/constants/theme';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('demo@invoiceflow.app');
@@ -10,6 +14,7 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const login = useAuthStore((s) => s.login);
+  const { colors } = useTheme();
 
   const handleLogin = async () => {
     setError('');
@@ -24,23 +29,30 @@ export default function LoginScreen() {
     }
   };
 
+  const styles = makeStyles(colors);
+
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
+    <KeyboardAvoidingView style={[styles.container, { backgroundColor: colors.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.hero}>
           <View style={styles.logo}>
-            <Text style={styles.logoText}>IF</Text>
+            <Ionicons name="receipt" size={32} color="#fff" />
           </View>
           <Text style={styles.title}>InvoiceFlow</Text>
           <Text style={styles.subtitle}>Professional invoicing in under 30 seconds</Text>
-        </View>
+        </LinearGradient>
 
-        <View style={styles.form}>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+        <View style={[styles.form, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          {error ? (
+            <View style={[styles.errorBox, { backgroundColor: colors.danger + '12' }]}>
+              <Ionicons name="alert-circle" size={18} color={colors.danger} />
+              <Text style={[styles.error, { color: colors.danger }]}>{error}</Text>
+            </View>
+          ) : null}
 
-          <Text style={styles.label}>Email</Text>
+          <Text style={[styles.label, { color: colors.text }]}>Email</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -49,9 +61,9 @@ export default function LoginScreen() {
             placeholderTextColor={colors.textMuted}
           />
 
-          <Text style={styles.label}>Password</Text>
+          <Text style={[styles.label, { color: colors.text }]}>Password</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surfaceAlt, borderColor: colors.border, color: colors.text }]}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -59,18 +71,22 @@ export default function LoginScreen() {
             placeholderTextColor={colors.textMuted}
           />
 
-          <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign In</Text>}
-          </TouchableOpacity>
+          <Button label="Sign In" onPress={handleLogin} loading={loading} fullWidth icon="log-in-outline" style={{ marginTop: spacing.lg }} />
 
-          <TouchableOpacity onPress={() => router.push('/(auth)/register')} style={styles.linkBtn}>
-            <Text style={styles.linkText}>Don't have an account? <Text style={styles.linkBold}>Sign up free</Text></Text>
-          </TouchableOpacity>
+          <Button label="Create free account" onPress={() => router.push('/(auth)/register')} variant="ghost" fullWidth style={{ marginTop: spacing.sm }} />
         </View>
 
         <View style={styles.features}>
-          {['⚡ Create invoices in 30s', '📊 Real-time open tracking', '💳 Stripe & PayPal payments', '📱 Works offline'].map((f) => (
-            <Text key={f} style={styles.feature}>{f}</Text>
+          {[
+            { icon: 'flash', text: 'Create invoices in 30s' },
+            { icon: 'eye', text: 'Real-time open tracking' },
+            { icon: 'card', text: 'Stripe & PayPal payments' },
+            { icon: 'cloud-offline', text: 'Works offline' },
+          ].map((f) => (
+            <View key={f.text} style={styles.featureRow}>
+              <Ionicons name={f.icon as any} size={16} color={colors.primary} />
+              <Text style={[styles.feature, { color: colors.textSecondary }]}>{f.text}</Text>
+            </View>
           ))}
         </View>
       </ScrollView>
@@ -78,23 +94,21 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scroll: { flexGrow: 1, padding: spacing.lg, justifyContent: 'center' },
-  header: { alignItems: 'center', marginBottom: spacing.xl },
-  logo: { width: 72, height: 72, borderRadius: radius.lg, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
-  logoText: { color: '#fff', fontSize: 28, fontWeight: '800' },
-  title: { fontSize: 32, fontWeight: '800', color: colors.text },
-  subtitle: { fontSize: 16, color: colors.textSecondary, marginTop: spacing.xs, textAlign: 'center' },
-  form: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, ...{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 } },
-  label: { fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: spacing.xs, marginTop: spacing.sm },
-  input: { backgroundColor: colors.surfaceAlt, borderRadius: radius.md, padding: spacing.md, fontSize: 16, color: colors.text, borderWidth: 1, borderColor: colors.border },
-  button: { backgroundColor: colors.primary, borderRadius: radius.md, padding: spacing.md, alignItems: 'center', marginTop: spacing.lg },
-  buttonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  linkBtn: { marginTop: spacing.md, alignItems: 'center' },
-  linkText: { color: colors.textSecondary, fontSize: 15 },
-  linkBold: { color: colors.primary, fontWeight: '700' },
-  error: { color: colors.danger, marginBottom: spacing.sm, textAlign: 'center' },
-  features: { marginTop: spacing.xl, gap: spacing.sm },
-  feature: { color: colors.textSecondary, fontSize: 14, textAlign: 'center' },
-});
+function makeStyles(colors: any) {
+  return StyleSheet.create({
+    container: { flex: 1 },
+    scroll: { flexGrow: 1 },
+    hero: { alignItems: 'center', paddingTop: 72, paddingBottom: 40, paddingHorizontal: spacing.lg, borderBottomLeftRadius: radius.xl, borderBottomRightRadius: radius.xl },
+    logo: { width: 72, height: 72, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
+    title: { fontSize: 32, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+    subtitle: { fontSize: 16, color: 'rgba(255,255,255,0.85)', marginTop: spacing.xs, textAlign: 'center' },
+    form: { marginHorizontal: spacing.lg, marginTop: -24, borderRadius: radius.xl, padding: spacing.lg, borderWidth: 1 },
+    label: { fontSize: 14, fontWeight: '600', marginBottom: spacing.xs, marginTop: spacing.sm },
+    input: { borderRadius: radius.md, padding: spacing.md, fontSize: 16, borderWidth: 1 },
+    errorBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderRadius: radius.md, marginBottom: spacing.sm },
+    error: { flex: 1, fontSize: 14 },
+    features: { marginTop: spacing.xl, paddingHorizontal: spacing.xl, gap: spacing.sm, paddingBottom: spacing.xxl },
+    featureRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, justifyContent: 'center' },
+    feature: { fontSize: 14 },
+  });
+}
