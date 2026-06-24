@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum DocumentType {
+  INVOICE
+  ESTIMATE
+  CREDIT_NOTE
+  RECURRING
+}
+
+enum PaymentMethod {
+  STRIPE
+  PAYPAL
+  BANK_TRANSFER
+  CASH
+  CHECK
+  APPLE_PAY
+  GOOGLE_PAY
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  role          UserRole  @default(USER)
+  businessName  String?
+  businessLogo  String?
+  businessPhone String?
+  businessEmail String?
+  businessAddress String?
+  taxId         String?
+  currency      String    @default("USD")
+  language      String    @default("en")
+  timezone      String    @default("America/New_York")
+  stripeAccountId String?
+  plan          String    @default("free")
+  planExpiresAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  clients       Client[]
+  invoices      Invoice[]
+  expenses      Expense[]
+  timeEntries   TimeEntry[]
+  notifications Notification[]
+  settings      UserSettings?
+
+  @@index([email])
+}
+
+model UserSettings {
+  id                    String  @id @default(cuid())
+  userId                String  @unique
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultTaxRate        Float   @default(0)
+  defaultPaymentTerms   Int     @default(30)
+  invoicePrefix         String  @default("INV")
+  estimatePrefix        String  @default("EST")
+  nextInvoiceNumber     Int     @default(1001)
+  nextEstimateNumber    Int     @default(2001)
+  templateId            String  @default("modern")
+  primaryColor          String  @default("#2563EB")
+  enableOpenTracking    Boolean @default(true)
+  enablePaymentReminders Boolean @default(true)
+  reminderDaysBefore    Int     @default(3)
+  reminderDaysAfter     Int     @default(7)
+  enableLateFees        Boolean @default(false)
+  lateFeePercent        Float   @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Client {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  email       String?
+  phone       String?
+  company     String?
+  address     String?
+  city        String?
+  state       String?
+  zip         String?
+  country     String   @default("US")
+  notes       String?
+  contactId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  invoices    Invoice[]
+  timeEntries TimeEntry[]
+
+  @@index([userId])
+  @@index([userId, name])
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId        String
+  client          Client        @relation(fields: [clientId], references: [id])
+  documentNumber  String
+  documentType    DocumentType  @default(INVOICE)
+  status          InvoiceStatus @default(DRAFT)
+  issueDate       DateTime      @default(now())
+  dueDate         DateTime?
+  currency        String        @default("USD")
+  subtotal        Float         @default(0)
+  taxTotal        Float         @default(0)
+  discountTotal   Float         @default(0)
+  total           Float         @default(0)
+  notes           String?
+  terms           String?
+  signature       String?
+  templateId      String        @default("modern")
+  paymentLink     String?
+  stripePaymentId String?
+  viewedAt        DateTime?
+  paidAt          DateTime?
+  sentAt          DateTime?
+  convertedFromId String?
+  recurringRule   String?
+  attachments     String[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  lineItems       LineItem[]
+  payments        Payment[]
+  activities      InvoiceActivity[]
+
+  @@unique([userId, documentNumber])
+  @@index([userId, status])
+  @@index([userId, documentType])
+  @@index([clientId])
+}
+
+model LineItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float   @default(1)
+  unitPrice   Float
+  taxRate     Float   @default(0)
+  discount    Float   @default(0)
+  total       Float
+  sortOrder   Int     @default(0)
+
+  @@index([invoiceId])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  invoiceId     String
+  invoice       Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount        Float
+  method        PaymentMethod @default(STRIPE)
+  transactionId String?
+  paidAt        DateTime      @default(now())
+  notes         String?
+  createdAt     DateTime      @default(now())
+
+  @@index([invoiceId])
+}
+
+model InvoiceActivity {
+  id        String   @id @default(cuid())
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([invoiceId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  description String
+  amount      Float
+  category    String   @default("General")
+  date        DateTime @default(now())
+  receiptUrl  String?
+  vendor      String?
+  taxDeductible Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, date])
+}
+
+model TimeEntry {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId    String?
+  client      Client?  @relation(fields: [clientId], references: [id])
+  description String
+  hours       Float
+  rate        Float
+  date        DateTime @default(now())
+  billable    Boolean  @default(true)
+  invoiced    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, invoiced])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      String
+  read      Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+}
+
+model AdminAuditLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  target    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+}
