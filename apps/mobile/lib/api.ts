@@ -101,3 +101,31 @@ export const usersApi = {
 export const paymentsApi = {
   createLink: (invoiceId: string) => api.post(`/payments/link/${invoiceId}`),
 };
+
+// Products
+export const productsApi = {
+  list: (search?: string) => api.get('/products', { params: { search } }),
+  create: (data: any) => api.post('/products', data),
+  update: (id: string, data: any) => api.put(`/products/${id}`, data),
+  delete: (id: string) => api.delete(`/products/${id}`),
+};
+
+// Mileage
+export const mileageApi = {
+  list: () => api.get('/mileage'),
+  summary: () => api.get('/mileage/summary'),
+  create: (data: any) => api.post('/mileage', data),
+  delete: (id: string) => api.delete(`/mileage/${id}`),
+};
+
+// OCR
+export const ocrApi = {
+  parseReceipt: (imageUri: string) => api.post('/ocr/receipt', { imageUri }),
+};
+
+// Recurring
+export const recurringApi = {
+  list: () => api.get('/invoices/recurring/list'),
+};
+
+export const PORTAL_BASE = 'http://localhost:3000/portal';

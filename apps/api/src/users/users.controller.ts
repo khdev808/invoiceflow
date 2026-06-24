@@ -12,6 +12,11 @@ export class UsersController {
     return this.users.updateProfile(req.user.userId, body);
   }
 
+  @Put('push-token')
+  updatePushToken(@Request() req: { user: { userId: string } }, @Body() body: { token: string }) {
+    return this.users.updateSettings(req.user.userId, { pushToken: body.token });
+  }
+
   @Put('settings')
   updateSettings(@Request() req: { user: { userId: string } }, @Body() body: any) {
     return this.users.updateSettings(req.user.userId, body);

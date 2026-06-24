@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request, Patch } from '@nestjs/common';
 import { InvoicesService } from './invoices.service';
-import { CreateInvoiceDto, UpdateInvoiceDto, ConvertEstimateDto } from './dto/invoice.dto';
+import { CreateInvoiceDto, UpdateInvoiceDto, ConvertEstimateDto, ClientSignDto } from './dto/invoice.dto';
 import { JwtAuthGuard } from '../auth/guards';
 
 @Controller('invoices')
@@ -15,6 +15,33 @@ export class InvoicesController {
   @Patch('public/:id/view')
   markViewed(@Param('id') id: string) {
     return this.invoices.markViewed(id);
+  }
+
+  @Post('public/:id/sign')
+  clientSign(@Param('id') id: string, @Body() dto: ClientSignDto) {
+    return this.invoices.clientSign(id, dto.signature, dto.signerName);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('recurring/list')
+  listRecurring(@Request() req: { user: { userId: string } }) {
+    return this.invoices.listRecurring(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('recurring/:id/toggle')
+  toggleRecurring(
+    @Request() req: { user: { userId: string } },
+    @Param('id') id: string,
+    @Body() body: { active: boolean },
+  ) {
+    return this.invoices.toggleRecurring(req.user.userId, id, body.active);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('recurring/:id')
+  deleteRecurring(@Request() req: { user: { userId: string } }, @Param('id') id: string) {
+    return this.invoices.deleteRecurring(req.user.userId, id);
   }
 
   @UseGuards(JwtAuthGuard)

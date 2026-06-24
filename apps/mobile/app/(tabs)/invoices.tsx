@@ -24,24 +24,32 @@ export default function InvoicesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = async () => {
+  useFocusEffect(useCallback(() => { setLoading(true); load(); }, [filter]));
+
+  const loadWithCache = async () => {
     try {
       const params: any = {};
       if (filter === 'estimates') params.type = 'ESTIMATE';
+      else if (filter === 'credit') params.type = 'CREDIT_NOTE';
       else if (filter !== 'all') params.status = filter.toUpperCase();
       const { data } = await invoicesApi.list(params);
       setInvoices(data);
+      const { cacheInvoices } = await import('@/lib/offline');
+      await cacheInvoices(data);
     } catch {
-      setInvoices([]);
+      const { getCachedInvoices } = await import('@/lib/offline');
+      const cached = await getCachedInvoices();
+      if (cached) setInvoices(cached as any[]);
+      else setInvoices([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  useFocusEffect(useCallback(() => { setLoading(true); load(); }, [filter]));
+  const load = loadWithCache;
 
-  const filters = ['all', 'draft', 'sent', 'paid', 'overdue', 'estimates'];
+  const filters = ['all', 'draft', 'sent', 'paid', 'overdue', 'estimates', 'credit'];
 
   return (
     <View style={styles.container}>

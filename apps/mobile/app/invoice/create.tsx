@@ -2,7 +2,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
 import { useState, useEffect } from 'react';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { clientsApi, invoicesApi } from '@/lib/api';
+import { clientsApi, invoicesApi, productsApi } from '@/lib/api';
+import { SignaturePad } from '@/components/SignaturePad';
 import { colors, radius, spacing } from '@/constants/theme';
 
 interface LineItem {
@@ -15,11 +16,16 @@ interface LineItem {
 
 export default function CreateInvoiceScreen() {
   const { type } = useLocalSearchParams<{ type?: string }>();
-  const docType = type === 'ESTIMATE' ? 'ESTIMATE' : 'INVOICE';
+  const docType = type === 'ESTIMATE' ? 'ESTIMATE' : type === 'CREDIT_NOTE' ? 'CREDIT_NOTE' : 'INVOICE';
 
   const [clients, setClients] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [clientId, setClientId] = useState('');
   const [notes, setNotes] = useState('');
+  const [signature, setSignature] = useState('');
+  const [depositPercent, setDepositPercent] = useState('');
+  const [recurring, setRecurring] = useState('');
+  const [showSignature, setShowSignature] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { description: '', quantity: '1', unitPrice: '', taxRate: '0', discount: '0' },
   ]);
@@ -27,11 +33,22 @@ export default function CreateInvoiceScreen() {
   const [loadingClients, setLoadingClients] = useState(true);
 
   useEffect(() => {
-    clientsApi.list().then(({ data }) => {
-      setClients(data);
-      if (data.length > 0) setClientId(data[0].id);
+    Promise.all([clientsApi.list(), productsApi.list()]).then(([c, p]) => {
+      setClients(c.data);
+      setProducts(p.data);
+      if (c.data.length > 0) setClientId(c.data[0].id);
     }).finally(() => setLoadingClients(false));
   }, []);
+
+  const addProductLine = (product: any) => {
+    setLineItems([...lineItems, {
+      description: product.name,
+      quantity: '1',
+      unitPrice: String(product.unitPrice),
+      taxRate: String(product.taxRate || 0),
+      discount: '0',
+    }]);
+  };
 
   const addLine = () => setLineItems([...lineItems, { description: '', quantity: '1', unitPrice: '', taxRate: '0', discount: '0' }]);
 
@@ -65,6 +82,9 @@ export default function CreateInvoiceScreen() {
         documentType: docType,
         dueDate: dueDate.toISOString(),
         notes,
+        signature: signature || undefined,
+        depositPercent: depositPercent ? parseFloat(depositPercent) : undefined,
+        recurringRule: recurring || undefined,
         lineItems: validItems.map((i) => ({
           description: i.description,
           quantity: parseFloat(i.quantity),
@@ -87,7 +107,7 @@ export default function CreateInvoiceScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: docType === 'ESTIMATE' ? 'New Estimate' : 'New Invoice' }} />
+      <Stack.Screen options={{ title: docType === 'ESTIMATE' ? 'New Estimate' : docType === 'CREDIT_NOTE' ? 'New Credit Note' : 'New Invoice' }} />
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Client</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clientList}>
@@ -104,6 +124,20 @@ export default function CreateInvoiceScreen() {
             <Ionicons name="add" size={18} color={colors.primary} />
           </TouchableOpacity>
         </ScrollView>
+
+        {products.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Quick Add from Catalog</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.md }}>
+              {products.slice(0, 8).map((p) => (
+                <TouchableOpacity key={p.id} style={styles.productChip} onPress={() => addProductLine(p)}>
+                  <Text style={styles.productChipText}>{p.name}</Text>
+                  <Text style={styles.productPrice}>${p.unitPrice}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </>
+        )}
 
         <Text style={styles.sectionTitle}>Line Items</Text>
         {lineItems.map((item, index) => (
@@ -140,6 +174,28 @@ export default function CreateInvoiceScreen() {
           <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
           <Text style={styles.addLineText}>Add Line Item</Text>
         </TouchableOpacity>
+
+        <Text style={styles.label}>Deposit Request (%)</Text>
+        <TextInput style={styles.input} value={depositPercent} onChangeText={setDepositPercent} keyboardType="decimal-pad" placeholder="e.g. 50 for 50% upfront" placeholderTextColor={colors.textMuted} />
+
+        {docType === 'INVOICE' && (
+          <>
+            <Text style={styles.label}>Recurring Schedule</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }}>
+              {['', 'weekly', 'monthly', 'quarterly', 'yearly'].map((f) => (
+                <TouchableOpacity key={f || 'none'} style={[styles.freqChip, recurring === f && styles.freqActive]} onPress={() => setRecurring(f)}>
+                  <Text style={[styles.freqText, recurring === f && styles.freqTextActive]}>{f || 'One-time'}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </>
+        )}
+
+        <TouchableOpacity style={styles.sigToggle} onPress={() => setShowSignature(!showSignature)}>
+          <Ionicons name="create-outline" size={20} color={colors.primary} />
+          <Text style={styles.sigToggleText}>{signature ? 'Signature added ✓' : 'Add your signature'}</Text>
+        </TouchableOpacity>
+        {showSignature && <SignaturePad onSave={(s) => { setSignature(s); setShowSignature(false); }} />}
 
         <Text style={styles.label}>Notes</Text>
         <TextInput style={[styles.input, styles.notes]} value={notes} onChangeText={setNotes} multiline placeholder="Payment terms, thank you note..." placeholderTextColor={colors.textMuted} />
@@ -189,4 +245,13 @@ const styles = StyleSheet.create({
   saveBtnText: { color: colors.primary, fontWeight: '700', fontSize: 16 },
   sendBtn: { flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center' },
   sendBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  productChip: { backgroundColor: colors.surface, padding: spacing.sm, borderRadius: radius.md, marginRight: spacing.sm, borderWidth: 1, borderColor: colors.border, minWidth: 90, alignItems: 'center' },
+  productChipText: { fontSize: 13, fontWeight: '600', color: colors.text },
+  productPrice: { fontSize: 12, color: colors.primary, marginTop: 2 },
+  freqChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.full, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, marginRight: spacing.sm },
+  freqActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  freqText: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
+  freqTextActive: { color: '#fff' },
+  sigToggle: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
+  sigToggleText: { color: colors.primary, fontWeight: '600' },
 });

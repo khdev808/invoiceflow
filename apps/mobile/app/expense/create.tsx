@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, Image, ScrollView } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { expensesApi } from '@/lib/api';
+import { expensesApi, ocrApi } from '@/lib/api';
 import { colors, radius, spacing, expenseCategories } from '@/constants/theme';
 
 export default function CreateExpenseScreen() {
@@ -11,6 +11,19 @@ export default function CreateExpenseScreen() {
   const [category, setCategory] = useState('General');
   const [vendor, setVendor] = useState('');
   const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
+
+  useEffect(() => {
+    if (receiptUri) {
+      setScanning(true);
+      ocrApi.parseReceipt(receiptUri).then(({ data }) => {
+        setDescription(data.description);
+        setAmount(String(data.amount));
+        setVendor(data.vendor);
+        setCategory(data.category);
+      }).catch(() => {}).finally(() => setScanning(false));
+    }
+  }, [receiptUri]);
 
   const handleSave = async () => {
     if (!description || !amount) { Alert.alert('Error', 'Description and amount required'); return; }
@@ -34,6 +47,7 @@ export default function CreateExpenseScreen() {
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
       {receiptUri && <Image source={{ uri: receiptUri }} style={styles.receipt} />}
+      {scanning && <Text style={styles.scanning}>Scanning receipt with OCR...</Text>}
 
       <Text style={styles.label}>Description</Text>
       <TextInput style={styles.input} value={description} onChangeText={setDescription} placeholder="What was this expense for?" placeholderTextColor={colors.textMuted} />
@@ -63,6 +77,7 @@ export default function CreateExpenseScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
   receipt: { width: '100%', height: 200, borderRadius: radius.md, marginBottom: spacing.md },
+  scanning: { color: colors.primary, fontWeight: '600', marginBottom: spacing.md, textAlign: 'center' },
   label: { fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: spacing.xs, marginTop: spacing.sm },
   input: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, fontSize: 16, color: colors.text, borderWidth: 1, borderColor: colors.border },
   categoryList: { marginVertical: spacing.sm },

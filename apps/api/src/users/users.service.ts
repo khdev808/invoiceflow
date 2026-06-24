@@ -50,6 +50,8 @@ export class UsersService {
     reminderDaysAfter: number;
     enableLateFees: boolean;
     lateFeePercent: number;
+    pushToken: string;
+    webhookUrl: string;
   }>) {
     return this.prisma.userSettings.update({
       where: { userId },

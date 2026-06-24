@@ -4,7 +4,8 @@ import { useLocalSearchParams, useFocusEffect, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { invoicesApi, paymentsApi } from '@/lib/api';
+import { invoicesApi, paymentsApi, PORTAL_BASE } from '@/lib/api';
+import { shareInvoice } from '@/lib/share';
 import { colors, radius, spacing, shadows } from '@/constants/theme';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -66,6 +67,25 @@ export default function InvoiceDetailScreen() {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleWhatsApp = async () => {
+    setActionLoading(true);
+    try {
+      let paymentUrl;
+      try {
+        const { data } = await paymentsApi.createLink(id);
+        paymentUrl = data.url;
+      } catch { /* optional */ }
+      await shareInvoice(invoice, paymentUrl);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSharePortal = async () => {
+    const url = `${PORTAL_BASE}/${id}`;
+    await Share.share({ message: `View invoice ${invoice.documentNumber}: ${url}`, url });
   };
 
   const handleSharePDF = async () => {
@@ -135,6 +155,8 @@ export default function InvoiceDetailScreen() {
             <View style={styles.totalRow}><Text>Subtotal</Text><Text>${invoice.subtotal.toFixed(2)}</Text></View>
             {invoice.discountTotal > 0 && <View style={styles.totalRow}><Text>Discount</Text><Text>-${invoice.discountTotal.toFixed(2)}</Text></View>}
             {invoice.taxTotal > 0 && <View style={styles.totalRow}><Text>Tax</Text><Text>${invoice.taxTotal.toFixed(2)}</Text></View>}
+            {invoice.depositPercent > 0 && <View style={styles.totalRow}><Text>Deposit Required ({invoice.depositPercent}%)</Text><Text>${(invoice.total * invoice.depositPercent / 100).toFixed(2)}</Text></View>}
+            {invoice.lateFeeAmount > 0 && <View style={styles.totalRow}><Text style={{ color: colors.danger }}>Late Fee</Text><Text style={{ color: colors.danger }}>${invoice.lateFeeAmount.toFixed(2)}</Text></View>}
             <View style={[styles.totalRow, styles.grandTotal]}><Text style={styles.grandLabel}>Total</Text><Text style={styles.grandValue}>${invoice.total.toFixed(2)}</Text></View>
           </View>
         </View>
@@ -176,6 +198,14 @@ export default function InvoiceDetailScreen() {
               </TouchableOpacity>
             </>
           )}
+          <TouchableOpacity style={styles.secondaryBtn} onPress={handleWhatsApp}>
+            <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+            <Text style={[styles.secondaryBtnText, { color: '#25D366' }]}>WhatsApp</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={handleSharePortal}>
+            <Ionicons name="globe-outline" size={20} color={colors.primary} />
+            <Text style={styles.secondaryBtnText}>Client Portal</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.secondaryBtn} onPress={handleSharePDF}>
             <Ionicons name="share-outline" size={20} color={colors.text} />
             <Text style={styles.secondaryBtnText}>Share PDF</Text>

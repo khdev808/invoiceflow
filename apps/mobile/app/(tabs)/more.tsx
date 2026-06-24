@@ -12,6 +12,9 @@ const MENU_SECTIONS = [
       { label: 'Time Tracking', icon: 'timer', route: '/time', color: colors.primary },
       { label: 'Reports', icon: 'bar-chart', route: '/reports', color: colors.accent },
       { label: 'Estimates', icon: 'document-text', route: '/invoice/create?type=ESTIMATE', color: '#7C3AED' },
+      { label: 'Credit Notes', icon: 'remove-circle', route: '/invoice/create?type=CREDIT_NOTE', color: colors.danger },
+      { label: 'Products', icon: 'pricetag', route: '/products', color: '#0F766E' },
+      { label: 'Mileage', icon: 'car', route: '/mileage', color: '#7C3AED' },
     ],
   },
   {
@@ -20,7 +23,8 @@ const MENU_SECTIONS = [
       { label: 'Business Profile', icon: 'business', route: '/settings/profile', color: colors.text },
       { label: 'Invoice Templates', icon: 'color-palette', route: '/settings/templates', color: colors.primary },
       { label: 'Payment Methods', icon: 'card', route: '/settings/payments', color: colors.accent },
-      { label: 'Notifications', icon: 'notifications', route: '/notifications', color: colors.warning },
+      { label: 'Reminders & Late Fees', icon: 'alarm', route: '/settings/reminders', color: colors.danger },
+      { label: 'Language', icon: 'language', route: '/settings/language', color: colors.primary },
     ],
   },
 ];

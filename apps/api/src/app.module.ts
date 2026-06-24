@@ -11,6 +11,14 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
 import { UsersModule } from './users/users.module';
+import { JobsModule } from './jobs/jobs.module';
+import { ProductsModule } from './products/products.module';
+import { MileageModule } from './mileage/mileage.module';
+import { OcrModule } from './ocr/ocr.module';
+import { EmailModule } from './email/email.module';
+import { PlanModule } from './plan/plan.module';
+import { IntegrationsModule } from './integrations/integrations.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
@@ -26,6 +34,14 @@ import { UsersModule } from './users/users.module';
     PaymentsModule,
     AdminModule,
     UsersModule,
+    JobsModule,
+    ProductsModule,
+    MileageModule,
+    OcrModule,
+    EmailModule,
+    PlanModule,
+    IntegrationsModule,
+    UploadsModule,
   ],
 })
 export class AppModule {}

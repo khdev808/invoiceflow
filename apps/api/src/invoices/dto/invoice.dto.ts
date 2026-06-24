@@ -60,6 +60,18 @@ export class CreateInvoiceDto {
   @IsString()
   recurringRule?: string;
 
+  @IsOptional()
+  @IsNumber()
+  depositAmount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  depositPercent?: number;
+
+  @IsOptional()
+  @IsString()
+  linkedInvoiceId?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => LineItemDto)
@@ -76,4 +88,30 @@ export class ConvertEstimateDto {
   @IsOptional()
   @IsDateString()
   dueDate?: string;
+}
+
+export class ClientSignDto {
+  @IsString()
+  signature: string;
+
+  @IsOptional()
+  @IsString()
+  signerName?: string;
+}
+
+export class CreateRecurringDto {
+  @IsString()
+  clientId: string;
+
+  @IsString()
+  frequency: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => LineItemDto)
+  lineItems: LineItemDto[];
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }

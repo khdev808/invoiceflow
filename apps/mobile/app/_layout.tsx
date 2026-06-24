@@ -39,6 +39,12 @@ export default function RootLayout() {
         <Stack.Screen name="settings/profile" options={{ headerShown: true, title: 'Business Profile' }} />
         <Stack.Screen name="settings/templates" options={{ headerShown: true, title: 'Templates' }} />
         <Stack.Screen name="settings/payments" options={{ headerShown: true, title: 'Payments' }} />
+        <Stack.Screen name="settings/language" options={{ headerShown: true, title: 'Language' }} />
+        <Stack.Screen name="settings/reminders" options={{ headerShown: true, title: 'Reminders & Late Fees' }} />
+        <Stack.Screen name="products" options={{ headerShown: true, title: 'Products' }} />
+        <Stack.Screen name="product/create" options={{ presentation: 'modal', headerShown: true, title: 'New Product' }} />
+        <Stack.Screen name="mileage" options={{ headerShown: true, title: 'Mileage' }} />
+        <Stack.Screen name="mileage/create" options={{ presentation: 'modal', headerShown: true, title: 'Log Mileage' }} />
       </Stack>
     </QueryClientProvider>
   );

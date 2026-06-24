@@ -38,13 +38,18 @@
       "expo-sharing",
       [
         "expo-contacts",
-        { "contactsPermission": "InvoiceFlow needs access to import clients from your contacts." }
+        {
+          "contactsPermission": "InvoiceFlow needs access to import clients from your contacts."
+        }
       ],
       [
         "expo-image-picker",
-        { "cameraPermission": "InvoiceFlow needs camera access to scan receipts." }
+        {
+          "cameraPermission": "InvoiceFlow needs camera access to scan receipts."
+        }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true

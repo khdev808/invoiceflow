@@ -1,12 +1,20 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInvoiceDto, UpdateInvoiceDto } from './dto/invoice.dto';
 import { calcInvoiceTotals, calcLineTotal } from './invoice.utils';
 import { DocumentType, InvoiceStatus } from '@prisma/client';
+import { EmailService } from '../email/email.service';
+import { PlanService } from '../plan/plan.service';
+import { IntegrationsService } from '../integrations/integrations.service';
 
 @Injectable()
 export class InvoicesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private email: EmailService,
+    private plan: PlanService,
+    private integrations: IntegrationsService,
+  ) {}
 
   async findAll(userId: string, filters?: { status?: string; type?: string; clientId?: string }) {
     return this.prisma.invoice.findMany({
@@ -92,15 +100,30 @@ export class InvoicesService {
   }
 
   async create(userId: string, dto: CreateInvoiceDto) {
+    if ((dto.documentType || 'INVOICE') === 'INVOICE') {
+      try {
+        await this.plan.checkInvoiceLimit(userId);
+      } catch (e: any) {
+        throw new ForbiddenException(e.message);
+      }
+    }
     const docType = (dto.documentType || 'INVOICE') as DocumentType;
-    const totals = calcInvoiceTotals(dto.lineItems);
-    const documentNumber = await this.nextDocNumber(userId, docType);
+    let totals = calcInvoiceTotals(dto.lineItems);
+    if (docType === 'CREDIT_NOTE') {
+      totals = {
+        subtotal: -Math.abs(totals.subtotal),
+        taxTotal: -Math.abs(totals.taxTotal),
+        discountTotal: totals.discountTotal,
+        total: -Math.abs(totals.total),
+      };
+    }
+    const documentNumber = await this.nextDocNumber(userId, docType === 'CREDIT_NOTE' ? 'INVOICE' : docType);
 
-    return this.prisma.invoice.create({
+    const invoice = await this.prisma.invoice.create({
       data: {
         userId,
         clientId: dto.clientId,
-        documentNumber,
+        documentNumber: docType === 'CREDIT_NOTE' ? `CN-${documentNumber}` : documentNumber,
         documentType: docType,
         issueDate: dto.issueDate ? new Date(dto.issueDate) : new Date(),
         dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
@@ -110,21 +133,42 @@ export class InvoicesService {
         signature: dto.signature,
         templateId: dto.templateId || 'modern',
         recurringRule: dto.recurringRule,
+        depositAmount: dto.depositAmount,
+        depositPercent: dto.depositPercent,
+        linkedInvoiceId: dto.linkedInvoiceId,
         ...totals,
         lineItems: {
           create: dto.lineItems.map((item, i) => ({
             description: item.description,
             quantity: item.quantity,
-            unitPrice: item.unitPrice,
+            unitPrice: docType === 'CREDIT_NOTE' ? -Math.abs(item.unitPrice) : item.unitPrice,
             taxRate: item.taxRate || 0,
             discount: item.discount || 0,
-            total: calcLineTotal(item),
+            total: docType === 'CREDIT_NOTE' ? -Math.abs(calcLineTotal(item)) : calcLineTotal(item),
             sortOrder: i,
           })),
         },
       },
       include: { client: true, lineItems: true },
     });
+
+    if (dto.recurringRule) {
+      const nextRun = new Date();
+      nextRun.setMonth(nextRun.getMonth() + 1);
+      await this.prisma.recurringSchedule.create({
+        data: {
+          userId,
+          templateInvoiceId: invoice.id,
+          clientId: dto.clientId,
+          frequency: dto.recurringRule,
+          nextRunAt: nextRun,
+          lineItemsJson: dto.lineItems as unknown as object,
+          notes: dto.notes,
+        },
+      });
+    }
+
+    return invoice;
   }
 
   async update(userId: string, id: string, dto: UpdateInvoiceDto) {
@@ -167,6 +211,21 @@ export class InvoicesService {
 
   async send(userId: string, id: string) {
     const invoice = await this.findOne(userId, id);
+    const portalBase = process.env.PORTAL_URL || 'http://localhost:3000/portal';
+    const portalUrl = `${portalBase}/${id}`;
+
+    if (invoice.client.email) {
+      await this.email.sendInvoiceEmail({
+        to: invoice.client.email,
+        clientName: invoice.client.name,
+        documentNumber: invoice.documentNumber,
+        total: invoice.total,
+        currency: invoice.currency,
+        portalUrl,
+        businessName: invoice.user?.businessName || invoice.user?.name || 'InvoiceFlow',
+      });
+    }
+
     const updated = await this.prisma.invoice.update({
       where: { id },
       data: { status: 'SENT', sentAt: new Date() },
@@ -186,6 +245,8 @@ export class InvoicesService {
         data: { invoiceId: id },
       },
     });
+
+    await this.integrations.dispatch(userId, 'invoice.sent', { invoiceId: id, documentNumber: invoice.documentNumber });
 
     return updated;
   }
@@ -295,6 +356,51 @@ export class InvoicesService {
     });
 
     return payment;
+  }
+
+  async clientSign(id: string, signature: string, signerName?: string) {
+    const invoice = await this.prisma.invoice.findUnique({ where: { id }, include: { client: true } });
+    if (!invoice) throw new NotFoundException('Invoice not found');
+
+    const updated = await this.prisma.invoice.update({
+      where: { id },
+      data: { clientSignature: signature, status: invoice.documentType === 'ESTIMATE' ? 'VIEWED' : invoice.status },
+    });
+
+    await this.prisma.invoiceActivity.create({
+      data: { invoiceId: id, action: 'CLIENT_SIGNED', metadata: { signerName } },
+    });
+
+    await this.prisma.notification.create({
+      data: {
+        userId: invoice.userId,
+        title: 'Client Signed',
+        body: `${signerName || invoice.client.name} signed ${invoice.documentNumber}`,
+        type: 'client_signed',
+        data: { invoiceId: id },
+      },
+    });
+
+    return updated;
+  }
+
+  async listRecurring(userId: string) {
+    return this.prisma.recurringSchedule.findMany({
+      where: { userId },
+      orderBy: { nextRunAt: 'asc' },
+    });
+  }
+
+  async toggleRecurring(userId: string, id: string, active: boolean) {
+    const schedule = await this.prisma.recurringSchedule.findFirst({ where: { id, userId } });
+    if (!schedule) throw new NotFoundException('Schedule not found');
+    return this.prisma.recurringSchedule.update({ where: { id }, data: { active } });
+  }
+
+  async deleteRecurring(userId: string, id: string) {
+    const schedule = await this.prisma.recurringSchedule.findFirst({ where: { id, userId } });
+    if (!schedule) throw new NotFoundException('Schedule not found');
+    return this.prisma.recurringSchedule.delete({ where: { id } });
   }
 
   async remove(userId: string, id: string) {
