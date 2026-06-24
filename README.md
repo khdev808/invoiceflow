@@ -65,7 +65,12 @@ Swagger UI: http://localhost:3001/api/docs
 - 🎨 6 professional templates with branding
 - 🌍 Multi-currency + **5 languages** (EN, ES, FR, DE, PT)
 - 📤 PDF export + **WhatsApp** + client portal sharing
-- 🌙 Dark mode + **offline cache** with sync queue
+- 🔔 Push notifications (Expo) + in-app alerts
+- 📱 QR payment codes + deposit-aware Stripe/PayPal
+- ✏️ Invoice editing, recurring schedule manager
+- 📊 Plan usage screen (free tier limits)
+- 🔗 Webhook integrations settings
+- 🌙 Dark mode (system) + **offline create queue** with sync
 - ☁️ Cross-device cloud sync
 
 ### Backend API
@@ -82,7 +87,8 @@ Swagger UI: http://localhost:3001/api/docs
 
 ### Client Portal (Web)
 - Public invoice view at `/portal/[id]`
-- Pay now button, estimate e-signature canvas
+- Deposit-aware **Stripe + PayPal** pay buttons (no auth)
+- Template-colored header, estimate e-signature canvas
 - Open tracking on view
 
 ### Admin Panel

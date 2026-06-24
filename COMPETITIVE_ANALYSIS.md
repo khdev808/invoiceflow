@@ -72,16 +72,30 @@
 
 ---
 
-## Remaining Gaps (Honest Assessment)
+## Remaining Gaps (Honest Assessment — v3)
 
 | Gap | Best-in-class | InvoiceFlow Status |
 |-----|---------------|-------------------|
 | Full double-entry accounting | QuickBooks | Not in scope — API hooks ready |
 | 40+ payment gateways | Zoho, Invoice Ninja | Stripe + PayPal + manual (8 methods) |
-| 200+ invoice templates | Invoice Simple | 6 premium + custom branding |
+| 200+ invoice templates | Invoice Simple | 6 premium — applied to PDF/portal |
 | Native Tap to Pay hardware | HubSpark, Square | Stripe Terminal ready (config needed) |
-| CRM + scheduling bundle | HubSpark | Invoicing-focused (integrations via API) |
+| CRM + scheduling bundle | HubSpark | Invoicing-focused (webhook integrations UI) |
+| Production push delivery | All incumbents | Expo push wired — needs physical device test |
 | App Store presence / reviews | All incumbents | Requires launch |
+
+### Recently wired (v3)
+
+- Expo push token registration + server-side push dispatch
+- Offline invoice create queue with foreground sync
+- Invoice edit screen (drafts)
+- Recurring schedule list with toggle/delete
+- Plan usage screen (25/mo free limit)
+- Integrations webhook settings
+- Deposit-aware Stripe/PayPal + portal pay buttons
+- Payment QR codes on mobile
+- Dark mode via system theme on tabs and settings
+- i18n persisted across app restarts
 
 ---
 
@@ -120,4 +134,4 @@
 - Beats **8/10** on automation (Zoho/FreshBooks parity)
 - Only trails QuickBooks on full accounting and Invoice Simple on template count
 
-**Ready for beta launch.** Remaining work is production Stripe keys, App Store submission, and marketing — not product features.
+**Ready for beta launch** after production Stripe keys, SMTP for email, and device testing of push notifications. Core mobile ↔ API integration gaps from v2 are closed.
