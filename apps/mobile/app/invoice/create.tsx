@@ -6,6 +6,10 @@ import { clientsApi, invoicesApi, productsApi } from '@/lib/api';
 import { queueOfflineOp } from '@/lib/offline';
 import { SignaturePad } from '@/components/SignaturePad';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useI18n } from '@/hooks/useI18n';
+import { useUserCurrency } from '@/hooks/useUserCurrency';
+import { PaywallModal } from '@/components/PaywallModal';
+import { formatCurrency } from '@/lib/format';
 import { radius, spacing } from '@/constants/theme';
 
 interface LineItem {
@@ -19,16 +23,21 @@ interface LineItem {
 export default function CreateInvoiceScreen() {
   const { type, clientId: paramClientId, prefilled } = useLocalSearchParams<{ type?: string; clientId?: string; prefilled?: string }>();
   const { colors } = useTheme();
+  const { t, lang } = useI18n();
+  const currency = useUserCurrency();
   const docType = type === 'ESTIMATE' ? 'ESTIMATE' : type === 'CREDIT_NOTE' ? 'CREDIT_NOTE' : 'INVOICE';
 
   const [clients, setClients] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [clientId, setClientId] = useState('');
+  const [linkedInvoiceId, setLinkedInvoiceId] = useState('');
   const [notes, setNotes] = useState('');
   const [signature, setSignature] = useState('');
   const [depositPercent, setDepositPercent] = useState('');
   const [recurring, setRecurring] = useState('');
   const [showSignature, setShowSignature] = useState(false);
+  const [paywall, setPaywall] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { description: '', quantity: '1', unitPrice: '', taxRate: '0', discount: '0' },
   ]);
@@ -36,16 +45,21 @@ export default function CreateInvoiceScreen() {
   const [loadingClients, setLoadingClients] = useState(true);
 
   useEffect(() => {
-    Promise.all([clientsApi.list(), productsApi.list()]).then(([c, p]) => {
+    Promise.all([
+      clientsApi.list(),
+      productsApi.list(),
+      docType === 'CREDIT_NOTE' ? invoicesApi.list({ type: 'INVOICE' }) : Promise.resolve({ data: [] }),
+    ]).then(([c, p, inv]) => {
       setClients(c.data);
       setProducts(p.data);
+      setInvoices((inv.data || []).filter((i: any) => ['SENT', 'VIEWED', 'OVERDUE', 'PAID'].includes(i.status)));
       if (paramClientId && c.data.some((x: any) => x.id === paramClientId)) {
         setClientId(paramClientId);
       } else if (c.data.length > 0) {
         setClientId(c.data[0].id);
       }
     }).finally(() => setLoadingClients(false));
-  }, [paramClientId]);
+  }, [paramClientId, docType]);
 
   useEffect(() => {
     if (!prefilled) return;
@@ -82,18 +96,19 @@ export default function CreateInvoiceScreen() {
   };
 
   const calcTotal = () => {
-    return lineItems.reduce((sum, item) => {
+    const raw = lineItems.reduce((sum, item) => {
       const base = parseFloat(item.quantity || '0') * parseFloat(item.unitPrice || '0');
       const afterDiscount = base - parseFloat(item.discount || '0');
       const tax = afterDiscount * (parseFloat(item.taxRate || '0') / 100);
       return sum + afterDiscount + tax;
     }, 0);
+    return docType === 'CREDIT_NOTE' ? -Math.abs(raw) : raw;
   };
 
   const handleSave = async (send = false) => {
-    if (!clientId) { Alert.alert('Error', 'Select a client'); return; }
+    if (!clientId) { Alert.alert(t('error'), t('selectClient')); return; }
     const validItems = lineItems.filter((i) => i.description && i.unitPrice);
-    if (validItems.length === 0) { Alert.alert('Error', 'Add at least one line item'); return; }
+    if (validItems.length === 0) { Alert.alert(t('error'), t('addLineItemRequired')); return; }
 
     setLoading(true);
     try {
@@ -108,6 +123,7 @@ export default function CreateInvoiceScreen() {
         signature: signature || undefined,
         depositPercent: depositPercent ? parseFloat(depositPercent) : undefined,
         recurringRule: recurring || undefined,
+        linkedInvoiceId: linkedInvoiceId || undefined,
         lineItems: validItems.map((i) => ({
           description: i.description,
           quantity: parseFloat(i.quantity),
@@ -124,8 +140,12 @@ export default function CreateInvoiceScreen() {
       } catch (e: any) {
         if (!e.response) {
           await queueOfflineOp({ method: 'POST', url: '/invoices', body: payload });
-          Alert.alert('Saved Offline', 'Invoice will sync when you are back online.');
+          Alert.alert(t('savedOffline'), t('savedOfflineMsg'));
           router.back();
+          return;
+        }
+        if (e.response?.status === 403) {
+          setPaywall(true);
           return;
         }
         throw e;
@@ -134,7 +154,7 @@ export default function CreateInvoiceScreen() {
       if (send) await invoicesApi.send(invoiceId);
       router.replace(`/invoice/${invoiceId}`);
     } catch (e: any) {
-      Alert.alert('Error', e.response?.data?.message || 'Failed to create invoice');
+      Alert.alert(t('error'), e.response?.data?.message || t('failedCreateInvoice'));
     } finally {
       setLoading(false);
     }
@@ -144,11 +164,14 @@ export default function CreateInvoiceScreen() {
 
   const styles = makeStyles(colors);
 
+  const screenTitle = docType === 'ESTIMATE' ? t('newEstimate') : docType === 'CREDIT_NOTE' ? t('newCreditNote') : t('newInvoice');
+
   return (
     <>
-      <Stack.Screen options={{ title: docType === 'ESTIMATE' ? 'New Estimate' : docType === 'CREDIT_NOTE' ? 'New Credit Note' : 'New Invoice' }} />
+      <Stack.Screen options={{ title: screenTitle }} />
+      <PaywallModal visible={paywall} onClose={() => setPaywall(false)} reason="limit" />
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.label}>Client</Text>
+        <Text style={styles.label}>{t('client')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clientList}>
           {clients.map((c) => (
             <TouchableOpacity
@@ -164,9 +187,34 @@ export default function CreateInvoiceScreen() {
           </TouchableOpacity>
         </ScrollView>
 
+        {docType === 'CREDIT_NOTE' && invoices.length > 0 && (
+          <>
+            <Text style={styles.label}>{t('linkToInvoice')}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clientList}>
+              <TouchableOpacity
+                style={[styles.clientChip, !linkedInvoiceId && styles.clientChipActive]}
+                onPress={() => setLinkedInvoiceId('')}
+              >
+                <Text style={[styles.clientChipText, !linkedInvoiceId && styles.clientChipTextActive]}>—</Text>
+              </TouchableOpacity>
+              {invoices.map((inv) => (
+                <TouchableOpacity
+                  key={inv.id}
+                  style={[styles.clientChip, linkedInvoiceId === inv.id && styles.clientChipActive]}
+                  onPress={() => setLinkedInvoiceId(inv.id)}
+                >
+                  <Text style={[styles.clientChipText, linkedInvoiceId === inv.id && styles.clientChipTextActive]}>
+                    {inv.documentNumber}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </>
+        )}
+
         {products.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>Quick Add from Catalog</Text>
+            <Text style={styles.sectionTitle}>{t('quickAddCatalog')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.md }}>
               {products.slice(0, 8).map((p) => (
                 <TouchableOpacity key={p.id} style={styles.productChip} onPress={() => addProductLine(p)}>
@@ -178,31 +226,31 @@ export default function CreateInvoiceScreen() {
           </>
         )}
 
-        <Text style={styles.sectionTitle}>Line Items</Text>
+        <Text style={styles.sectionTitle}>{t('lineItems')}</Text>
         {lineItems.map((item, index) => (
           <View key={index} style={styles.lineCard}>
             <TextInput
               style={styles.input}
-              placeholder="Description"
+              placeholder={t('description')}
               placeholderTextColor={colors.textMuted}
               value={item.description}
               onChangeText={(v) => updateLine(index, 'description', v)}
             />
             <View style={styles.lineRow}>
               <View style={styles.lineField}>
-                <Text style={styles.fieldLabel}>Qty</Text>
+                <Text style={styles.fieldLabel}>{t('qty')}</Text>
                 <TextInput style={styles.smallInput} value={item.quantity} onChangeText={(v) => updateLine(index, 'quantity', v)} keyboardType="decimal-pad" />
               </View>
               <View style={styles.lineField}>
-                <Text style={styles.fieldLabel}>Price</Text>
+                <Text style={styles.fieldLabel}>{t('price')}</Text>
                 <TextInput style={styles.smallInput} value={item.unitPrice} onChangeText={(v) => updateLine(index, 'unitPrice', v)} keyboardType="decimal-pad" placeholder="0.00" />
               </View>
               <View style={styles.lineField}>
-                <Text style={styles.fieldLabel}>Tax %</Text>
+                <Text style={styles.fieldLabel}>{t('tax')}</Text>
                 <TextInput style={styles.smallInput} value={item.taxRate} onChangeText={(v) => updateLine(index, 'taxRate', v)} keyboardType="decimal-pad" />
               </View>
               <View style={styles.lineField}>
-                <Text style={styles.fieldLabel}>Disc</Text>
+                <Text style={styles.fieldLabel}>{t('discount')}</Text>
                 <TextInput style={styles.smallInput} value={item.discount} onChangeText={(v) => updateLine(index, 'discount', v)} keyboardType="decimal-pad" />
               </View>
             </View>
@@ -211,19 +259,21 @@ export default function CreateInvoiceScreen() {
 
         <TouchableOpacity style={styles.addLineBtn} onPress={addLine}>
           <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-          <Text style={styles.addLineText}>Add Line Item</Text>
+          <Text style={styles.addLineText}>{t('addLineItem')}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.label}>Deposit Request (%)</Text>
-        <TextInput style={styles.input} value={depositPercent} onChangeText={setDepositPercent} keyboardType="decimal-pad" placeholder="e.g. 50 for 50% upfront" placeholderTextColor={colors.textMuted} />
+        <Text style={styles.label}>{t('depositRequest')}</Text>
+        <TextInput style={styles.input} value={depositPercent} onChangeText={setDepositPercent} keyboardType="decimal-pad" placeholder={t('depositPlaceholder')} placeholderTextColor={colors.textMuted} />
 
         {docType === 'INVOICE' && (
           <>
-            <Text style={styles.label}>Recurring Schedule</Text>
+            <Text style={styles.label}>{t('recurringSchedule')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }}>
               {['', 'weekly', 'monthly', 'quarterly', 'yearly'].map((f) => (
                 <TouchableOpacity key={f || 'none'} style={[styles.freqChip, recurring === f && styles.freqActive]} onPress={() => setRecurring(f)}>
-                  <Text style={[styles.freqText, recurring === f && styles.freqTextActive]}>{f || 'One-time'}</Text>
+                  <Text style={[styles.freqText, recurring === f && styles.freqTextActive]}>
+                    {f === '' ? t('oneTime') : t(f as 'weekly' | 'monthly' | 'quarterly' | 'yearly')}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -232,24 +282,26 @@ export default function CreateInvoiceScreen() {
 
         <TouchableOpacity style={styles.sigToggle} onPress={() => setShowSignature(!showSignature)}>
           <Ionicons name="create-outline" size={20} color={colors.primary} />
-          <Text style={styles.sigToggleText}>{signature ? 'Signature added ✓' : 'Add your signature'}</Text>
+          <Text style={styles.sigToggleText}>{signature ? t('signatureAdded') : t('addSignature')}</Text>
         </TouchableOpacity>
         {showSignature && <SignaturePad onSave={(s) => { setSignature(s); setShowSignature(false); }} />}
 
-        <Text style={styles.label}>Notes</Text>
-        <TextInput style={[styles.input, styles.notes]} value={notes} onChangeText={setNotes} multiline placeholder="Payment terms, thank you note..." placeholderTextColor={colors.textMuted} />
+        <Text style={styles.label}>{t('notes')}</Text>
+        <TextInput style={[styles.input, styles.notes]} value={notes} onChangeText={setNotes} multiline placeholder={t('notesPlaceholder')} placeholderTextColor={colors.textMuted} />
 
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>${calcTotal().toFixed(2)}</Text>
+          <Text style={styles.totalLabel}>{t('total')}</Text>
+          <Text style={[styles.totalValue, docType === 'CREDIT_NOTE' && { color: colors.danger }]}>
+            {formatCurrency(calcTotal(), currency, lang)}
+          </Text>
         </View>
 
         <View style={styles.actions}>
           <TouchableOpacity style={styles.saveBtn} onPress={() => handleSave(false)} disabled={loading}>
-            <Text style={styles.saveBtnText}>Save Draft</Text>
+            <Text style={styles.saveBtnText}>{t('saveDraft')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.sendBtn} onPress={() => handleSave(true)} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendBtnText}>Save & Send</Text>}
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendBtnText}>{t('saveAndSend')}</Text>}
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -22,43 +22,43 @@ export default function MoreScreen() {
 
   useEffect(() => {
     planApi.usage().then(({ data }) => {
-      setPlanLabel(`${String(data.plan).toUpperCase()} · ${data.used}/${data.limit} invoices`);
+      setPlanLabel(`${String(data.plan).toUpperCase()} · ${data.used}/${data.limit} ${t('invoicesUsed')}`);
     }).catch(() => {});
   }, []);
 
   const MENU_SECTIONS = [
     {
-      title: 'Business',
+      title: t('business'),
       items: [
         { label: t('expenses'), icon: 'receipt', route: '/expenses', color: colors.warning },
-        { label: 'Time Tracking', icon: 'timer', route: '/time', color: colors.primary },
-        { label: 'Reports', icon: 'bar-chart', route: '/reports', color: colors.accent },
+        { label: t('timeTracking'), icon: 'timer', route: '/time', color: colors.primary },
+        { label: t('reports'), icon: 'bar-chart', route: '/reports', color: colors.accent },
         { label: t('recurring'), icon: 'repeat', route: '/recurring', color: '#7C3AED' },
-        { label: 'Estimates', icon: 'document-text', route: '/invoice/create?type=ESTIMATE', color: '#7C3AED' },
-        { label: 'Credit Notes', icon: 'remove-circle', route: '/invoice/create?type=CREDIT_NOTE', color: colors.danger },
-        { label: 'Products', icon: 'pricetag', route: '/products', color: '#0F766E' },
-        { label: 'Mileage', icon: 'car', route: '/mileage', color: '#7C3AED' },
+        { label: t('estimates'), icon: 'document-text', route: '/invoice/create?type=ESTIMATE', color: '#7C3AED' },
+        { label: t('creditNotes'), icon: 'remove-circle', route: '/invoice/create?type=CREDIT_NOTE', color: colors.danger },
+        { label: t('products'), icon: 'pricetag', route: '/products', color: '#0F766E' },
+        { label: t('mileage'), icon: 'car', route: '/mileage', color: '#7C3AED' },
       ],
     },
     {
       title: t('settings'),
       items: [
-        { label: 'Business Profile', icon: 'business', route: '/settings/profile', color: colors.text },
-        { label: 'Invoice Templates', icon: 'color-palette', route: '/settings/templates', color: colors.primary },
-        { label: 'Payment Methods', icon: 'card', route: '/settings/payments', color: colors.accent },
+        { label: t('businessProfile'), icon: 'business', route: '/settings/profile', color: colors.text },
+        { label: t('invoiceTemplates'), icon: 'color-palette', route: '/settings/templates', color: colors.primary },
+        { label: t('paymentMethods'), icon: 'card', route: '/settings/payments', color: colors.accent },
         { label: t('plan'), icon: 'pie-chart', route: '/settings/plan', color: colors.primary },
         { label: t('integrations'), icon: 'git-network', route: '/settings/integrations', color: colors.text },
-        { label: 'Reminders & Late Fees', icon: 'alarm', route: '/settings/reminders', color: colors.danger },
-        { label: 'Language', icon: 'language', route: '/settings/language', color: colors.primary },
+        { label: t('remindersLateFees'), icon: 'alarm', route: '/settings/reminders', color: colors.danger },
+        { label: t('language'), icon: 'language', route: '/settings/language', color: colors.primary },
       ],
     },
   ];
 
   const handleLogout = () => {
     devLogAction('auth:logout-prompt');
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: async () => { await logout(); router.replace('/(auth)/login'); } },
+    Alert.alert(t('signOut'), t('signOutConfirm'), [
+      { text: t('cancel'), style: 'cancel' },
+      { text: t('signOut'), style: 'destructive', onPress: async () => { await logout(); router.replace('/(auth)/login'); } },
     ]);
   };
 
@@ -120,7 +120,7 @@ export default function MoreScreen() {
         onPress={handleLogout}
       >
         <Ionicons name="log-out-outline" size={20} color={colors.danger} />
-        <Text style={[styles.logoutText, { color: colors.danger }]}>Sign Out</Text>
+        <Text style={[styles.logoutText, { color: colors.danger }]}>{t('signOut')}</Text>
       </TouchableOpacity>
 
       <Text variant="micro" color="muted" style={styles.version}>InvoiceFlow v1.0.0</Text>

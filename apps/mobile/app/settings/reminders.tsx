@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { usersApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useI18n } from '@/hooks/useI18n';
 import { Screen } from '@/components/ui/Screen';
 import { FormField } from '@/components/ui/FormField';
 import { Button } from '@/components/ui/Button';
@@ -14,6 +15,7 @@ import { hapticSuccess } from '@/lib/haptics';
 export default function RemindersSettingsScreen() {
   const { user, loadUser } = useAuthStore();
   const { colors } = useTheme();
+  const { t } = useI18n();
   const s = user?.settings || {};
   const [enableReminders, setEnableReminders] = useState(s.enablePaymentReminders ?? true);
   const [enableLateFees, setEnableLateFees] = useState(s.enableLateFees ?? false);
@@ -36,9 +38,9 @@ export default function RemindersSettingsScreen() {
       });
       await loadUser();
       hapticSuccess();
-      Alert.alert('Saved', 'Reminder and late fee settings updated');
+      Alert.alert(t('success'), t('settingsSaved'));
     } catch {
-      Alert.alert('Error', 'Failed to save');
+      Alert.alert(t('error'), t('failed'));
     } finally {
       setLoading(false);
     }
@@ -49,26 +51,26 @@ export default function RemindersSettingsScreen() {
       <View style={{ padding: spacing.lg }}>
         <Card style={styles.toggleRow}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.rowTitle, { color: colors.text }]}>Payment Reminders</Text>
-            <Text style={[styles.rowDesc, { color: colors.textSecondary }]}>Auto-remind clients before and after due date</Text>
+            <Text style={[styles.rowTitle, { color: colors.text }]}>{t('enableReminders')}</Text>
+            <Text style={[styles.rowDesc, { color: colors.textSecondary }]}>{t('reminderDaysBefore')}</Text>
           </View>
           <Switch value={enableReminders} onValueChange={setEnableReminders} trackColor={{ true: colors.primary }} />
         </Card>
 
-        <FormField label="Days before due date" value={reminderBefore} onChangeText={setReminderBefore} keyboardType="number-pad" />
-        <FormField label="Days after overdue to re-remind" value={reminderAfter} onChangeText={setReminderAfter} keyboardType="number-pad" />
+        <FormField label={t('reminderDaysBefore')} value={reminderBefore} onChangeText={setReminderBefore} keyboardType="number-pad" />
+        <FormField label={t('reminderDaysAfter')} value={reminderAfter} onChangeText={setReminderAfter} keyboardType="number-pad" />
 
-        <Card style={[styles.toggleRow, { marginTop: spacing.md }]}>
+        <Card style={{ ...styles.toggleRow, marginTop: spacing.md }}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.rowTitle, { color: colors.text }]}>Automated Late Fees</Text>
-            <Text style={[styles.rowDesc, { color: colors.textSecondary }]}>Apply fee when invoice becomes overdue</Text>
+            <Text style={[styles.rowTitle, { color: colors.text }]}>{t('enableLateFees')}</Text>
+            <Text style={[styles.rowDesc, { color: colors.textSecondary }]}>{t('lateFeeAmount')}</Text>
           </View>
           <Switch value={enableLateFees} onValueChange={setEnableLateFees} trackColor={{ true: colors.primary }} />
         </Card>
 
-        <FormField label="Late fee percentage" value={lateFeePercent} onChangeText={setLateFeePercent} keyboardType="decimal-pad" />
+        <FormField label={t('lateFeePercent')} value={lateFeePercent} onChangeText={setLateFeePercent} keyboardType="decimal-pad" />
 
-        <Button label="Save Settings" onPress={handleSave} loading={loading} fullWidth icon="save-outline" style={{ marginTop: spacing.md }} />
+        <Button label={t('save')} onPress={handleSave} loading={loading} fullWidth icon="save-outline" style={{ marginTop: spacing.md }} />
       </View>
     </Screen>
   );
