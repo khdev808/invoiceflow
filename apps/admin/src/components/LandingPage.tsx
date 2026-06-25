@@ -6,6 +6,8 @@ import { LanguageSelector } from '@/components/LanguageSelector';
 import type { TranslationKey } from '@/lib/i18n/en';
 
 const DIFF_KEYS = [1, 2, 3, 4, 5, 6] as const;
+const REASON_KEYS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+const REASON_ICONS = ['⚡', '🎁', '💎', '💳', '✍️', '🌐', '☁️', '🎯'];
 const COMPARE_ROWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 const FEATURE_KEYS = [1, 2, 3, 4, 5, 6] as const;
 const FEATURE_ICONS = ['📄', '💰', '⏱️', '✍️', '🔁', '📶'];
@@ -48,6 +50,12 @@ export function LandingPage() {
     { name: t('planBusinessName'), price: '$19.99', detail: t('planBusinessDetail'), highlight: false, badge: null },
   ];
 
+  const reasons = REASON_KEYS.map((n, i) => ({
+    icon: REASON_ICONS[i],
+    title: t(`reason${n}Title` as TranslationKey),
+    body: t(`reason${n}Body` as TranslationKey),
+  }));
+
   const whoColumns = [
     {
       title: t('whoPerfectTitle'),
@@ -72,6 +80,7 @@ export function LandingPage() {
             <span className="text-lg font-bold tracking-tight">InvoiceFlow</span>
           </div>
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
+            <a href="#reasons" className="hover:text-indigo-600">{t('reasonsLabel')}</a>
             <a href="#why" className="hover:text-indigo-600">{t('navWhy')}</a>
             <a href="#compare" className="hover:text-indigo-600">{t('navCompare')}</a>
             <a href="#features" className="hover:text-indigo-600">{t('navFeatures')}</a>
@@ -79,12 +88,15 @@ export function LandingPage() {
           </nav>
           <div className="flex items-center gap-3">
             <LanguageSelector />
-            <a
-              href="#download"
+            <Link href="/app/login" className="hidden text-sm font-medium text-slate-600 hover:text-indigo-600 sm:inline-block">
+              {t('downloadSignIn')}
+            </Link>
+            <Link
+              href="/app/register"
               className="hidden rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:opacity-95 sm:inline-block"
             >
               {t('navGetStarted')}
-            </a>
+            </Link>
           </div>
         </div>
       </header>
@@ -107,12 +119,18 @@ export function LandingPage() {
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600">{t('heroDesc1')}</p>
             <p className="mt-4 max-w-2xl text-base font-semibold text-slate-800">{t('heroDesc2')}</p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <a
-                href="#download"
+              <Link
+                href="/app/register"
                 className="rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-200 hover:opacity-95"
               >
                 {t('ctaStartFree')}
-              </a>
+              </Link>
+              <Link
+                href="/app"
+                className="rounded-2xl border border-indigo-200 bg-indigo-50 px-6 py-3.5 text-base font-semibold text-indigo-700 hover:bg-indigo-100"
+              >
+                {t('ctaWebApp')}
+              </Link>
               <a
                 href="#compare"
                 className="rounded-2xl border border-slate-200 bg-white px-6 py-3.5 text-base font-semibold text-slate-700 hover:border-indigo-200 hover:text-indigo-700"
@@ -130,6 +148,40 @@ export function LandingPage() {
                 <p className="text-sm text-slate-500">{item.sub}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="reasons" className="border-t border-slate-200 bg-white px-6 py-20">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">{t('reasonsLabel')}</p>
+          <h2 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">{t('reasonsTitle')}</h2>
+          <p className="mt-4 max-w-3xl text-lg text-slate-600">{t('reasonsDesc')}</p>
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {reasons.map((r) => (
+              <div key={r.title} className="rounded-2xl border border-slate-200 bg-gradient-to-b from-indigo-50/50 to-white p-6 shadow-sm">
+                <div className="mb-3 text-2xl">{r.icon}</div>
+                <h3 className="text-lg font-bold text-slate-900">{r.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{r.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-slate-200 px-6 py-16">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 rounded-3xl bg-gradient-to-r from-indigo-600 to-violet-700 p-8 text-center text-white md:flex-row md:p-12 md:text-left">
+          <div className="max-w-xl">
+            <h2 className="text-2xl font-bold md:text-3xl">{t('webAppTitle')}</h2>
+            <p className="mt-3 text-indigo-100">{t('webAppDesc')}</p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link href="/app" className="rounded-2xl bg-white px-6 py-3 font-semibold text-indigo-700 hover:bg-indigo-50">
+              {t('webAppCta')}
+            </Link>
+            <Link href="/app/register" className="rounded-2xl border border-white/40 px-6 py-3 font-semibold text-white hover:bg-white/10">
+              {t('webAppRegister')}
+            </Link>
           </div>
         </div>
       </section>
@@ -265,6 +317,11 @@ export function LandingPage() {
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">{t('downloadTitle')}</h2>
           <p className="mt-4 text-lg text-slate-600">{t('downloadDesc')}</p>
           <div className="mt-8 flex flex-wrap justify-center gap-4">
+            <Link href="/app/register" className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 px-6 py-4 text-left shadow-sm hover:border-indigo-400">
+              <p className="text-xs font-semibold uppercase text-indigo-600">{t('downloadWebApp')}</p>
+              <p className="font-bold text-slate-900">invoiceflow-admin.onrender.com</p>
+              <p className="text-sm text-indigo-600">{t('webAppCta')} →</p>
+            </Link>
             <div className="rounded-2xl border border-slate-200 bg-white px-6 py-4 text-left shadow-sm">
               <p className="text-xs font-semibold uppercase text-slate-500">{t('downloadIOS')}</p>
               <p className="font-bold text-slate-900">{t('downloadAppStore')}</p>
@@ -278,7 +335,7 @@ export function LandingPage() {
           </div>
           <p className="mt-6 text-sm text-slate-500">
             {t('downloadHaveAccount')}{' '}
-            <Link href="/admin" className="font-semibold text-indigo-600 hover:underline">
+            <Link href="/app/login" className="font-semibold text-indigo-600 hover:underline">
               {t('downloadSignIn')}
             </Link>
           </p>
@@ -290,9 +347,10 @@ export function LandingPage() {
           <p>© {year} InvoiceFlow. {t('footerTagline')}</p>
           <div className="flex flex-wrap items-center justify-center gap-6">
             <LanguageSelector />
+            <Link href="/app" className="hover:text-indigo-600">{t('navWebApp')}</Link>
             <Link href="/admin" className="hover:text-indigo-600">{t('footerAdmin')}</Link>
-            <a href="#" className="hover:text-indigo-600">{t('footerPrivacy')}</a>
-            <a href="#" className="hover:text-indigo-600">{t('footerTerms')}</a>
+            <Link href="/privacy" className="hover:text-indigo-600">{t('footerPrivacy')}</Link>
+            <Link href="/terms" className="hover:text-indigo-600">{t('footerTerms')}</Link>
           </div>
         </div>
       </footer>

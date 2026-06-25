@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "InvoiceFlow — Professional invoicing in under 30 seconds",
-  description: "Mobile invoicing for freelancers and small businesses. Stripe, PayPal, reminders, and offline mode.",
+  description: "Mobile and web invoicing for freelancers and small businesses. Stripe, PayPal, reminders, client portal, and full web app.",
 };
 
 export default function RootLayout({

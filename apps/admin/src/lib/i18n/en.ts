@@ -6,6 +6,7 @@ export const en = {
   navFeatures: 'Features',
   navPricing: 'Pricing',
   navGetStarted: 'Get started free',
+  navWebApp: 'Web app',
   language: 'Language',
 
   // Hero
@@ -18,6 +19,7 @@ export const en = {
   heroDesc2:
     'Send a professional invoice in under 30 seconds. Get paid via Stripe, PayPal, or your client portal. Automate reminders and late fees. Works offline.',
   ctaStartFree: 'Start free — 25 invoices/month',
+  ctaWebApp: 'Open web app',
   ctaCompare: 'See how we beat the big names',
 
   // Stats
@@ -182,17 +184,47 @@ export const en = {
   planBusinessDetail: 'Everything in Pro · team seats · API access · white-label portal (coming)',
   perMonth: '/mo',
 
+  // Reasons to use
+  reasonsLabel: 'Why choose InvoiceFlow',
+  reasonsTitle: '8 reasons freelancers switch to InvoiceFlow',
+  reasonsDesc:
+    'Whether you invoice from your phone or browser, InvoiceFlow gives you professional tools without the enterprise price tag.',
+  reason1Title: 'Invoice in 30 seconds',
+  reason1Body: 'Create and send a polished invoice in about 9 taps — faster than QuickBooks or Wave on mobile.',
+  reason2Title: 'Free tier that actually works',
+  reason2Body: '25 invoices/month free with unlimited clients, Stripe + PayPal, reminders, and a client portal.',
+  reason3Title: 'All-in-one for $9.99/mo',
+  reason3Body: 'Time tracking, expenses, mileage, OCR receipts, credit notes, and P&L — no add-on subscriptions.',
+  reason4Title: 'Get paid faster',
+  reason4Body: 'Stripe, PayPal, client portal payments, deposit requests, and automated late fees.',
+  reason5Title: 'Client portal + e-sign',
+  reason5Body: 'Clients view, pay, and sign estimates in the browser — no app download required.',
+  reason6Title: 'Works on web & mobile',
+  reason6Body: 'Full web app for desktop work. Native iOS & Android apps when you are on the go.',
+  reason7Title: 'Real cloud sync',
+  reason7Body: 'PostgreSQL-backed sync across devices. Draft offline on mobile; sync when you reconnect.',
+  reason8Title: 'Built for solo businesses',
+  reason8Body: 'Not bloated accounting software. The sweet spot for freelancers, trades, and side hustles.',
+
+  // Web app CTA
+  webAppTitle: 'Use InvoiceFlow in your browser',
+  webAppDesc:
+    'Full-featured web app — invoices, clients, expenses, time tracking, reports, and more. Same account as mobile.',
+  webAppCta: 'Launch web app',
+  webAppRegister: 'Create free account',
+
   // Download
   downloadTitle: 'Stop overpaying. Start invoicing smarter.',
   downloadDesc:
-    'Download InvoiceFlow on iOS or Android. Create your first invoice in under a minute. No credit card required on the free plan.',
+    'Use the web app today, or download InvoiceFlow on iOS or Android. Create your first invoice in under a minute. No credit card on the free plan.',
   downloadIOS: 'iOS',
   downloadAndroid: 'Android',
   downloadAppStore: 'App Store',
   downloadGooglePlay: 'Google Play',
   downloadComing: 'Coming at launch',
+  downloadWebApp: 'Web app (live now)',
   downloadHaveAccount: 'Already have an account?',
-  downloadSignIn: 'Sign in to admin',
+  downloadSignIn: 'Sign in to web app',
 
   // Footer
   footerTagline: 'Invoice Fly speed. FreshBooks depth. Wave\'s price.',
