@@ -27,7 +27,14 @@ npm run dev:mobile:ios       # Terminal 2 — iOS (or dev:mobile:android)
 npm run dev:admin            # Terminal 3 — Admin on :3000
 ```
 
-## Demo Credentials
+## Production (Render)
+
+All web hosting runs on **Render** (Postgres + API + admin/landing/portal). See **[RENDER_DEPLOY.md](./RENDER_DEPLOY.md)** for the blueprint deploy steps.
+
+```bash
+# After pushing to GitHub: Render Dashboard → New → Blueprint → khdev808/invoiceflow
+```
+
 
 | Role | Email | Password |
 |------|-------|----------|

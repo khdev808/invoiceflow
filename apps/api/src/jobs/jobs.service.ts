@@ -3,11 +3,11 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoicesService } from '../invoices/invoices.service';
 import { EmailService } from '../email/email.service';
+import { getPortalBase } from '../config/portal-url';
 
 @Injectable()
 export class JobsService {
   private readonly logger = new Logger(JobsService.name);
-  private portalBase = process.env.PORTAL_URL || 'http://localhost:3000/portal';
 
   constructor(
     private prisma: PrismaService,
@@ -93,7 +93,7 @@ export class JobsService {
             documentNumber: inv.documentNumber,
             total: inv.total,
             dueDate: inv.dueDate ?? undefined,
-            portalUrl: `${this.portalBase}/${inv.id}`,
+            portalUrl: `${getPortalBase()}/${inv.id}`,
             overdue: false,
           });
         }
@@ -133,7 +133,7 @@ export class JobsService {
             documentNumber: inv.documentNumber,
             total: inv.total,
             dueDate: inv.dueDate ?? undefined,
-            portalUrl: `${this.portalBase}/${inv.id}`,
+            portalUrl: `${getPortalBase()}/${inv.id}`,
             overdue: true,
           });
         }

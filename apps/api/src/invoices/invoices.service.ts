@@ -8,6 +8,7 @@ import { PlanService } from '../plan/plan.service';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { getDepositDue } from '../payments/payment.utils';
+import { getPortalBase } from '../config/portal-url';
 
 @Injectable()
 export class InvoicesService {
@@ -244,7 +245,7 @@ export class InvoicesService {
 
   async send(userId: string, id: string) {
     const invoice = await this.findOne(userId, id);
-    const portalBase = process.env.PORTAL_URL || 'http://localhost:3000/portal';
+    const portalBase = getPortalBase();
     const portalUrl = `${portalBase}/${id}`;
 
     if (invoice.client.email) {

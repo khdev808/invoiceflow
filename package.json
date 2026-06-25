@@ -1,6 +1,9 @@
 {
   "name": "invoiceflow",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "workspaces": [
     "apps/*"
   ],
@@ -16,7 +19,11 @@
     "dev:mobile": "npm run start:dev --workspace=mobile",
     "dev:mobile:android": "npm run android --workspace=mobile",
     "dev:mobile:ios": "npm run ios --workspace=mobile",
-    "dev:admin": "npm run dev --workspace=admin"
+    "dev:admin": "npm run dev --workspace=admin",
+    "render:build:api": "bash scripts/render-build-api.sh",
+    "render:build:admin": "bash scripts/render-build-admin.sh",
+    "render:start:api": "npm run start:prod --workspace=api",
+    "render:start:admin": "npm run start --workspace=admin"
   },
   "overrides": {
     "react": "19.2.3",

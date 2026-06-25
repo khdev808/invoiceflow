@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { getAmountDue, getDepositDue } from './payment.utils';
+import { getPortalBase } from '../config/portal-url';
 
 @Injectable()
 export class PaymentsService {
@@ -40,7 +41,7 @@ export class PaymentsService {
       ? Math.max(0, invoice.total - paidTotal)
       : due;
 
-    const portalBase = this.config.get('PORTAL_URL') || 'http://localhost:3000/portal';
+    const portalBase = getPortalBase();
 
     if (!this.stripe) {
       const mockLink = `${portalBase}/${invoiceId}?pay=mock&amount=${chargeAmount}`;
