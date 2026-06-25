@@ -118,6 +118,8 @@ export const expensesApi = {
   },
   create: (data: Partial<Expense>) =>
     apiFetch<Expense>('/expenses', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<Expense>) =>
+    apiFetch<Expense>(`/expenses/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: string) => apiFetch(`/expenses/${id}`, { method: 'DELETE' }),
 };
 
@@ -134,6 +136,26 @@ export const timeApi = {
   }) =>
     apiFetch<TimeEntry>('/time-entries', { method: 'POST', body: JSON.stringify(data) }),
   delete: (id: string) => apiFetch(`/time-entries/${id}`, { method: 'DELETE' }),
+  toLineItems: (entryIds: string[]) =>
+    apiFetch<LineItem[]>('/time-entries/to-line-items', { method: 'POST', body: JSON.stringify({ entryIds }) }),
+};
+
+export const mileageApi = {
+  list: (unbilled?: boolean) =>
+    apiFetch<MileageEntry[]>(`/mileage${unbilled ? '?unbilled=true' : ''}`),
+  summary: () => apiFetch<{ totalMiles: number; totalAmount: number; unbilledMiles: number }>('/mileage/summary'),
+  create: (data: { description: string; miles: number; rate?: number; date?: string; purpose?: string }) =>
+    apiFetch<MileageEntry>('/mileage', { method: 'POST', body: JSON.stringify(data) }),
+  delete: (id: string) => apiFetch(`/mileage/${id}`, { method: 'DELETE' }),
+  toLineItems: (entryIds: string[]) =>
+    apiFetch<LineItem[]>('/mileage/to-line-items', { method: 'POST', body: JSON.stringify({ entryIds }) }),
+};
+
+export const recurringApi = {
+  list: () => apiFetch<RecurringSchedule[]>('/invoices/recurring/list'),
+  toggle: (id: string, active: boolean) =>
+    apiFetch(`/invoices/recurring/${id}/toggle`, { method: 'PATCH', body: JSON.stringify({ active }) }),
+  delete: (id: string) => apiFetch(`/invoices/recurring/${id}`, { method: 'DELETE' }),
 };
 
 export const reportsApi = {
@@ -158,6 +180,8 @@ export const productsApi = {
     apiFetch<Product[]>(`/products${search ? `?search=${encodeURIComponent(search)}` : ''}`),
   create: (data: Partial<Product>) =>
     apiFetch<Product>('/products', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<Product>) =>
+    apiFetch<Product>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: string) => apiFetch(`/products/${id}`, { method: 'DELETE' }),
 };
 
@@ -165,6 +189,18 @@ export const notificationsApi = {
   list: () => apiFetch<Notification[]>('/notifications'),
   unreadCount: () => apiFetch<number>('/notifications/unread-count'),
   markAllRead: () => apiFetch('/notifications/read-all', { method: 'PATCH' }),
+  markRead: (id: string) => apiFetch(`/notifications/${id}/read`, { method: 'PATCH' }),
+};
+
+export const integrationsApi = {
+  setWebhook: (url: string) =>
+    apiFetch('/integrations/webhook', { method: 'PUT', body: JSON.stringify({ url }) }),
+  test: () => apiFetch<{ sent: boolean }>('/integrations/test', { method: 'PUT' }),
+};
+
+export const uploadsApi = {
+  logo: (base64: string, mimeType?: string) =>
+    apiFetch<{ url: string }>('/uploads/logo', { method: 'POST', body: JSON.stringify({ base64, mimeType }) }),
 };
 
 export const usersApi = {
@@ -176,6 +212,8 @@ export const usersApi = {
 
 export const planApi = {
   usage: () => apiFetch<{ invoicesUsed: number; invoiceLimit: number; plan: string }>('/plan/usage'),
+  upgrade: (plan: 'pro' | 'business') =>
+    apiFetch('/plan/upgrade', { method: 'POST', body: JSON.stringify({ plan }) }),
 };
 
 export type Client = {
@@ -211,15 +249,32 @@ export type Invoice = {
   total: number;
   subtotal: number;
   taxTotal: number;
+  discountTotal?: number;
   currency: string;
   issueDate: string;
   dueDate?: string;
   notes?: string;
   terms?: string;
+  templateId?: string;
+  signature?: string;
+  clientSignature?: string;
+  depositAmount?: number;
+  depositPercent?: number;
+  depositPaid?: boolean;
+  lateFeeAmount?: number;
   clientId: string;
   client?: Client;
   lineItems?: LineItem[];
   payments?: { id: string; amount: number; method: string; paidAt: string }[];
+  activities?: InvoiceActivity[];
+  user?: User & { businessLogo?: string; businessEmail?: string; businessPhone?: string };
+  createdAt: string;
+};
+
+export type InvoiceActivity = {
+  id: string;
+  action: string;
+  metadata?: Record<string, unknown>;
   createdAt: string;
 };
 
@@ -231,6 +286,12 @@ export type CreateInvoicePayload = {
   currency?: string;
   notes?: string;
   terms?: string;
+  templateId?: string;
+  signature?: string;
+  depositAmount?: number;
+  depositPercent?: number;
+  recurringRule?: string;
+  linkedInvoiceId?: string;
   lineItems: LineItem[];
 };
 
@@ -295,4 +356,24 @@ export type ProfitLossReport = {
   income: number;
   expenses: number;
   profit: number;
+};
+
+export type MileageEntry = {
+  id: string;
+  description: string;
+  miles: number;
+  rate: number;
+  amount: number;
+  date: string;
+  purpose?: string;
+  billed: boolean;
+};
+
+export type RecurringSchedule = {
+  id: string;
+  frequency: string;
+  active: boolean;
+  nextRunAt: string;
+  clientId: string;
+  lineItemsJson: unknown;
 };

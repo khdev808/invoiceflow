@@ -32,8 +32,11 @@ export default function ClientDetailPage() {
           <h1 className="text-3xl font-bold">{client.name}</h1>
           {client.company ? <p className="text-slate-500">{client.company}</p> : null}
         </div>
-        <Link href={`/app/invoices/new?clientId=${client.id}`} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">
+        <Link href={`/app/invoices/new?clientId=${client.id}`} className="if-btn-primary">
           + New invoice
+        </Link>
+        <Link href={`/app/clients/${client.id}/edit`} className="if-btn-secondary">
+          Edit client
         </Link>
       </div>
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-3 text-sm">

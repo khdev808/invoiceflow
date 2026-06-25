@@ -39,18 +39,9 @@ export default function InvoicesPage() {
           <p className="text-slate-500">{invoices.length} documents</p>
         </div>
         <div className="flex gap-2">
-          <Link
-            href="/app/invoices/new?type=ESTIMATE"
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold hover:border-indigo-200"
-          >
-            + Estimate
-          </Link>
-          <Link
-            href="/app/invoices/new"
-            className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white"
-          >
-            + Invoice
-          </Link>
+          <Link href="/app/invoices/new?type=CREDIT_NOTE" className="if-btn-secondary">+ Credit note</Link>
+          <Link href="/app/invoices/new?type=ESTIMATE" className="if-btn-secondary">+ Estimate</Link>
+          <Link href="/app/invoices/new" className="if-btn-primary">+ Invoice</Link>
         </div>
       </div>
 

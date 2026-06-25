@@ -1,0 +1,245 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { clientsApi, invoicesApi, productsApi, type Client, type LineItem, type Product } from '@/lib/appApi';
+import { templates } from '@/lib/constants';
+import { Card } from '@/components/ui/Card';
+import { LineItemsEditor } from '@/components/ui/LineItemsEditor';
+import { useAuth } from '@/contexts/AuthContext';
+
+export type InvoiceFormValues = {
+  clientId: string;
+  documentType: string;
+  dueDate: string;
+  notes: string;
+  terms: string;
+  templateId: string;
+  depositPercent: string;
+  depositAmount: string;
+  recurringRule: string;
+  linkedInvoiceId: string;
+  lineItems: LineItem[];
+};
+
+type Props = {
+  initial?: Partial<InvoiceFormValues>;
+  invoiceId?: string;
+  onSubmit: (values: InvoiceFormValues) => Promise<void>;
+  submitLabel: string;
+};
+
+export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel }: Props) {
+  const { user } = useAuth();
+  const currency = user?.currency || 'USD';
+  const isPro = user?.plan === 'pro' || user?.plan === 'business';
+
+  const [clients, setClients] = useState<Client[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [invoices, setInvoices] = useState<{ id: string; documentNumber: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const [form, setForm] = useState<InvoiceFormValues>({
+    clientId: '',
+    documentType: 'INVOICE',
+    dueDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+    notes: '',
+    terms: 'Payment due within 30 days.',
+    templateId: 'modern',
+    depositPercent: '',
+    depositAmount: '',
+    recurringRule: '',
+    linkedInvoiceId: '',
+    lineItems: [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, discount: 0 }],
+    ...initial,
+  });
+
+  useEffect(() => {
+    const docType = form.documentType;
+    Promise.all([
+      clientsApi.list(),
+      productsApi.list(),
+      docType === 'CREDIT_NOTE' ? invoicesApi.list({ type: 'INVOICE' }) : Promise.resolve([]),
+    ]).then(([c, p, inv]) => {
+      setClients(c);
+      setProducts(p);
+      setInvoices(inv as { id: string; documentNumber: string }[]);
+      if (!form.clientId && c.length) setForm((f) => ({ ...f, clientId: c[0].id }));
+    });
+    if (typeof window !== 'undefined') {
+      const raw = sessionStorage.getItem('prefilledLineItems');
+      if (raw) {
+        try {
+          const items = JSON.parse(raw) as LineItem[];
+          if (items.length) setForm((f) => ({ ...f, lineItems: items }));
+        } catch { /* ignore */ }
+        sessionStorage.removeItem('prefilledLineItems');
+      }
+    }
+  }, [form.documentType]);
+
+  const addProduct = (product: Product) => {
+    setForm((f) => ({
+      ...f,
+      lineItems: [
+        ...f.lineItems,
+        {
+          description: product.name,
+          quantity: 1,
+          unitPrice: product.unitPrice,
+          taxRate: product.taxRate || 0,
+          discount: 0,
+        },
+      ],
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      await onSubmit(form);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="mx-auto max-w-4xl space-y-6 animate-fade-in">
+      {error ? <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+
+      <Card>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <label className="if-label">Document type</label>
+            <select
+              value={form.documentType}
+              onChange={(e) => setForm({ ...form, documentType: e.target.value })}
+              className="if-input"
+              disabled={!!invoiceId}
+            >
+              <option value="INVOICE">Invoice</option>
+              <option value="ESTIMATE">Estimate</option>
+              <option value="CREDIT_NOTE">Credit note</option>
+            </select>
+          </div>
+          <div>
+            <label className="if-label">Client</label>
+            <select
+              value={form.clientId}
+              onChange={(e) => setForm({ ...form, clientId: e.target.value })}
+              className="if-input"
+              required
+            >
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          {form.documentType === 'INVOICE' ? (
+            <div>
+              <label className="if-label">Due date</label>
+              <input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} className="if-input" />
+            </div>
+          ) : null}
+          {form.documentType === 'CREDIT_NOTE' ? (
+            <div>
+              <label className="if-label">Linked invoice</label>
+              <select value={form.linkedInvoiceId} onChange={(e) => setForm({ ...form, linkedInvoiceId: e.target.value })} className="if-input">
+                <option value="">Select invoice</option>
+                {invoices.map((inv) => (
+                  <option key={inv.id} value={inv.id}>{inv.documentNumber}</option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+        </div>
+      </Card>
+
+      {products.length > 0 ? (
+        <Card>
+          <p className="mb-3 text-sm font-semibold text-slate-700">Quick add from catalog</p>
+          <div className="flex flex-wrap gap-2">
+            {products.map((p) => (
+              <button key={p.id} type="button" onClick={() => addProduct(p)} className="if-btn-secondary py-1.5 text-xs">
+                + {p.name}
+              </button>
+            ))}
+          </div>
+        </Card>
+      ) : null}
+
+      <Card>
+        <LineItemsEditor items={form.lineItems} onChange={(lineItems) => setForm({ ...form, lineItems })} currency={currency} />
+      </Card>
+
+      <Card>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label className="if-label">Template</label>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {templates.map((t) => {
+                const locked = t.premium && !isPro;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    disabled={locked}
+                    onClick={() => setForm({ ...form, templateId: t.id })}
+                    className={`rounded-xl border p-3 text-left text-sm transition ${
+                      form.templateId === t.id ? 'border-indigo-400 bg-indigo-50 ring-2 ring-indigo-200' : 'border-slate-200 hover:border-indigo-200'
+                    } ${locked ? 'opacity-50' : ''}`}
+                  >
+                    <span className="mb-1 inline-block h-3 w-3 rounded-full" style={{ backgroundColor: t.color }} />
+                    <p className="font-semibold">{t.name}</p>
+                    {t.premium ? <p className="text-[10px] text-violet-600">Pro</p> : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="if-label">Deposit %</label>
+              <input type="number" min={0} max={100} value={form.depositPercent} onChange={(e) => setForm({ ...form, depositPercent: e.target.value })} className="if-input" placeholder="e.g. 50" />
+            </div>
+            <div>
+              <label className="if-label">Or flat deposit</label>
+              <input type="number" min={0} step={0.01} value={form.depositAmount} onChange={(e) => setForm({ ...form, depositAmount: e.target.value })} className="if-input" />
+            </div>
+            {!invoiceId ? (
+              <div>
+                <label className="if-label">Recurring (optional)</label>
+                <select value={form.recurringRule} onChange={(e) => setForm({ ...form, recurringRule: e.target.value })} className="if-input">
+                  <option value="">One-time</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <label className="if-label">Notes</label>
+          <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={4} className="if-input" />
+        </Card>
+        <Card>
+          <label className="if-label">Terms</label>
+          <textarea value={form.terms} onChange={(e) => setForm({ ...form, terms: e.target.value })} rows={4} className="if-input" />
+        </Card>
+      </div>
+
+      <button type="submit" disabled={loading} className="if-btn-primary px-8 py-3">
+        {loading ? 'Saving…' : submitLabel}
+      </button>
+    </form>
+  );
+}

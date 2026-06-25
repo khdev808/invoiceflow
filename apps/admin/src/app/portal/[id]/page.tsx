@@ -1,18 +1,23 @@
 'use client';
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import { showBranding } from '@/lib/constants';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const TEMPLATE_COLORS: Record<string, string> = {
-  modern: '#2563EB',
+  modern: '#4F46E5',
   classic: '#1E293B',
   minimal: '#64748B',
   bold: '#7C3AED',
   professional: '#0F766E',
   creative: '#DB2777',
 };
+
+function formatMoney(amount: number, currency = 'USD') {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+}
 
 export default function ClientPortalPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +35,8 @@ export default function ClientPortalPage() {
     [invoice?.templateId],
   );
 
+  const branding = showBranding(invoice?.user?.plan);
+
   useEffect(() => {
     fetch(`${API_URL}/invoices/public/${id}`)
       .then((r) => r.json())
@@ -38,9 +45,7 @@ export default function ClientPortalPage() {
         fetch(`${API_URL}/invoices/public/${id}/view`, { method: 'PATCH' });
         return fetch(`${API_URL}/payments/public/link/${id}`).then((r) => r.json());
       })
-      .then((link) => {
-        if (link?.amount) setPayAmount(link.amount);
-      })
+      .then((link) => { if (link?.amount) setPayAmount(link.amount); })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -50,23 +55,34 @@ export default function ClientPortalPage() {
     }
   }, []);
 
-  const startDraw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getPos = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }, []);
+
+  const startDraw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
     drawing.current = true;
     const ctx = canvasRef.current?.getContext('2d');
     if (!ctx) return;
-    const rect = canvasRef.current!.getBoundingClientRect();
+    const { x, y } = getPos(e);
     ctx.beginPath();
-    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.moveTo(x, y);
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!drawing.current) return;
+    e.preventDefault();
     const ctx = canvasRef.current?.getContext('2d');
     if (!ctx) return;
-    const rect = canvasRef.current!.getBoundingClientRect();
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    const { x, y } = getPos(e);
+    ctx.lineTo(x, y);
     ctx.strokeStyle = '#0F172A';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
     ctx.stroke();
   };
 
@@ -76,11 +92,10 @@ export default function ClientPortalPage() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     setSigning(true);
-    const signature = canvas.toDataURL();
     await fetch(`${API_URL}/invoices/public/${id}/sign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ signature, signerName: invoice?.client?.name }),
+      body: JSON.stringify({ signature: canvas.toDataURL(), signerName: invoice?.client?.name }),
     });
     setSigned(true);
     setSigning(false);
@@ -92,10 +107,8 @@ export default function ClientPortalPage() {
       const res = await fetch(`${API_URL}/payments/public/link/${id}`);
       const data = await res.json();
       if (data.url) window.open(data.url, '_blank');
-      else alert(data.alreadyPaid ? 'This invoice is already paid.' : 'Payment unavailable.');
-    } finally {
-      setPaying(false);
-    }
+      else alert(data.alreadyPaid ? 'Already paid.' : 'Card payments not configured yet.');
+    } finally { setPaying(false); }
   };
 
   const payPayPal = async () => {
@@ -104,90 +117,127 @@ export default function ClientPortalPage() {
       const res = await fetch(`${API_URL}/payments/public/paypal/${id}`);
       const data = await res.json();
       if (data.url) window.open(data.url, '_blank');
-      else alert(data.alreadyPaid ? 'This invoice is already paid.' : 'PayPal unavailable.');
-    } finally {
-      setPaying(false);
-    }
+      else alert(data.alreadyPaid ? 'Already paid.' : 'PayPal not configured yet.');
+    } finally { setPaying(false); }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading invoice...</div>;
-  if (!invoice) return <div className="min-h-screen flex items-center justify-center">Invoice not found</div>;
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+      </div>
+    );
+  }
+  if (!invoice) return <div className="flex min-h-screen items-center justify-center">Invoice not found</div>;
 
   const biz = invoice.user;
+  const currency = invoice.currency || 'USD';
   const dueNow = payAmount ?? invoice.total;
   const depositDue = invoice.depositPercent && !invoice.depositPaid
     ? invoice.total * invoice.depositPercent / 100
     : null;
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4">
-      <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
-        <div className="text-white p-8" style={{ backgroundColor: headerColor }}>
-          <p className="text-white/70 text-sm uppercase tracking-wide">{invoice.documentType}</p>
-          <h1 className="text-3xl font-bold mt-1">{invoice.documentNumber}</h1>
-          <p className="mt-2 text-white/80">{biz?.businessName || biz?.name}</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 px-4 py-8 md:py-12">
+      <div className="mx-auto max-w-2xl overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-2xl shadow-slate-300/30">
+        <div className="relative overflow-hidden p-8 text-white md:p-10" style={{ background: `linear-gradient(135deg, ${headerColor}, ${headerColor}dd)` }}>
+          <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10" />
+          {biz?.businessLogo ? <img src={biz.businessLogo.startsWith('http') ? biz.businessLogo : `${API_URL.replace('/api', '')}${biz.businessLogo}`} alt="" className="mb-4 h-10 object-contain" /> : null}
+          <p className="text-xs font-bold uppercase tracking-widest text-white/70">{invoice.documentType.replace('_', ' ')}</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight md:text-4xl">{invoice.documentNumber}</h1>
+          <p className="mt-2 text-lg text-white/90">{biz?.businessName || biz?.name}</p>
         </div>
 
-        <div className="p-8">
-          <div className="grid grid-cols-2 gap-4 mb-8 text-sm">
-            <div><p className="text-slate-500">Bill To</p><p className="font-semibold">{invoice.client.name}</p>{invoice.client.email && <p className="text-slate-600">{invoice.client.email}</p>}</div>
-            <div className="text-right"><p className="text-slate-500">Due Date</p><p className="font-semibold">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'On receipt'}</p><p className="text-slate-500 mt-2">Status</p><span className="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-bold">{invoice.status}</span></div>
+        <div className="p-6 md:p-10">
+          <div className="mb-8 grid gap-6 sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Bill to</p>
+              <p className="mt-1 text-lg font-bold">{invoice.client.name}</p>
+              {invoice.client.email ? <p className="text-slate-600">{invoice.client.email}</p> : null}
+            </div>
+            <div className="sm:text-right">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Due date</p>
+              <p className="mt-1 font-semibold">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'On receipt'}</p>
+              <span className="mt-2 inline-block rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700">{invoice.status}</span>
+            </div>
           </div>
 
-          <table className="w-full mb-6">
-            <thead><tr className="border-b text-left text-sm text-slate-500"><th className="pb-2">Description</th><th className="pb-2 text-center">Qty</th><th className="pb-2 text-right">Price</th><th className="pb-2 text-right">Total</th></tr></thead>
-            <tbody>
-              {invoice.lineItems.map((item: any) => (
-                <tr key={item.id} className="border-b border-slate-100">
-                  <td className="py-3">{item.description}</td>
-                  <td className="py-3 text-center">{item.quantity}</td>
-                  <td className="py-3 text-right">${item.unitPrice.toFixed(2)}</td>
-                  <td className="py-3 text-right font-semibold">${item.total.toFixed(2)}</td>
+          <div className="overflow-hidden rounded-2xl border border-slate-100">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Item</th>
+                  <th className="px-4 py-3 text-center">Qty</th>
+                  <th className="px-4 py-3 text-right">Total</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {invoice.lineItems.map((item: { id: string; description: string; quantity: number; total: number }) => (
+                  <tr key={item.id} className="border-t border-slate-100">
+                    <td className="px-4 py-3 font-medium">{item.description}</td>
+                    <td className="px-4 py-3 text-center">{item.quantity}</td>
+                    <td className="px-4 py-3 text-right font-semibold">{formatMoney(item.total, currency)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-          <div className="text-right space-y-1 mb-8">
-            {depositDue != null && <p className="text-slate-600">Deposit ({invoice.depositPercent}%): <strong>${depositDue.toFixed(2)}</strong>{invoice.depositPaid && ' ✓ Paid'}</p>}
-            {invoice.lateFeeAmount > 0 && <p className="text-red-600">Late Fee: <strong>${invoice.lateFeeAmount.toFixed(2)}</strong></p>}
-            <p className="text-3xl font-bold text-slate-900">Total: ${invoice.total.toFixed(2)}</p>
-            {invoice.status !== 'PAID' && dueNow < invoice.total && (
-              <p className="text-lg text-green-700 font-semibold">Due now: ${dueNow.toFixed(2)}</p>
-            )}
+          <div className="mt-6 space-y-1 text-right">
+            {depositDue != null ? <p className="text-slate-600">Deposit ({invoice.depositPercent}%): <strong>{formatMoney(depositDue, currency)}</strong></p> : null}
+            {invoice.lateFeeAmount > 0 ? <p className="text-red-600">Late fee: <strong>{formatMoney(invoice.lateFeeAmount, currency)}</strong></p> : null}
+            <p className="text-3xl font-extrabold text-slate-900">{formatMoney(invoice.total, currency)}</p>
+            {invoice.status !== 'PAID' && dueNow < invoice.total ? (
+              <p className="text-lg font-semibold text-emerald-700">Due now: {formatMoney(dueNow, currency)}</p>
+            ) : null}
           </div>
 
           {invoice.status !== 'PAID' && (
-            <div className="space-y-3 mb-6">
-              <button onClick={payStripe} disabled={paying} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 disabled:opacity-60">
-                {paying ? 'Loading...' : `Pay with Card — $${dueNow.toFixed(2)}`}
+            <div className="mt-8 space-y-3">
+              <button onClick={payStripe} disabled={paying} className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 py-4 text-lg font-bold text-white shadow-lg shadow-emerald-200 hover:opacity-95 disabled:opacity-60">
+                {paying ? 'Loading…' : `Pay with card — ${formatMoney(dueNow, currency)}`}
               </button>
-              <button onClick={payPayPal} disabled={paying} className="w-full bg-[#0070BA] text-white py-3 rounded-xl font-bold hover:bg-[#005ea6] disabled:opacity-60">
-                Pay with PayPal — ${dueNow.toFixed(2)}
+              <button onClick={payPayPal} disabled={paying} className="w-full rounded-2xl bg-[#0070BA] py-3.5 font-bold text-white hover:bg-[#005ea6] disabled:opacity-60">
+                Pay with PayPal
               </button>
             </div>
           )}
 
           {invoice.documentType === 'ESTIMATE' && !signed && !invoice.clientSignature && (
-            <div className="border rounded-xl p-4">
-              <p className="font-semibold mb-3">Sign to approve this estimate</p>
-              <canvas ref={canvasRef} width={500} height={120} className="border rounded-lg w-full cursor-crosshair bg-slate-50"
-                onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw} />
-              <button onClick={submitSignature} disabled={signing} className="mt-3 w-full text-white py-3 rounded-lg font-semibold" style={{ backgroundColor: headerColor }}>
-                {signing ? 'Submitting...' : 'Submit Signature'}
+            <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <p className="mb-3 font-bold">Sign to approve this estimate</p>
+              <canvas
+                ref={canvasRef}
+                width={560}
+                height={140}
+                className="w-full cursor-crosshair rounded-xl border-2 border-dashed border-slate-300 bg-white touch-none"
+                onMouseDown={startDraw}
+                onMouseMove={draw}
+                onMouseUp={stopDraw}
+                onMouseLeave={stopDraw}
+                onTouchStart={startDraw}
+                onTouchMove={draw}
+                onTouchEnd={stopDraw}
+              />
+              <button onClick={submitSignature} disabled={signing} className="mt-3 w-full rounded-xl py-3.5 font-bold text-white" style={{ backgroundColor: headerColor }}>
+                {signing ? 'Submitting…' : 'Submit signature'}
               </button>
             </div>
           )}
 
           {(signed || invoice.clientSignature) && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-green-800 font-semibold text-center">
+            <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center font-bold text-emerald-800">
               ✓ Signed by client
             </div>
           )}
         </div>
 
-        <div className="bg-slate-50 px-8 py-4 text-center text-xs text-slate-400">
-          Powered by InvoiceFlow • Secure Client Portal
+        <div className="border-t border-slate-100 bg-slate-50 px-6 py-4 text-center text-xs text-slate-400">
+          {branding ? (
+            <>Powered by <a href="/" className="font-semibold text-indigo-500 hover:underline">InvoiceFlow</a> · Secure client portal</>
+          ) : (
+            <>Secure client portal</>
+          )}
         </div>
       </div>
     </div>

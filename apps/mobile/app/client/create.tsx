@@ -1,6 +1,6 @@
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { useState } from 'react';
-import { router } from 'expo-router';
+import { View, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { useEffect, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
 import { clientsApi } from '@/lib/api';
 import { useTheme } from '@/contexts/ThemeContext';
 import { FormField } from '@/components/ui/FormField';
@@ -9,9 +9,28 @@ import { spacing } from '@/constants/theme';
 import { hapticSuccess } from '@/lib/haptics';
 
 export default function CreateClientScreen() {
+  const { id, edit } = useLocalSearchParams<{ id?: string; edit?: string }>();
+  const isEdit = edit === '1' && !!id;
   const { colors } = useTheme();
   const [form, setForm] = useState({ name: '', email: '', phone: '', company: '', address: '', city: '', state: '', zip: '' });
   const [loading, setLoading] = useState(false);
+  const [loadingClient, setLoadingClient] = useState(isEdit);
+
+  useEffect(() => {
+    if (!isEdit || !id) return;
+    clientsApi.get(id).then(({ data }) => {
+      setForm({
+        name: data.name || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        company: data.company || '',
+        address: data.address || '',
+        city: data.city || '',
+        state: data.state || '',
+        zip: data.zip || '',
+      });
+    }).finally(() => setLoadingClient(false));
+  }, [id, isEdit]);
 
   const update = (field: string, value: string) => setForm({ ...form, [field]: value });
 
@@ -19,11 +38,15 @@ export default function CreateClientScreen() {
     if (!form.name.trim()) { Alert.alert('Error', 'Name is required'); return; }
     setLoading(true);
     try {
-      await clientsApi.create(form);
+      if (isEdit && id) {
+        await clientsApi.update(id, form);
+      } else {
+        await clientsApi.create(form);
+      }
       hapticSuccess();
       router.back();
     } catch {
-      Alert.alert('Error', 'Failed to create client');
+      Alert.alert('Error', isEdit ? 'Failed to update client' : 'Failed to create client');
     } finally {
       setLoading(false);
     }
@@ -40,6 +63,10 @@ export default function CreateClientScreen() {
     { key: 'zip', label: 'ZIP', placeholder: '78701' },
   ];
 
+  if (loadingClient) {
+    return <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />;
+  }
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} keyboardShouldPersistTaps="handled">
       <View style={{ padding: spacing.lg }}>
@@ -54,7 +81,13 @@ export default function CreateClientScreen() {
             autoCapitalize={field.key === 'email' ? 'none' : 'words'}
           />
         ))}
-        <Button label="Save Client" onPress={handleSave} loading={loading} fullWidth icon="person-add-outline" />
+        <Button
+          label={isEdit ? 'Update Client' : 'Save Client'}
+          onPress={handleSave}
+          loading={loading}
+          fullWidth
+          icon={isEdit ? 'create-outline' : 'person-add-outline'}
+        />
       </View>
     </ScrollView>
   );

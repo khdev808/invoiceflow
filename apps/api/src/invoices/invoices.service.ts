@@ -52,6 +52,7 @@ export class InvoicesService {
             businessAddress: true,
             taxId: true,
             name: true,
+            plan: true,
           },
         },
       },
