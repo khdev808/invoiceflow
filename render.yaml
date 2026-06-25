@@ -1,15 +1,7 @@
-# InvoiceFlow — Render Blueprint (Postgres + API + Admin)
+# InvoiceFlow — Render Blueprint (API + Admin)
+# Postgres already provisioned as `invoiceflow-db` — link it to invoiceflow-api in the dashboard.
 # Apply: Render Dashboard → New → Blueprint → connect github.com/khdev808/invoiceflow
-# Or: render blueprint apply (Render CLI)
-
-databases:
-  - name: invoiceflow-db
-    databaseName: invoiceflow
-    user: invoiceflow
-    plan: free
-    region: ohio
-    postgresMajorVersion: "16"
-    ipAllowList: []
+# Or run: bash scripts/render-provision.sh (after GitHub is connected)
 
 services:
   - type: web
@@ -26,9 +18,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        fromDatabase:
-          name: invoiceflow-db
-          property: connectionString
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: ADMIN_APP_URL

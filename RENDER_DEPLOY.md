@@ -16,11 +16,18 @@ Estimated cost: **~$14/mo** (free Postgres + 2× Starter web) or **~$21/mo** wit
 
 ### 1. Push this repo to GitHub
 
-Render deploys from Git. Ensure `main` is pushed:
+Render deploys from Git. The repo must exist on GitHub and Render must have access:
+
+1. Create the repo (if needed): [github.com/new](https://github.com/new) → `invoiceflow`
+2. Push from your machine (use GitHub CLI, SSH, or HTTPS with a token):
 
 ```bash
 git push origin main
 ```
+
+3. In Render: **Account Settings → Connect GitHub** and grant access to `khdev808/invoiceflow`
+
+> If blueprint validation says `branch main could not be found`, GitHub is not connected or the push has not completed.
 
 ### 2. Connect Render to GitHub
 
