@@ -13,6 +13,10 @@ npm run build --workspace=api
 
 echo "==> Running database migrations"
 cd apps/api
-npx prisma migrate deploy
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "WARNING: DATABASE_URL not set — skipping migrate deploy (link invoiceflow-db in Render dashboard)"
+else
+  npx prisma migrate deploy
+fi
 
 echo "==> API build complete"
