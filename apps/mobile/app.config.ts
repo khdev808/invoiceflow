@@ -1,4 +1,5 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+import { API_URL, PORTAL_BASE } from './constants/servers';
 
 const IS_DEV = process.env.APP_VARIANT === 'development';
 
@@ -65,8 +66,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     appVariant: IS_DEV ? 'development' : 'production',
-    apiUrl: process.env.EXPO_PUBLIC_API_URL ?? (IS_DEV ? undefined : 'https://invoiceflow-api-v1td.onrender.com'),
-    portalUrl: process.env.EXPO_PUBLIC_PORTAL_URL ?? (IS_DEV ? undefined : 'https://invoiceflow-admin.onrender.com/portal'),
+    apiUrl: process.env.EXPO_PUBLIC_API_URL ?? API_URL,
+    portalUrl: process.env.EXPO_PUBLIC_PORTAL_URL ?? PORTAL_BASE,
     eas: {
       projectId: '5be40599-752d-4be8-8f57-1895687a4ad1',
     },

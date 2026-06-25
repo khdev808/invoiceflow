@@ -28,7 +28,7 @@ export default function LoginScreen() {
       router.replace('/(tabs)');
     } catch (e: any) {
       if (!e.response) {
-        setError(`Cannot reach the API at ${getApiUrl()}. From the project root run: npm run api`);
+        setError(`Cannot reach the API at ${getApiUrl()}. Check your internet connection and try again.`);
       } else {
         setError(e.response?.data?.message || 'Login failed. Check credentials.');
       }

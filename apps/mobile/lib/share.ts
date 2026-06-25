@@ -1,4 +1,5 @@
-import { Linking, Share, Platform } from 'react-native';
+import { Linking, Share } from 'react-native';
+import { getPortalUrl } from './config';
 
 export async function shareViaWhatsApp(message: string, phone?: string) {
   const encoded = encodeURIComponent(message);
@@ -16,11 +17,9 @@ export async function shareViaWhatsApp(message: string, phone?: string) {
 }
 
 export async function shareInvoice(invoice: { documentNumber: string; total: number; id: string }, paymentUrl?: string) {
-  const portalUrl = `http://localhost:3000/portal/${invoice.id}`;
+  const portalUrl = getPortalUrl(invoice.id);
   const message = `Invoice ${invoice.documentNumber} for $${invoice.total.toFixed(2)}${paymentUrl ? `\nPay here: ${paymentUrl}` : ''}\nView: ${portalUrl}`;
   return shareViaWhatsApp(message);
 }
 
-export function getPortalUrl(invoiceId: string) {
-  return `${Platform.OS === 'web' ? '' : 'http://localhost:3000'}/portal/${invoiceId}`;
-}
+export { getPortalUrl };

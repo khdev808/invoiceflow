@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from './api';
+import { getApiUrl } from './config';
 
 const CACHE_KEYS = {
   invoices: 'cache_invoices',
@@ -125,7 +126,7 @@ export async function checkOnline(): Promise<boolean> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
-    const base = api.defaults.baseURL || 'http://localhost:3001';
+    const base = api.defaults.baseURL || getApiUrl();
     await fetch(`${base}/health`, { method: 'GET', signal: controller.signal });
     clearTimeout(timeout);
     await markOnline();

@@ -10,6 +10,5 @@ fi
 
 if "$ADB" devices 2>/dev/null | awk 'NR>1 && $2=="device" { found=1 } END { exit !found }'; then
   "$ADB" reverse tcp:8081 tcp:8081 >/dev/null 2>&1 || true
-  "$ADB" reverse tcp:3001 tcp:3001 >/dev/null 2>&1 || true
-  echo "Android port forwarding: localhost:8081 -> Metro, localhost:3001 -> API"
+  echo "Android port forwarding: localhost:8081 -> Metro"
 fi
