@@ -2,10 +2,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "==> Installing dependencies"
-npm ci
+echo "==> Installing dependencies (including devDependencies for Nest build)"
+npm ci --include=dev
 
 echo "==> Generating Prisma client"
+export DATABASE_URL="${DATABASE_URL:-postgresql://placeholder:placeholder@localhost:5432/placeholder}"
 npm run db:generate --workspace=api
 
 echo "==> Building API"
