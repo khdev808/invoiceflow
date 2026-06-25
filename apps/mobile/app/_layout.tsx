@@ -18,7 +18,9 @@ import { DevNavigationLogger } from '@/components/DevNavigationLogger';
 import { registerForPushNotifications } from '@/lib/pushNotifications';
 import { syncPendingOps } from '@/lib/offline';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { useI18n } from '@/hooks/useI18n';
 import { useAuthStore } from '@/stores/auth';
+import { useI18nStore } from '@/stores/i18n';
 import { fonts } from '@/constants/theme';
 import 'react-native-reanimated';
 
@@ -27,36 +29,37 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 const modalScreens = [
-  { name: 'invoice/create', title: 'New Invoice' },
-  { name: 'invoice/edit/[id]', title: 'Edit Invoice' },
-  { name: 'client/create', title: 'New Client' },
-  { name: 'expense/create', title: 'Add Expense' },
-  { name: 'time/create', title: 'Log Time' },
-  { name: 'product/create', title: 'New Product' },
-  { name: 'mileage/create', title: 'Log Mileage' },
+  { name: 'invoice/create', titleKey: 'newInvoice' },
+  { name: 'invoice/edit/[id]', titleKey: 'editInvoice' },
+  { name: 'client/create', titleKey: 'newClient' },
+  { name: 'expense/create', titleKey: 'addExpense' },
+  { name: 'time/create', titleKey: 'logTimeEntry' },
+  { name: 'product/create', titleKey: 'newProduct' },
+  { name: 'mileage/create', titleKey: 'logMileage' },
 ] as const;
 
 const stackScreens = [
-  { name: 'invoice/[id]', title: 'Invoice' },
-  { name: 'client/[id]', title: 'Client' },
-  { name: 'expenses', title: 'Expenses' },
-  { name: 'time', title: 'Time Tracking' },
-  { name: 'reports', title: 'Reports' },
-  { name: 'notifications', title: 'Notifications' },
-  { name: 'recurring', title: 'Recurring' },
-  { name: 'settings/profile', title: 'Business Profile' },
-  { name: 'settings/templates', title: 'Templates' },
-  { name: 'settings/payments', title: 'Payments' },
-  { name: 'settings/language', title: 'Language' },
-  { name: 'settings/reminders', title: 'Reminders & Late Fees' },
-  { name: 'settings/plan', title: 'Plan & Usage' },
-  { name: 'settings/integrations', title: 'Integrations' },
-  { name: 'products', title: 'Products' },
-  { name: 'mileage', title: 'Mileage' },
+  { name: 'invoice/[id]', titleKey: 'invoices' },
+  { name: 'client/[id]', titleKey: 'client' },
+  { name: 'expenses', titleKey: 'expenses' },
+  { name: 'time', titleKey: 'timeTracking' },
+  { name: 'reports', titleKey: 'reports' },
+  { name: 'notifications', titleKey: 'notifications' },
+  { name: 'recurring', titleKey: 'recurring' },
+  { name: 'settings/profile', titleKey: 'businessProfile' },
+  { name: 'settings/templates', titleKey: 'invoiceTemplates' },
+  { name: 'settings/payments', titleKey: 'paymentMethods' },
+  { name: 'settings/language', titleKey: 'language' },
+  { name: 'settings/reminders', titleKey: 'remindersLateFees' },
+  { name: 'settings/plan', titleKey: 'plan' },
+  { name: 'settings/integrations', titleKey: 'integrations' },
+  { name: 'products', titleKey: 'products' },
+  { name: 'mileage', titleKey: 'mileage' },
 ] as const;
 
 function ThemedNavigation() {
   const { colors, isDark } = useTheme();
+  const { t } = useI18n();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   useEffect(() => {
@@ -73,7 +76,7 @@ function ThemedNavigation() {
     headerTintColor: colors.primary,
     headerTitleStyle: { color: colors.text, fontFamily: fonts.bold, fontSize: 17 },
     headerShadowVisible: false,
-    headerBackTitle: 'Back',
+    headerBackTitle: t('back'),
   };
 
   return (
@@ -89,11 +92,11 @@ function ThemedNavigation() {
           <Stack.Screen
             key={s.name}
             name={s.name}
-            options={{ presentation: 'modal', headerShown: true, title: s.title, ...headerOptions }}
+            options={{ presentation: 'modal', headerShown: true, title: t(s.titleKey), ...headerOptions }}
           />
         ))}
         {stackScreens.map((s) => (
-          <Stack.Screen key={s.name} name={s.name} options={{ headerShown: true, title: s.title, ...headerOptions }} />
+          <Stack.Screen key={s.name} name={s.name} options={{ headerShown: true, title: t(s.titleKey), ...headerOptions }} />
         ))}
       </Stack>
     </>
@@ -111,6 +114,7 @@ export default function RootLayout() {
 
   useEffect(() => { if (error) throw error; }, [error]);
   useEffect(() => { if (loaded) SplashScreen.hideAsync(); }, [loaded]);
+  useEffect(() => { useI18nStore.getState().init(); }, []);
 
   if (!loaded) return null;
 
