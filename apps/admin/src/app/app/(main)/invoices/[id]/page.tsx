@@ -104,6 +104,40 @@ export default function InvoiceDetailPage() {
 
       {error ? <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
 
+      {(invoice.sentAt || invoice.viewedAt || invoice.status !== 'DRAFT') ? (
+        <Card className="mb-6">
+          <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">Delivery &amp; tracking</h3>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl bg-slate-50 p-3">
+              <p className="text-xs font-semibold text-slate-500">Email</p>
+              <p className="mt-1 text-sm font-medium text-slate-900">
+                {invoice.sentAt
+                  ? invoice.activities?.some((a) => a.action === 'EMAIL_DELIVERED')
+                    ? `Delivered to ${invoice.client?.email || 'client'}`
+                    : invoice.activities?.some((a) => a.action === 'EMAIL_FAILED')
+                      ? 'Send failed — check SMTP'
+                      : `Sent (dev mode) to ${invoice.client?.email || 'client'}`
+                  : 'Not sent yet'}
+              </p>
+              {invoice.sentAt ? <p className="mt-0.5 text-xs text-slate-500">{formatDateTime(invoice.sentAt)}</p> : null}
+            </div>
+            <div className="rounded-xl bg-slate-50 p-3">
+              <p className="text-xs font-semibold text-slate-500">Opened</p>
+              <p className="mt-1 text-sm font-medium text-slate-900">
+                {invoice.viewedAt ? 'Client viewed portal' : invoice.sentAt ? 'Not opened yet' : '—'}
+              </p>
+              {invoice.viewedAt ? <p className="mt-0.5 text-xs text-slate-500">{formatDateTime(invoice.viewedAt)}</p> : null}
+            </div>
+            <div className="rounded-xl bg-slate-50 p-3">
+              <p className="text-xs font-semibold text-slate-500">Portal link</p>
+              <button type="button" onClick={copyPortal} className="mt-1 text-sm font-medium text-indigo-600 hover:underline">
+                Copy link
+              </button>
+            </div>
+          </div>
+        </Card>
+      ) : null}
+
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         {[
           { label: 'Total', value: formatCurrency(invoice.total, invoice.currency), color: 'text-slate-900' },
@@ -119,9 +153,12 @@ export default function InvoiceDetailPage() {
 
       <div className="mb-6 flex flex-wrap gap-2">
         {invoice.status === 'DRAFT' ? (
-          <button type="button" onClick={send} disabled={!!actionLoading} className="if-btn-primary">
+          <button type="button" onClick={send} disabled={!!actionLoading || !invoice.client?.email} className="if-btn-primary" title={!invoice.client?.email ? 'Add client email first' : undefined}>
             {actionLoading === 'send' ? 'Sending…' : 'Send to client'}
           </button>
+        ) : null}
+        {invoice.status === 'DRAFT' && !invoice.client?.email ? (
+          <p className="w-full text-sm text-amber-700">Add an email to this client before sending.</p>
         ) : null}
         {invoice.documentType === 'ESTIMATE' ? (
           <button type="button" onClick={convert} disabled={!!actionLoading} className="if-btn-secondary">
@@ -183,7 +220,13 @@ export default function InvoiceDetailPage() {
               <div className="space-y-3">
                 {invoice.activities.map((a) => (
                   <div key={a.id} className="border-l-2 border-indigo-200 pl-3">
-                    <p className="text-sm font-medium capitalize">{a.action.toLowerCase().replace('_', ' ')}</p>
+                    <p className="text-sm font-medium">
+                      {a.action === 'EMAIL_DELIVERED' ? 'Email delivered'
+                        : a.action === 'EMAIL_FAILED' ? 'Email failed'
+                        : a.action === 'EMAIL_DEV' ? 'Email logged (dev)'
+                        : a.action === 'VIEWED' ? 'Client opened portal'
+                        : a.action.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}
+                    </p>
                     <p className="text-xs text-slate-500">{formatDateTime(a.createdAt)}</p>
                   </div>
                 ))}

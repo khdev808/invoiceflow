@@ -9,6 +9,8 @@ import { IntegrationsService } from '../integrations/integrations.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { getDepositDue } from '../payments/payment.utils';
 import { getPortalBase } from '../config/portal-url';
+import { InvoicePdfService } from './invoice-pdf.service';
+import { getTemplateColors } from './invoice-templates';
 
 @Injectable()
 export class InvoicesService {
@@ -18,6 +20,7 @@ export class InvoicesService {
     private plan: PlanService,
     private integrations: IntegrationsService,
     private notifications: NotificationsService,
+    private pdf: InvoicePdfService,
   ) {}
 
   async findAll(userId: string, filters?: { status?: string; type?: string; clientId?: string }) {
@@ -249,19 +252,60 @@ export class InvoicesService {
 
   async send(userId: string, id: string) {
     const invoice = await this.findOne(userId, id);
+    if (!invoice.client.email?.trim()) {
+      throw new BadRequestException('Add an email address to this client before sending.');
+    }
+
     const portalBase = getPortalBase();
     const portalUrl = `${portalBase}/${id}`;
+    const businessName = invoice.user?.businessName || invoice.user?.name || 'InvoiceFlow';
+    const { primary } = getTemplateColors(invoice.templateId);
 
-    if (invoice.client.email) {
-      await this.email.sendInvoiceEmail({
-        to: invoice.client.email,
-        clientName: invoice.client.name,
-        documentNumber: invoice.documentNumber,
-        total: invoice.total,
-        currency: invoice.currency,
-        portalUrl,
-        businessName: invoice.user?.businessName || invoice.user?.name || 'InvoiceFlow',
+    const pdfBuffer = await this.pdf.generate({
+      documentType: invoice.documentType,
+      documentNumber: invoice.documentNumber,
+      issueDate: invoice.issueDate,
+      dueDate: invoice.dueDate,
+      subtotal: invoice.subtotal,
+      taxTotal: invoice.taxTotal,
+      discountTotal: invoice.discountTotal,
+      total: invoice.total,
+      currency: invoice.currency,
+      notes: invoice.notes,
+      terms: invoice.terms,
+      templateId: invoice.templateId,
+      depositPercent: invoice.depositPercent,
+      client: invoice.client,
+      lineItems: invoice.lineItems,
+      user: invoice.user,
+    });
+
+    const emailResult = await this.email.sendInvoiceEmail({
+      to: invoice.client.email,
+      clientName: invoice.client.name,
+      documentNumber: invoice.documentNumber,
+      documentType: invoice.documentType,
+      total: invoice.total,
+      currency: invoice.currency,
+      dueDate: invoice.dueDate,
+      portalUrl,
+      businessName,
+      accentColor: primary,
+      pdfBuffer,
+    });
+
+    const isProd = process.env.NODE_ENV === 'production';
+    if (isProd && !emailResult.sent && !emailResult.dev) {
+      await this.prisma.invoiceActivity.create({
+        data: {
+          invoiceId: id,
+          action: 'EMAIL_FAILED',
+          metadata: { email: invoice.client.email, error: emailResult.error || 'SMTP not configured' },
+        },
       });
+      throw new BadRequestException(
+        emailResult.error || 'Failed to send email. Configure SMTP in production (e.g. Resend).',
+      );
     }
 
     const updated = await this.prisma.invoice.update({
@@ -271,7 +315,22 @@ export class InvoicesService {
     });
 
     await this.prisma.invoiceActivity.create({
-      data: { invoiceId: id, action: 'SENT', metadata: { email: invoice.client.email } },
+      data: {
+        invoiceId: id,
+        action: 'SENT',
+        metadata: { email: invoice.client.email },
+      },
+    });
+
+    await this.prisma.invoiceActivity.create({
+      data: {
+        invoiceId: id,
+        action: emailResult.sent ? 'EMAIL_DELIVERED' : 'EMAIL_DEV',
+        metadata: {
+          email: invoice.client.email,
+          ...(emailResult.error ? { error: emailResult.error } : {}),
+        },
+      },
     });
 
     await this.notifications.notify(userId, {
@@ -284,6 +343,28 @@ export class InvoicesService {
     await this.integrations.dispatch(userId, 'invoice.sent', { invoiceId: id, documentNumber: invoice.documentNumber });
 
     return updated;
+  }
+
+  async generatePublicPdf(id: string): Promise<Buffer> {
+    const invoice = await this.findPublic(id);
+    return this.pdf.generate({
+      documentType: invoice.documentType,
+      documentNumber: invoice.documentNumber,
+      issueDate: invoice.issueDate,
+      dueDate: invoice.dueDate,
+      subtotal: invoice.subtotal,
+      taxTotal: invoice.taxTotal,
+      discountTotal: invoice.discountTotal,
+      total: invoice.total,
+      currency: invoice.currency,
+      notes: invoice.notes,
+      terms: invoice.terms,
+      templateId: invoice.templateId,
+      depositPercent: invoice.depositPercent,
+      client: invoice.client,
+      lineItems: invoice.lineItems,
+      user: invoice.user,
+    });
   }
 
   async markViewed(id: string) {

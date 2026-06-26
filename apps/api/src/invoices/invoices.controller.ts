@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request, Patch, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto, UpdateInvoiceDto, ConvertEstimateDto, ClientSignDto } from './dto/invoice.dto';
 import { AppUserGuard } from '../auth/guards';
@@ -10,6 +11,15 @@ export class InvoicesController {
   @Get('public/:id')
   getPublic(@Param('id') id: string) {
     return this.invoices.findPublic(id);
+  }
+
+  @Get('public/:id/pdf')
+  async getPublicPdf(@Param('id') id: string, @Res() res: Response) {
+    const invoice = await this.invoices.findPublic(id);
+    const pdf = await this.invoices.generatePublicPdf(id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${invoice.documentNumber}.pdf"`);
+    res.send(pdf);
   }
 
   @Patch('public/:id/view')

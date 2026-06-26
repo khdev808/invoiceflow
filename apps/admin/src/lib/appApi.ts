@@ -296,6 +296,8 @@ export type Invoice = {
   payments?: { id: string; amount: number; method: string; paidAt: string }[];
   activities?: InvoiceActivity[];
   user?: User & { businessLogo?: string; businessEmail?: string; businessPhone?: string };
+  sentAt?: string | null;
+  viewedAt?: string | null;
   createdAt: string;
 };
 

@@ -1,6 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import { buildInvoiceEmailHtml } from './email-templates';
+
+export type EmailSendResult = {
+  sent: boolean;
+  dev?: boolean;
+  error?: string;
+};
+
+type Attachment = {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+};
 
 @Injectable()
 export class EmailService {
@@ -22,24 +35,40 @@ export class EmailService {
     }
   }
 
+  isConfigured(): boolean {
+    return Boolean(this.transporter);
+  }
+
   async sendInvoiceEmail(params: {
     to: string;
     clientName: string;
     documentNumber: string;
+    documentType: string;
     total: number;
     currency: string;
+    dueDate?: Date | string | null;
     portalUrl: string;
     businessName: string;
-  }) {
-    const subject = `Invoice ${params.documentNumber} from ${params.businessName}`;
-    const html = `
-      <h2>Invoice ${params.documentNumber}</h2>
-      <p>Hi ${params.clientName},</p>
-      <p>You have a new invoice for <strong>${params.currency} ${params.total.toFixed(2)}</strong> from ${params.businessName}.</p>
-      <p><a href="${params.portalUrl}" style="background:#2563EB;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">View & Pay Invoice</a></p>
-      <p>Thank you for your business!</p>
-    `;
-    return this.send(params.to, subject, html);
+    accentColor?: string;
+    pdfBuffer?: Buffer;
+  }): Promise<EmailSendResult> {
+    const docLabel = params.documentType === 'ESTIMATE' ? 'estimate' : params.documentType === 'CREDIT_NOTE' ? 'credit note' : 'invoice';
+    const subject = `Your ${docLabel} ${params.documentNumber} from ${params.businessName}`;
+    const html = buildInvoiceEmailHtml({
+      clientName: params.clientName,
+      documentNumber: params.documentNumber,
+      documentType: params.documentType,
+      total: params.total,
+      currency: params.currency,
+      dueDate: params.dueDate,
+      portalUrl: params.portalUrl,
+      businessName: params.businessName,
+      accentColor: params.accentColor,
+    });
+    const attachments: Attachment[] = params.pdfBuffer
+      ? [{ filename: `${params.documentNumber}.pdf`, content: params.pdfBuffer, contentType: 'application/pdf' }]
+      : [];
+    return this.send(params.to, subject, html, attachments);
   }
 
   async sendReminderEmail(params: {
@@ -50,15 +79,18 @@ export class EmailService {
     dueDate?: Date;
     portalUrl: string;
     overdue?: boolean;
+    currency?: string;
   }) {
+    const currency = params.currency || 'USD';
+    const amount = new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(params.total);
     const subject = params.overdue
       ? `Overdue: Invoice ${params.documentNumber}`
       : `Reminder: Invoice ${params.documentNumber} due soon`;
     const html = `
       <p>Hi ${params.clientName},</p>
       <p>${params.overdue ? 'This invoice is overdue.' : 'This is a friendly reminder that your invoice is due soon.'}</p>
-      <p><strong>${params.documentNumber}</strong> — $${params.total.toFixed(2)}${params.dueDate ? ` due ${params.dueDate.toLocaleDateString()}` : ''}</p>
-      <p><a href="${params.portalUrl}">Pay now</a></p>
+      <p><strong>${params.documentNumber}</strong> — ${amount}${params.dueDate ? ` due ${params.dueDate.toLocaleDateString()}` : ''}</p>
+      <p><a href="${params.portalUrl}" style="background:#2563EB;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">Pay now</a></p>
     `;
     return this.send(params.to, subject, html);
   }
@@ -74,17 +106,28 @@ export class EmailService {
     return this.send(params.to, subject, html);
   }
 
-  private async send(to: string, subject: string, html: string) {
+  private async send(to: string, subject: string, html: string, attachments: Attachment[] = []): Promise<EmailSendResult> {
     if (!this.transporter) {
-      this.logger.log(`[EMAIL-DEV] To: ${to} | Subject: ${subject}`);
+      this.logger.log(`[EMAIL-DEV] To: ${to} | Subject: ${subject}${attachments.length ? ` | ${attachments.length} attachment(s)` : ''}`);
       return { sent: false, dev: true };
     }
-    await this.transporter.sendMail({
-      from: this.config.get('SMTP_FROM') || 'billing@invoiceflow.app',
-      to,
-      subject,
-      html,
-    });
-    return { sent: true };
+    try {
+      await this.transporter.sendMail({
+        from: this.config.get('SMTP_FROM') || 'billing@invoiceflow.app',
+        to,
+        subject,
+        html,
+        attachments: attachments.map((a) => ({
+          filename: a.filename,
+          content: a.content,
+          contentType: a.contentType,
+        })),
+      });
+      return { sent: true };
+    } catch (err) {
+      const error = err instanceof Error ? err.message : 'Unknown email error';
+      this.logger.error(`Failed to send email to ${to}: ${error}`);
+      return { sent: false, error };
+    }
   }
 }
