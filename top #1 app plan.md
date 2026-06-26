@@ -271,7 +271,7 @@ main → Render auto-deploy (API + admin)
 - [x] Paid Render + domain + Stripe + SMTP live (blueprint + docs; secrets on you)
 - [x] Analytics + Sentry
 - [ ] Submit iOS + Android v1 (EAS ready — see `STORE_SUBMIT.md`)
-- [x] 5 SEO competitor landing pages (+ sitemap/robots)
+- [x] 5 SEO competitor landing pages (+ sitemap/robots; now 10 alternatives)
 
 ### Month 2
 
@@ -282,7 +282,7 @@ main → Render auto-deploy (API + admin)
 
 ### Month 3
 
-- [ ] ES + FR in-app
+- [x] ES + FR in-app (AppShell, dashboard, invoices list; landing `/es` + `/fr`)
 - [ ] App Store optimization round 2 from review keywords
 - [ ] Case study: "Saved $X vs Invoice Fly"
 - [ ] Target: 1,000 users, $1k MRR

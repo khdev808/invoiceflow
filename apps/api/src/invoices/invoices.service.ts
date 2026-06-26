@@ -429,6 +429,11 @@ export class InvoicesService {
       data: { invoiceId: id },
     });
 
+    await this.integrations.dispatch(invoice.userId, 'invoice.viewed', {
+      invoiceId: id,
+      documentNumber: invoice.documentNumber,
+    });
+
     return updated;
   }
 

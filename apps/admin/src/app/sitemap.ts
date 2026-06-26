@@ -21,6 +21,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/alternatives/harvest',
     '/alternatives/honeybook',
     '/es',
+    '/fr',
+    '/help/integrations',
   ];
 
   return routes.map((path) => ({

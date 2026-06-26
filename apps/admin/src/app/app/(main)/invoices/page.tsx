@@ -6,18 +6,21 @@ import { invoicesApi, type Invoice } from '@/lib/appApi';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { StatusBadge } from '@/components/app/StatusBadge';
 import { EmptyState } from '@/components/app/EmptyState';
+import { useAppLocale } from '@/lib/i18n/AppLocaleContext';
+import type { AppTranslationKey } from '@/lib/i18n/app/en';
 
-const FILTERS = [
-  { key: 'all', label: 'All' },
-  { key: 'draft', label: 'Draft' },
-  { key: 'sent', label: 'Sent' },
-  { key: 'paid', label: 'Paid' },
-  { key: 'overdue', label: 'Overdue' },
-  { key: 'estimates', label: 'Estimates' },
-  { key: 'credit', label: 'Credit' },
+const FILTER_KEYS: { key: string; labelKey: AppTranslationKey }[] = [
+  { key: 'all', labelKey: 'filterAll' },
+  { key: 'draft', labelKey: 'filterDraft' },
+  { key: 'sent', labelKey: 'filterSent' },
+  { key: 'paid', labelKey: 'filterPaid' },
+  { key: 'overdue', labelKey: 'filterOverdue' },
+  { key: 'estimates', labelKey: 'filterEstimates' },
+  { key: 'credit', labelKey: 'filterCredit' },
 ];
 
 export default function InvoicesPage() {
+  const { t } = useAppLocale();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -35,18 +38,18 @@ export default function InvoicesPage() {
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Invoices</h1>
-          <p className="text-slate-500">{invoices.length} documents</p>
+          <h1 className="text-3xl font-bold">{t('invoicesTitle')}</h1>
+          <p className="text-slate-500">{invoices.length} {t('documents')}</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/app/invoices/new?type=CREDIT_NOTE" className="if-btn-secondary">+ Credit note</Link>
-          <Link href="/app/invoices/new?type=ESTIMATE" className="if-btn-secondary">+ Estimate</Link>
-          <Link href="/app/invoices/new" className="if-btn-primary">+ Invoice</Link>
+          <Link href="/app/invoices/new?type=CREDIT_NOTE" className="if-btn-secondary">+ {t('newCreditNote')}</Link>
+          <Link href="/app/invoices/new?type=ESTIMATE" className="if-btn-secondary">+ {t('newEstimate')}</Link>
+          <Link href="/app/invoices/new" className="if-btn-primary">+ {t('newInvoiceShort')}</Link>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
+        {FILTER_KEYS.map((f) => (
           <button
             key={f.key}
             type="button"
@@ -55,20 +58,20 @@ export default function InvoicesPage() {
               filter === f.key ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'
             }`}
           >
-            {f.label}
+            {t(f.labelKey)}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading…</p>
+        <p className="text-sm text-slate-500">{t('loading')}</p>
       ) : invoices.length === 0 ? (
         <EmptyState
-          title="No invoices yet"
-          description="Create your first invoice and send it to a client in under a minute."
+          title={t('noInvoices')}
+          description={t('noInvoicesHint')}
           action={
             <Link href="/app/invoices/new" className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">
-              Create invoice
+              {t('createInvoice')}
             </Link>
           }
         />

@@ -22,6 +22,20 @@ export const appEn = {
   send: 'Send',
   duplicate: 'Duplicate',
   language: 'Language',
+  invoicesTitle: 'Invoices',
+  documents: 'documents',
+  filterAll: 'All',
+  filterDraft: 'Draft',
+  filterSent: 'Sent',
+  filterPaid: 'Paid',
+  filterOverdue: 'Overdue',
+  filterEstimates: 'Estimates',
+  filterCredit: 'Credit',
+  newCreditNote: 'Credit note',
+  newEstimate: 'Estimate',
+  newInvoiceShort: 'Invoice',
+  noInvoices: 'No invoices yet',
+  noInvoicesHint: 'Create your first invoice to get paid faster.',
 };
 
 export type AppTranslationKey = keyof typeof appEn;
