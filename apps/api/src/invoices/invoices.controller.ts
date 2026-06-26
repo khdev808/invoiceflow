@@ -90,6 +90,12 @@ export class InvoicesController {
   }
 
   @UseGuards(AppUserGuard)
+  @Post(':id/duplicate')
+  duplicate(@Request() req: { user: { userId: string } }, @Param('id') id: string) {
+    return this.invoices.duplicate(req.user.userId, id);
+  }
+
+  @UseGuards(AppUserGuard)
   @Post(':id/convert')
   convert(
     @Request() req: { user: { userId: string } },

@@ -312,6 +312,31 @@ export class InvoicesService {
     return updated;
   }
 
+  async duplicate(userId: string, id: string) {
+    const source = await this.findOne(userId, id);
+    if (source.documentType === 'CREDIT_NOTE') {
+      throw new BadRequestException('Credit notes cannot be duplicated');
+    }
+
+    const docType = source.documentType as DocumentType;
+    return this.create(userId, {
+      clientId: source.clientId,
+      documentType: docType,
+      notes: source.notes || undefined,
+      terms: source.terms || undefined,
+      templateId: source.templateId || undefined,
+      depositAmount: source.depositAmount || undefined,
+      depositPercent: source.depositPercent || undefined,
+      lineItems: source.lineItems.map((item) => ({
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: Math.abs(item.unitPrice),
+        taxRate: item.taxRate,
+        discount: item.discount,
+      })),
+    });
+  }
+
   async convertEstimate(userId: string, estimateId: string, dueDate?: string) {
     const estimate = await this.findOne(userId, estimateId);
     if (estimate.documentType !== 'ESTIMATE') throw new BadRequestException('Not an estimate');

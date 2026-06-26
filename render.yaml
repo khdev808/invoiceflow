@@ -1,13 +1,19 @@
-# InvoiceFlow — Render Blueprint (API + Admin)
-# Postgres already provisioned as `invoiceflow-db` — link it to invoiceflow-api in the dashboard.
+# InvoiceFlow — Render Blueprint (API + Admin + Postgres)
+# Phase 0 production foundation: Starter web services + paid Postgres (~$20/mo).
 # Apply: Render Dashboard → New → Blueprint → connect github.com/khdev808/invoiceflow
-# Or run: bash scripts/render-provision.sh (after GitHub is connected)
+
+databases:
+  - name: invoiceflow-db
+    plan: starter
+    region: ohio
+    databaseName: invoiceflow
+    user: invoiceflow
 
 services:
   - type: web
     name: invoiceflow-api
     runtime: node
-    plan: free
+    plan: starter
     region: ohio
     branch: main
     repo: https://github.com/khdev808/invoiceflow
@@ -18,7 +24,9 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: invoiceflow-db
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
       - key: ADMIN_APP_URL
@@ -50,11 +58,13 @@ services:
         value: "false"
       - key: TURNSTILE_SECRET_KEY
         sync: false
+      - key: SENTRY_DSN
+        sync: false
 
   - type: web
     name: invoiceflow-admin
     runtime: node
-    plan: free
+    plan: starter
     region: ohio
     branch: main
     repo: https://github.com/khdev808/invoiceflow
@@ -71,3 +81,9 @@ services:
           envVarKey: RENDER_EXTERNAL_URL
       - key: NEXT_PUBLIC_TURNSTILE_SITE_KEY
         sync: false
+      - key: NEXT_PUBLIC_SENTRY_DSN
+        sync: false
+      - key: NEXT_PUBLIC_POSTHOG_KEY
+        sync: false
+      - key: NEXT_PUBLIC_POSTHOG_HOST
+        value: https://us.i.posthog.com

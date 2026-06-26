@@ -6,6 +6,7 @@ import { Suspense } from 'react';
 import { InvoiceForm } from '@/components/app/InvoiceForm';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { invoicesApi } from '@/lib/appApi';
+import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 import { formToPayload } from '@/lib/invoicePayload';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -33,6 +34,10 @@ function NewInvoiceContent() {
         submitLabel={`Save ${label}`}
         onSubmit={async (form) => {
           const inv = await invoicesApi.create(formToPayload(form, user?.currency || 'USD'));
+          trackEvent(AnalyticsEvents.INVOICE_CREATED, {
+            documentType: form.documentType,
+            lineItemCount: form.lineItems.length,
+          });
           router.push(`/app/invoices/${inv.id}`);
         }}
       />

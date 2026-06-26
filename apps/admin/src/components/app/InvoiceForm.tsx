@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { clientsApi, invoicesApi, productsApi, type Client, type LineItem, type Product } from '@/lib/appApi';
 import { templates } from '@/lib/constants';
+import { getLastClientId, saveLastClientId } from '@/lib/invoicePrefs';
 import { Card } from '@/components/ui/Card';
 import { LineItemsEditor } from '@/components/ui/LineItemsEditor';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,12 +27,18 @@ type Props = {
   invoiceId?: string;
   onSubmit: (values: InvoiceFormValues) => Promise<void>;
   submitLabel: string;
+  onClientSaved?: (clientId: string) => void;
 };
 
-export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel }: Props) {
+export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel, onClientSaved }: Props) {
   const { user } = useAuth();
   const currency = user?.currency || 'USD';
   const isPro = user?.plan === 'pro' || user?.plan === 'business';
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const settings = user?.settings as { templateId?: string; defaultPaymentTerms?: number } | undefined;
+  const defaultTermsDays = settings?.defaultPaymentTerms ?? 30;
+  const defaultDueDate = new Date(Date.now() + defaultTermsDays * 86400000).toISOString().slice(0, 10);
 
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -42,10 +49,10 @@ export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel }: Props
   const [form, setForm] = useState<InvoiceFormValues>({
     clientId: '',
     documentType: 'INVOICE',
-    dueDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+    dueDate: defaultDueDate,
     notes: '',
     terms: 'Payment due within 30 days.',
-    templateId: 'modern',
+    templateId: settings?.templateId || 'modern',
     depositPercent: '',
     depositAmount: '',
     recurringRule: '',
@@ -64,7 +71,11 @@ export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel }: Props
       setClients(c);
       setProducts(p);
       setInvoices(inv as { id: string; documentNumber: string }[]);
-      if (!form.clientId && c.length) setForm((f) => ({ ...f, clientId: c[0].id }));
+      if (!form.clientId && c.length) {
+        const lastId = getLastClientId();
+        const preferred = lastId && c.some((x) => x.id === lastId) ? lastId : c[0].id;
+        setForm((f) => ({ ...f, clientId: preferred }));
+      }
     });
     if (typeof window !== 'undefined') {
       const raw = sessionStorage.getItem('prefilledLineItems');
@@ -77,6 +88,17 @@ export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel }: Props
       }
     }
   }, [form.documentType]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        formRef.current?.requestSubmit();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const addProduct = (product: Product) => {
     setForm((f) => ({
@@ -100,6 +122,10 @@ export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel }: Props
     setError('');
     try {
       await onSubmit(form);
+      if (form.clientId) {
+        saveLastClientId(form.clientId);
+        onClientSaved?.(form.clientId);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Save failed');
     } finally {
@@ -108,7 +134,10 @@ export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel }: Props
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-4xl space-y-6 animate-fade-in">
+    <form ref={formRef} onSubmit={handleSubmit} className="mx-auto max-w-4xl space-y-6 animate-fade-in">
+      {!invoiceId ? (
+        <p className="text-xs text-slate-500">Tip: Press <kbd className="rounded bg-slate-100 px-1.5 py-0.5 font-mono">⌘</kbd>+<kbd className="rounded bg-slate-100 px-1.5 py-0.5 font-mono">Enter</kbd> to save quickly.</p>
+      ) : null}
       {error ? <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
 
       <Card>

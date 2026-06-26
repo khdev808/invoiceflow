@@ -349,6 +349,7 @@ export function LandingPage() {
             <LanguageSelector />
             <Link href="/app" className="hover:text-indigo-600">{t('navWebApp')}</Link>
             <Link href="/admin" className="hover:text-indigo-600">{t('footerAdmin')}</Link>
+            <Link href="/help" className="hover:text-indigo-600">Help</Link>
             <Link href="/privacy" className="hover:text-indigo-600">{t('footerPrivacy')}</Link>
             <Link href="/terms" className="hover:text-indigo-600">{t('footerTerms')}</Link>
           </div>

@@ -110,6 +110,7 @@ export const invoicesApi = {
   update: (id: string, data: Partial<CreateInvoicePayload> & { status?: string }) =>
     apiFetch<Invoice>(`/invoices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   send: (id: string) => apiFetch<Invoice>(`/invoices/${id}/send`, { method: 'POST' }),
+  duplicate: (id: string) => apiFetch<Invoice>(`/invoices/${id}/duplicate`, { method: 'POST' }),
   convert: (id: string, dueDate?: string) =>
     apiFetch<Invoice>(`/invoices/${id}/convert`, { method: 'POST', body: JSON.stringify({ dueDate }) }),
   recordPayment: (id: string, data: { amount: number; method: string }) =>

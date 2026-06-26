@@ -10,6 +10,7 @@ import {
   type User,
   AppApiError,
 } from '@/lib/appApi';
+import { AnalyticsEvents, identifyUser, resetAnalytics, trackEvent } from '@/lib/analytics';
 
 type AuthContextValue = {
   user: User | null;
@@ -37,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const profile = await authApi.me();
       setUser(profile);
+      identifyUser(profile.id, { email: profile.email, plan: profile.plan });
     } catch {
       clearAppToken();
       setUser(null);
@@ -57,6 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       saveAppToken(token);
       setUser(u);
+      identifyUser(u.id, { email: u.email, plan: u.plan });
+      trackEvent(AnalyticsEvents.USER_LOGGED_IN);
       router.push('/app');
     },
     [router],
@@ -70,6 +74,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       saveAppToken(token);
       setUser(u);
+      identifyUser(u.id, { email: u.email, plan: u.plan });
+      trackEvent(AnalyticsEvents.USER_REGISTERED);
       router.push('/app');
     },
     [router],
@@ -77,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     clearAppToken();
+    resetAnalytics();
     setUser(null);
     router.push('/app/login');
   }, [router]);

@@ -9,8 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@sentry/react": "^10.62.0",
     "@tailwindcss/postcss": "^4.3.1",
     "next": "^16.2.9",
+    "posthog-js": "^1.393.5",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "tailwindcss": "^4.3.1"

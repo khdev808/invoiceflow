@@ -36,6 +36,7 @@ const NAV_SECTIONS = [
     items: [
       { href: '/app/reports', label: 'Reports', icon: '▲' },
       { href: '/app/settings', label: 'Settings', icon: '⚙' },
+      { href: '/help', label: 'Help', icon: '?' },
     ],
   },
 ];

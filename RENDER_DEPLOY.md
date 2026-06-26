@@ -8,7 +8,27 @@ This repo includes a [Render Blueprint](https://render.com/docs/blueprint-spec) 
 | Web Service | `invoiceflow-api` | NestJS API (`apps/api`) |
 | Web Service | `invoiceflow-admin` | Next.js landing + admin + client portal (`apps/admin`) |
 
-Estimated cost: **~$14/mo** (free Postgres + 2× Starter web) or **~$21/mo** with paid Postgres.
+Estimated cost: **~$21/mo** (Starter Postgres + 2× Starter web services).
+
+---
+
+## Phase 0 production checklist
+
+Before inviting beta users, complete these steps:
+
+| Item | Action |
+|------|--------|
+| **Render plans** | Blueprint uses `starter` for API, admin, and Postgres (no cold starts; DB does not expire) |
+| **Stripe** | Live keys + webhook → `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` on API |
+| **Email** | Resend or SMTP → `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` on API |
+| **Turnstile** | Cloudflare Turnstile → `TURNSTILE_SECRET_KEY` (API), `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (admin) |
+| **Sentry** | Create project at [sentry.io](https://sentry.io) → `SENTRY_DSN` (API), `NEXT_PUBLIC_SENTRY_DSN` (admin) |
+| **PostHog** | Create project at [posthog.com](https://posthog.com) → `NEXT_PUBLIC_POSTHOG_KEY` (admin) |
+| **Uptime** | Monitor `https://YOUR-API.onrender.com/health` (checks DB) via UptimeRobot or Better Stack |
+| **Custom domain** | See [Custom domains](#custom-domains-when-invoiceflowapp-is-ready) below |
+| **Support** | Route `support@invoiceflow.app` to your inbox |
+
+Funnel events tracked in PostHog: `user_registered` → `invoice_created` → `invoice_sent` → `payment_recorded`.
 
 ---
 
@@ -50,8 +70,18 @@ After the blueprint is created, open **`invoiceflow-api` → Environment** and a
 | `SMTP_HOST` | Optional | e.g. `smtp.resend.com` |
 | `SMTP_USER` | Optional | e.g. `resend` |
 | `SMTP_PASS` | Optional | Resend API key |
+| `TURNSTILE_SECRET_KEY` | Recommended | Cloudflare Turnstile secret |
+| `SENTRY_DSN` | Recommended | API error monitoring |
 
 `JWT_SECRET` and `DATABASE_URL` are auto-set by the blueprint.
+
+**invoiceflow-admin → Environment:**
+
+| Variable | Required | Notes |
+|----------|----------|-------|
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Recommended | Turnstile site key |
+| `NEXT_PUBLIC_SENTRY_DSN` | Recommended | Web error monitoring |
+| `NEXT_PUBLIC_POSTHOG_KEY` | Recommended | Product analytics |
 
 ### 4. Redeploy after env vars
 

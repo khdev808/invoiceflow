@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { invoicesApi, notificationsApi, type DashboardStats, type Invoice } from '@/lib/appApi';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { getLastClientId } from '@/lib/invoicePrefs';
 import { StatusBadge } from '@/components/app/StatusBadge';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,6 +34,11 @@ export default function DashboardPage() {
 
   const currency = user?.currency || 'USD';
   const firstName = user?.name?.split(' ')[0] || 'there';
+  const [lastClientId, setLastClientId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLastClientId(getLastClientId());
+  }, []);
 
   if (loading) {
     return (
@@ -48,9 +54,16 @@ export default function DashboardPage() {
         title={`Welcome back, ${firstName} 👋`}
         subtitle={user?.businessName || 'Your business dashboard'}
         actions={
-          <Link href="/app/invoices/new" className="if-btn-primary shadow-lg">
-            + Create invoice
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            {lastClientId ? (
+              <Link href={`/app/invoices/new?clientId=${lastClientId}`} className="if-btn-secondary">
+                Invoice last client
+              </Link>
+            ) : null}
+            <Link href="/app/invoices/new" className="if-btn-primary shadow-lg">
+              + Create invoice
+            </Link>
+          </div>
         }
       />
 

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { invoicesApi, type Invoice } from '@/lib/appApi';
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/format';
 import { printInvoicePdf } from '@/lib/exportPdf';
+import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 import { StatusBadge } from '@/components/app/StatusBadge';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -33,8 +34,22 @@ export default function InvoiceDetailPage() {
 
   const send = async () => {
     setActionLoading('send');
-    try { await invoicesApi.send(id); load(); }
+    try {
+      await invoicesApi.send(id);
+      trackEvent(AnalyticsEvents.INVOICE_SENT, { invoiceId: id });
+      load();
+    }
     catch (e: unknown) { setError(e instanceof Error ? e.message : 'Send failed'); }
+    finally { setActionLoading(''); }
+  };
+
+  const duplicate = async () => {
+    setActionLoading('duplicate');
+    try {
+      const inv = await invoicesApi.duplicate(id);
+      trackEvent(AnalyticsEvents.INVOICE_DUPLICATED, { sourceId: id });
+      window.location.href = `/app/invoices/${inv.id}`;
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Duplicate failed'); }
     finally { setActionLoading(''); }
   };
 
@@ -53,6 +68,7 @@ export default function InvoiceDetailPage() {
     setActionLoading('payment');
     try {
       await invoicesApi.recordPayment(id, { amount, method: paymentMethod });
+      trackEvent(AnalyticsEvents.PAYMENT_RECORDED, { invoiceId: id, amount });
       setPaymentAmount('');
       load();
     } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Payment failed'); }
@@ -113,6 +129,9 @@ export default function InvoiceDetailPage() {
           </button>
         ) : null}
         <button type="button" onClick={() => printInvoicePdf(invoice, user?.plan)} className="if-btn-secondary">Print / PDF</button>
+        <button type="button" onClick={duplicate} disabled={!!actionLoading} className="if-btn-secondary">
+          {actionLoading === 'duplicate' ? 'Duplicating…' : 'Duplicate'}
+        </button>
         <button type="button" onClick={copyPortal} className="if-btn-secondary">Copy portal link</button>
         <a href={portalUrl} target="_blank" rel="noreferrer" className="if-btn-secondary">Preview portal</a>
       </div>
