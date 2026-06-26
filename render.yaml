@@ -17,8 +17,8 @@ services:
     region: ohio
     branch: main
     repo: https://github.com/khdev808/invoiceflow
-    buildCommand: npm run render:build:api
-    startCommand: npm run render:start:api
+    buildCommand: pnpm run render:build:api
+    startCommand: pnpm run render:start:api
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
@@ -80,8 +80,8 @@ services:
     region: ohio
     branch: main
     repo: https://github.com/khdev808/invoiceflow
-    buildCommand: npm run render:build:admin
-    startCommand: npm run render:start:admin
+    buildCommand: pnpm run render:build:admin
+    startCommand: pnpm run render:start:admin
     healthCheckPath: /
     envVars:
       - key: NODE_ENV

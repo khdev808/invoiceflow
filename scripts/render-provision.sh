@@ -31,8 +31,8 @@ if ! render services -o json | python3 -c "import sys,json; s=json.load(sys.stdi
     --environment-id "$ENV_ID" \
     --repo "$REPO" \
     --branch main \
-    --build-command "npm run render:build:api" \
-    --start-command "npm run render:start:api" \
+    --build-command "pnpm run render:build:api" \
+    --start-command "pnpm run render:start:api" \
     --health-check-path /health \
     --env-var NODE_ENV=production \
     --env-var JWT_SECRET="$JWT_SECRET" \
@@ -50,8 +50,8 @@ if ! render services -o json | python3 -c "import sys,json; s=json.load(sys.stdi
     --environment-id "$ENV_ID" \
     --repo "$REPO" \
     --branch main \
-    --build-command "npm run render:build:admin" \
-    --start-command "npm run render:start:admin" \
+    --build-command "pnpm run render:build:admin" \
+    --start-command "pnpm run render:start:admin" \
     --health-check-path / \
     --env-var NODE_ENV=production \
     --confirm -o json

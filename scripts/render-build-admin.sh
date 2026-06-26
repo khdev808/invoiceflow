@@ -3,9 +3,10 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "==> Installing dependencies (including devDependencies for Next.js build)"
-npm ci --include=dev
+corepack enable
+pnpm install --frozen-lockfile
 
 echo "==> Building admin (Next.js)"
-npm run build --workspace=admin
+pnpm -F admin build
 
 echo "==> Admin build complete"

@@ -12,7 +12,7 @@ Use this guide to run, test, and debug InvoiceFlow locally on macOS.
 | [Android Studio](https://developer.android.com/studio) | Latest | Android Emulator |
 | [Expo Go](https://expo.dev/go) | SDK 56 | Quick mobile testing (auto-installed on simulators) |
 
-Optional: [EAS CLI](https://docs.expo.dev/build/setup/) (`npm i -g eas-cli`) for device builds.
+Optional: [EAS CLI](https://docs.expo.dev/build/setup/) (`pnpm add -g eas-cli`) for device builds.
 
 ## One-time setup
 
@@ -20,17 +20,18 @@ From the repo root (`invoiceflow/`):
 
 ```bash
 # 1. Install all workspace dependencies
-npm install
+corepack enable
+pnpm install
 
 # 2. Copy API environment file
 cp apps/api/.env.example apps/api/.env
 
 # 3. Start Postgres and prepare the database
-npm run setup
+pnpm run setup
 # Equivalent to:
 #   docker compose up -d
-#   npm run db:push --workspace=api
-#   npm run db:seed --workspace=api
+#   pnpm -F api db:push
+#   pnpm -F api db:seed
 ```
 
 ### Verify database
@@ -46,7 +47,7 @@ Open **three terminals** from the repo root:
 ### Terminal 1 — API (required for login & data)
 
 ```bash
-npm run api
+pnpm run api
 ```
 
 - URL: http://localhost:3001
@@ -58,25 +59,25 @@ npm run api
 **iOS Simulator:**
 
 ```bash
-npm run dev:mobile:ios
+pnpm run dev:mobile:ios
 ```
 
 **Android Emulator** (starts Metro on `localhost` + sets up port forwarding):
 
 ```bash
-npm run dev:mobile:android
+pnpm run dev:mobile:android
 ```
 
 **Generic Metro** (scan QR / pick platform manually):
 
 ```bash
-npm run dev:mobile
+pnpm run dev:mobile
 ```
 
 ### Terminal 3 — Admin + Client Portal
 
 ```bash
-npm run dev:admin
+pnpm run dev:admin
 ```
 
 - Admin dashboard: http://localhost:3000
@@ -93,10 +94,10 @@ npm run dev:admin
 
 | Mode | Command | Bundle ID |
 |------|---------|-----------|
-| **Development** | `APP_VARIANT=development` (default in npm scripts) | `com.kh.everything.qr.dev` |
+| **Development** | `APP_VARIANT=development` (default in pnpm scripts) | `com.kh.everything.qr.dev` |
 | **Production** | `APP_VARIANT=production` | `com.kh.everything.qr` |
 
-Scripts: `npm run ios:prod`, `npm run android:prod`, `npm run start:prod` (from `apps/mobile`).
+Scripts: `pnpm run ios:prod`, `pnpm run android:prod`, `pnpm run start:prod` (from `apps/mobile`).
 
 ## How the mobile app reaches your API
 
@@ -106,7 +107,7 @@ Scripts: `npm run ios:prod`, `npm run android:prod`, `npm run start:prod` (from 
 | Android Emulator | `http://10.0.2.2:3001` | Emulator alias for host machine |
 | Physical device | Same LAN IP as Metro | Set `EXPO_PUBLIC_API_URL=http://YOUR_IP:3001` in `apps/mobile/.env` |
 
-`npm run android` also runs `adb reverse` so `localhost:3001` and `localhost:8081` map to your Mac.
+`pnpm run android` also runs `adb reverse` so `localhost:3001` and `localhost:8081` map to your Mac.
 
 ## Testing checklist
 
@@ -127,7 +128,7 @@ Run through this after changes to confirm everything works:
 - [ ] Create invoice → appears in list
 - [ ] Clients tab loads seeded clients
 - [ ] More → Settings screens open
-- [ ] No persistent "Cannot connect to Expo CLI" toast (Android: use `npm run android`, not manual LAN URL)
+- [ ] No persistent "Cannot connect to Expo CLI" toast (Android: use `pnpm run android`, not manual LAN URL)
 
 ### Admin
 
@@ -137,8 +138,8 @@ Run through this after changes to confirm everything works:
 ### Build verification (CI-style)
 
 ```bash
-npm run build --workspace=api
-npm run build --workspace=admin
+pnpm -F api build
+pnpm -F admin build
 cd apps/mobile && npx expo export --platform android
 cd apps/mobile && npx expo-doctor
 ```
@@ -157,14 +158,14 @@ If login says **"Cannot reach the API"**:
 
 1. Confirm API terminal shows `InvoiceFlow API running on http://localhost:3001`
 2. Confirm Docker Postgres is up: `docker compose ps`
-3. Android: run `npm run setup:android --workspace=mobile` then reload app
+3. Android: run `pnpm -F mobile setup:android` then reload app
 4. Physical device: set `EXPO_PUBLIC_API_URL` to your Mac's LAN IP
 
 ### Android — "Cannot connect to Expo CLI"
 
 Cause: Expo Go opened via LAN IP (`exp://192.168.x.x:8081`) instead of localhost.
 
-**Fix:** Always use `npm run dev:mobile:android` which runs:
+**Fix:** Always use `pnpm run dev:mobile:android` which runs:
 
 ```bash
 adb reverse tcp:8081 tcp:8081
@@ -177,20 +178,20 @@ expo start --android --localhost
 If you see `No driver (HTTP) has been selected`:
 
 ```bash
-npm install   # from repo root — hoists @nestjs/platform-express
+pnpm install   # from repo root — hoists @nestjs/platform-express
 ```
 
 If Prisma errors appear, regenerate the client:
 
 ```bash
-npm run db:generate --workspace=api
+pnpm -F api db:generate
 ```
 
 ### Database reset
 
 ```bash
 docker compose down -v    # ⚠️ deletes all data
-npm run setup
+pnpm run setup
 ```
 
 ### Prisma Studio (inspect data)
@@ -203,21 +204,21 @@ cd apps/api && npx prisma studio
 
 ```bash
 # Root scripts
-npm run setup              # DB + migrations + seed
-npm run api                # Start API watch mode
-npm run dev:mobile:ios     # iOS + Metro
-npm run dev:mobile:android # Android + Metro + adb reverse
-npm run dev:admin          # Next.js admin
+pnpm run setup              # DB + migrations + seed
+pnpm run api                # Start API watch mode
+pnpm run dev:mobile:ios     # iOS + Metro
+pnpm run dev:mobile:android # Android + Metro + adb reverse
+pnpm run dev:admin          # Next.js admin
 
 # Mobile (from apps/mobile)
-npm run setup:android      # adb reverse only
-npm run start:dev          # Metro (development variant)
-npm run start:prod         # Metro (production variant)
+pnpm run setup:android      # adb reverse only
+pnpm run start:dev          # Metro (development variant)
+pnpm run start:prod         # Metro (production variant)
 
 # API (from apps/api)
-npm run db:push            # Sync schema to DB
-npm run db:seed            # Seed demo data
-npm run db:generate        # Regenerate Prisma client
+pnpm run db:push            # Sync schema to DB
+pnpm run db:seed            # Seed demo data
+pnpm run db:generate        # Regenerate Prisma client
 ```
 
 ## Current stack versions
@@ -234,10 +235,10 @@ Project: `@khdev4678/invoiceflow` on Expo.
 
 ```bash
 cd apps/mobile
-npm run build:dev:ios
-npm run build:dev:android
-npm run build:prod:ios
-npm run build:prod:android
+pnpm run build:dev:ios
+pnpm run build:dev:android
+pnpm run build:prod:ios
+pnpm run build:prod:android
 ```
 
 Use EAS development builds for **Android push notifications** (not supported in Expo Go SDK 53+).

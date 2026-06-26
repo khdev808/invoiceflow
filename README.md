@@ -17,14 +17,15 @@ See **[DEV_SETUP.md](./DEV_SETUP.md)** for the full local dev, testing, and debu
 
 ```bash
 # One-time setup (from repo root)
-npm install
+corepack enable
+pnpm install
 cp apps/api/.env.example apps/api/.env
-npm run setup
+pnpm run setup
 
 # Daily dev — use 3 terminals:
-npm run api                  # Terminal 1 — API on :3001
-npm run dev:mobile:ios       # Terminal 2 — iOS (or dev:mobile:android)
-npm run dev:admin            # Terminal 3 — Admin on :3000
+pnpm run api                  # Terminal 1 — API on :3001
+pnpm run dev:mobile:ios       # Terminal 2 — iOS (or dev:mobile:android)
+pnpm run dev:admin            # Terminal 3 — Admin on :3000
 ```
 
 ## Production (Render)

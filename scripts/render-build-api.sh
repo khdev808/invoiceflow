@@ -3,14 +3,15 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "==> Installing dependencies (including devDependencies for Nest build)"
-npm ci --include=dev
+corepack enable
+pnpm install --frozen-lockfile
 
 echo "==> Generating Prisma client"
 export DATABASE_URL="${DATABASE_URL:-postgresql://placeholder:placeholder@localhost:5432/placeholder}"
-npm run db:generate --workspace=api
+pnpm -F api db:generate
 
 echo "==> Building API"
-npm run build --workspace=api
+pnpm -F api build
 
 echo "==> Running database migrations"
 cd apps/api

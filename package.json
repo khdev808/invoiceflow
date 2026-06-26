@@ -1,38 +1,38 @@
 {
   "name": "invoiceflow",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=20"
   },
-  "workspaces": [
-    "apps/*"
-  ],
   "scripts": {
-    "postinstall": "ln -sfn ../apps/mobile/node_modules/expo-router node_modules/expo-router 2>/dev/null || true && npm run db:generate --workspace=api 2>/dev/null || true",
-    "api": "npm run start:dev --workspace=api",
-    "mobile": "npm run start --workspace=mobile",
-    "admin": "npm run dev --workspace=admin",
+    "postinstall": "ln -sfn ../apps/mobile/node_modules/expo-router node_modules/expo-router 2>/dev/null || true && pnpm -F api db:generate 2>/dev/null || true",
+    "api": "pnpm -F api start:dev",
+    "mobile": "pnpm -F mobile start",
+    "admin": "pnpm -F admin dev",
     "db:up": "docker compose up -d",
-    "db:seed": "npm run db:seed --workspace=api",
-    "setup": "docker compose up -d && npm run db:push --workspace=api && npm run db:seed --workspace=api",
-    "dev:api": "npm run start:dev --workspace=api",
-    "dev:mobile": "npm run start:dev --workspace=mobile",
-    "dev:mobile:android": "npm run android --workspace=mobile",
-    "dev:mobile:ios": "npm run ios --workspace=mobile",
-    "dev:admin": "npm run dev --workspace=admin",
+    "db:seed": "pnpm -F api db:seed",
+    "setup": "docker compose up -d && pnpm -F api db:push && pnpm -F api db:seed",
+    "dev:api": "pnpm -F api start:dev",
+    "dev:mobile": "pnpm -F mobile start:dev",
+    "dev:mobile:android": "pnpm -F mobile android",
+    "dev:mobile:ios": "pnpm -F mobile ios",
+    "dev:admin": "pnpm -F admin dev",
     "render:build:api": "bash scripts/render-build-api.sh",
     "render:build:admin": "bash scripts/render-build-admin.sh",
-    "render:start:api": "npm run start:prod --workspace=api",
-    "render:start:admin": "npm run start --workspace=admin"
+    "render:start:api": "pnpm -F api start:prod",
+    "render:start:admin": "pnpm -F admin start"
   },
-  "overrides": {
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-native-svg": "15.15.4",
-    "react-native-worklets": "0.8.3",
-    "react-native-reanimated": "4.3.1",
-    "expo-constants": "~56.0.18",
-    "expo-asset": "~56.0.17"
+  "pnpm": {
+    "overrides": {
+      "react": "19.2.3",
+      "react-dom": "19.2.3",
+      "react-native-svg": "15.15.4",
+      "react-native-worklets": "0.8.3",
+      "react-native-reanimated": "4.3.1",
+      "expo-constants": "~56.0.18",
+      "expo-asset": "~56.0.17"
+    }
   },
   "dependencies": {
     "react": "19.2.3",

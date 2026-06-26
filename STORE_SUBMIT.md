@@ -26,10 +26,10 @@ API Render env must include matching `MOBILE_APP_KEY` so mobile auth works with 
 
 ```bash
 cd apps/mobile
-npm run build:prod:ios
-npm run build:prod:android
-npm run submit:prod:ios
-npm run submit:prod:android
+pnpm run build:prod:ios
+pnpm run build:prod:android
+pnpm run submit:prod:ios
+pnpm run submit:prod:android
 ```
 
 ## App Store listing (copy-paste)

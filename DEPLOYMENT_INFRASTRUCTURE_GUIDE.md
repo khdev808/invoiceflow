@@ -195,8 +195,8 @@ Neon **branches** give you a copy of schema for PR previews — useful when admi
 | **Branch** | `main` |
 | **Root directory** | *(repo root — monorepo)* |
 | **Runtime** | Node |
-| **Build command** | `npm install && npm run db:generate --workspace=api && npm run build --workspace=api && cd apps/api && npx prisma migrate deploy` |
-| **Start command** | `npm run start:prod --workspace=api` |
+| **Build command** | `corepack enable && pnpm install --frozen-lockfile && pnpm -F api db:generate && pnpm -F api build && cd apps/api && pnpm exec prisma migrate deploy` |
+| **Start command** | `pnpm -F api start:prod` |
 | **Plan** | **Starter ($7/mo)** |
 
 ### 4.2 Environment variables
@@ -260,11 +260,12 @@ services:
     plan: starter
     region: ohio
     buildCommand: >-
-      npm install &&
-      npm run db:generate --workspace=api &&
-      npm run build --workspace=api &&
-      cd apps/api && npx prisma migrate deploy
-    startCommand: npm run start:prod --workspace=api
+      corepack enable &&
+      pnpm install --frozen-lockfile &&
+      pnpm -F api db:generate &&
+      pnpm -F api build &&
+      cd apps/api && pnpm exec prisma migrate deploy
+    startCommand: pnpm -F api start:prod
     healthCheckPath: /
     envVars:
       - key: NODE_ENV
@@ -307,11 +308,11 @@ services:
 
 | Setting | Value |
 |---------|-------|
-| Build command | `cd ../.. && npm install && npm run build --workspace=admin` |
+| Build command | `cd ../.. && corepack enable && pnpm install --frozen-lockfile && pnpm -F admin build` |
 | Output directory | `.next` (default) |
-| Install command | `npm install` (from monorepo root if needed) |
+| Install command | `pnpm install` (from monorepo root if needed) |
 
-*Alternatively set root to repo root and override build to `npm run build --workspace=admin`.*
+*Alternatively set root to repo root and override build to `pnpm -F admin build`.*
 
 ### 5.3 Environment variables
 
@@ -367,7 +368,7 @@ InvoiceFlow uses **managed Expo** (no `android/` / `ios/` in git). Production st
 
 | Platform | Requirements |
 |----------|--------------|
-| **Both** | Node 20+, repo dependencies installed (`npm install` from root) |
+| **Both** | Node 20+, repo dependencies installed (`pnpm install` from root) |
 | **Android** | Android Studio, JDK 17, `ANDROID_HOME` set |
 | **iOS** | macOS, Xcode 16+, Apple Developer account |
 | **Both** | Production API live at `https://api.invoiceflow.app` |
@@ -584,7 +585,7 @@ If you prefer **one dashboard** for API + database:
 **Setup:**
 
 1. New project → Add **PostgreSQL**
-2. Add service from repo → start command: `npm run start:prod --workspace=api`
+2. Add service from repo → start command: `pnpm -F api start:prod`
 3. Set same env vars as Render section
 4. Custom domain: `api.invoiceflow.app`
 
