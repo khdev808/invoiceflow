@@ -12,10 +12,12 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { paymentMethods } from '@/lib/constants';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppLocale } from '@/lib/i18n/AppLocaleContext';
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { t } = useAppLocale();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState('');
@@ -40,7 +42,7 @@ export default function InvoiceDetailPage() {
       trackEvent(AnalyticsEvents.INVOICE_SENT, { invoiceId: id });
       load();
     }
-    catch (e: unknown) { setError(e instanceof Error ? e.message : 'Send failed'); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : t('sendFailed')); }
     finally { setActionLoading(''); }
   };
 
@@ -50,7 +52,7 @@ export default function InvoiceDetailPage() {
       const inv = await invoicesApi.duplicate(id);
       trackEvent(AnalyticsEvents.INVOICE_DUPLICATED, { sourceId: id });
       window.location.href = `/app/invoices/${inv.id}`;
-    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Duplicate failed'); }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : t('duplicateFailed')); }
     finally { setActionLoading(''); }
   };
 
@@ -72,13 +74,13 @@ export default function InvoiceDetailPage() {
       trackEvent(AnalyticsEvents.PAYMENT_RECORDED, { invoiceId: id, amount });
       setPaymentAmount('');
       load();
-    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Payment failed'); }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : t('paymentFailed')); }
     finally { setActionLoading(''); }
   };
 
   const copyPortal = async () => {
     await navigator.clipboard.writeText(portalUrl);
-    alert('Portal link copied!');
+    alert(t('portalCopied'));
   };
 
   const sendSms = async () => {
@@ -89,19 +91,19 @@ export default function InvoiceDetailPage() {
       const result = await invoicesApi.sendSms(id, phone);
       if (result.dev && result.telLink) {
         window.open(result.telLink, '_blank');
-        alert('SMS not configured — opened your phone’s SMS app with the message prefilled.');
+        alert(t('smsDevOpened'));
       } else if (result.sent) {
-        alert('SMS sent!');
+        alert(t('smsSent'));
         load();
       } else {
-        setError(result.error || 'SMS failed');
+        setError(result.error || t('smsFailed'));
       }
-    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'SMS failed'); }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : t('smsFailed')); }
     finally { setActionLoading(''); }
   };
 
   if (loading) return <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" /></div>;
-  if (!invoice) return <p className="text-red-600">Invoice not found</p>;
+  if (!invoice) return <p className="text-red-600">{t('invoiceNotFound')}</p>;
 
   const paid = invoice.payments?.reduce((s, p) => s + p.amount, 0) || 0;
   const balance = invoice.total - paid;
@@ -116,7 +118,7 @@ export default function InvoiceDetailPage() {
           <>
             <StatusBadge status={invoice.status} />
             {invoice.status === 'DRAFT' ? (
-              <Link href={`/app/invoices/${id}/edit`} className="if-btn-secondary">Edit</Link>
+              <Link href={`/app/invoices/${id}/edit`} className="if-btn-secondary">{t('edit')}</Link>
             ) : null}
           </>
         }
@@ -126,32 +128,32 @@ export default function InvoiceDetailPage() {
 
       {(invoice.sentAt || invoice.viewedAt || invoice.status !== 'DRAFT') ? (
         <Card className="mb-6">
-          <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">Delivery &amp; tracking</h3>
+          <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">{t('deliveryTracking')}</h3>
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl bg-slate-50 p-3">
-              <p className="text-xs font-semibold text-slate-500">Email</p>
+              <p className="text-xs font-semibold text-slate-500">{t('emailLabel')}</p>
               <p className="mt-1 text-sm font-medium text-slate-900">
                 {invoice.sentAt
                   ? invoice.activities?.some((a) => a.action === 'EMAIL_DELIVERED')
-                    ? `Delivered to ${invoice.client?.email || 'client'}`
+                    ? `${invoice.client?.email || 'client'}`
                     : invoice.activities?.some((a) => a.action === 'EMAIL_FAILED')
-                      ? 'Send failed — check SMTP'
-                      : `Sent (dev mode) to ${invoice.client?.email || 'client'}`
-                  : 'Not sent yet'}
+                      ? t('sendFailed')
+                      : `${invoice.client?.email || 'client'}`
+                  : t('notSentYet')}
               </p>
               {invoice.sentAt ? <p className="mt-0.5 text-xs text-slate-500">{formatDateTime(invoice.sentAt)}</p> : null}
             </div>
             <div className="rounded-xl bg-slate-50 p-3">
-              <p className="text-xs font-semibold text-slate-500">Opened</p>
+              <p className="text-xs font-semibold text-slate-500">{t('opened')}</p>
               <p className="mt-1 text-sm font-medium text-slate-900">
-                {invoice.viewedAt ? 'Client viewed portal' : invoice.sentAt ? 'Not opened yet' : '—'}
+                {invoice.viewedAt ? t('clientViewedPortal') : invoice.sentAt ? t('notOpenedYet') : '—'}
               </p>
               {invoice.viewedAt ? <p className="mt-0.5 text-xs text-slate-500">{formatDateTime(invoice.viewedAt)}</p> : null}
             </div>
             <div className="rounded-xl bg-slate-50 p-3">
-              <p className="text-xs font-semibold text-slate-500">Portal link</p>
+              <p className="text-xs font-semibold text-slate-500">{t('portalLink')}</p>
               <button type="button" onClick={copyPortal} className="mt-1 text-sm font-medium text-indigo-600 hover:underline">
-                Copy link
+                {t('copyLink')}
               </button>
             </div>
           </div>
@@ -160,9 +162,9 @@ export default function InvoiceDetailPage() {
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         {[
-          { label: 'Total', value: formatCurrency(invoice.total, invoice.currency), color: 'text-slate-900' },
-          { label: 'Paid', value: formatCurrency(paid, invoice.currency), color: 'text-emerald-600' },
-          { label: 'Balance', value: formatCurrency(balance, invoice.currency), color: 'text-amber-600' },
+          { label: t('total'), value: formatCurrency(invoice.total, invoice.currency), color: 'text-slate-900' },
+          { label: t('paid'), value: formatCurrency(paid, invoice.currency), color: 'text-emerald-600' },
+          { label: t('balance'), value: formatCurrency(balance, invoice.currency), color: 'text-amber-600' },
         ].map((s) => (
           <div key={s.label} className="if-stat-card">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{s.label}</p>
@@ -174,47 +176,47 @@ export default function InvoiceDetailPage() {
       <div className="mb-6 flex flex-wrap gap-2">
         {invoice.status === 'DRAFT' ? (
           <button type="button" onClick={send} disabled={!!actionLoading || !invoice.client?.email} className="if-btn-primary" title={!invoice.client?.email ? 'Add client email first' : undefined}>
-            {actionLoading === 'send' ? 'Sending…' : 'Send to client'}
+            {actionLoading === 'send' ? t('sending') : t('sendToClient')}
           </button>
         ) : null}
         {invoice.status === 'DRAFT' && !invoice.client?.email ? (
-          <p className="w-full text-sm text-amber-700">Add an email to this client before sending.</p>
+          <p className="w-full text-sm text-amber-700">{t('addClientEmailFirst')}</p>
         ) : null}
         {invoice.documentType === 'ESTIMATE' ? (
           <button type="button" onClick={convert} disabled={!!actionLoading} className="if-btn-secondary">
-            Convert to invoice
+            {t('convertToInvoice')}
           </button>
         ) : null}
-        <button type="button" onClick={() => printInvoicePdf(invoice, user?.plan)} className="if-btn-secondary">Print / PDF</button>
+        <button type="button" onClick={() => printInvoicePdf(invoice, user?.plan)} className="if-btn-secondary">{t('printPdf')}</button>
         <button type="button" onClick={duplicate} disabled={!!actionLoading} className="if-btn-secondary">
-          {actionLoading === 'duplicate' ? 'Duplicating…' : 'Duplicate'}
+          {actionLoading === 'duplicate' ? t('duplicating') : t('duplicate')}
         </button>
-        <button type="button" onClick={copyPortal} className="if-btn-secondary">Copy portal link</button>
+        <button type="button" onClick={copyPortal} className="if-btn-secondary">{t('copyPortalLink')}</button>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <input
             type="tel"
-            placeholder={invoice.client?.phone || 'Client phone for SMS'}
+            placeholder={invoice.client?.phone || t('phonePlaceholder')}
             value={smsPhone}
             onChange={(e) => setSmsPhone(e.target.value)}
             className="if-input max-w-xs"
           />
           <button type="button" onClick={sendSms} disabled={!!actionLoading} className="if-btn-secondary">
-            {actionLoading === 'sms' ? 'Sending…' : 'Send SMS link'}
+            {actionLoading === 'sms' ? t('sending') : t('sendSmsLink')}
           </button>
         </div>
-        <a href={portalUrl} target="_blank" rel="noreferrer" className="if-btn-secondary">Preview portal</a>
+        <a href={portalUrl} target="_blank" rel="noreferrer" className="if-btn-secondary">{t('previewPortal')}</a>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2 !p-0 overflow-hidden">
-          <div className="border-b border-slate-100 px-6 py-4 font-semibold">Line items</div>
+          <div className="border-b border-slate-100 px-6 py-4 font-semibold">{t('lineItemsTitle')}</div>
           <table className="min-w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-4 py-3">Description</th>
-                <th className="px-4 py-3 text-center">Qty</th>
-                <th className="px-4 py-3 text-right">Price</th>
-                <th className="px-4 py-3 text-right">Total</th>
+                <th className="px-4 py-3">{t('description')}</th>
+                <th className="px-4 py-3 text-center">{t('qtyHeader')}</th>
+                <th className="px-4 py-3 text-right">{t('priceHeader')}</th>
+                <th className="px-4 py-3 text-right">{t('lineTotal')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -233,14 +235,14 @@ export default function InvoiceDetailPage() {
         <div className="space-y-4">
           {balance > 0 && invoice.documentType === 'INVOICE' ? (
             <Card>
-              <h3 className="font-semibold">Record payment</h3>
+              <h3 className="font-semibold">{t('recordPayment')}</h3>
               <div className="mt-3 space-y-2">
-                <input type="number" step="0.01" placeholder="Amount" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} className="if-input" />
+                <input type="number" step="0.01" placeholder={t('amount')} value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} className="if-input" />
                 <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="if-input">
                   {paymentMethods.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
                 </select>
                 <button type="button" onClick={recordPayment} disabled={!!actionLoading} className="if-btn-primary w-full">
-                  Record payment
+                  {t('recordPayment')}
                 </button>
               </div>
             </Card>
@@ -248,7 +250,7 @@ export default function InvoiceDetailPage() {
 
           {invoice.activities && invoice.activities.length > 0 ? (
             <Card>
-              <h3 className="mb-3 font-semibold">Activity</h3>
+              <h3 className="mb-3 font-semibold">{t('activity')}</h3>
               <div className="space-y-3">
                 {invoice.activities.map((a) => (
                   <div key={a.id} className="border-l-2 border-indigo-200 pl-3">

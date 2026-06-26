@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useI18n } from '@/hooks/useI18n';
 import { planApi } from '@/lib/api';
+import { isNativeIapConfigured, purchasePlan } from '@/lib/iap';
 import { Button } from '@/components/ui/Button';
 import { radius, spacing } from '@/constants/theme';
 
@@ -29,6 +30,15 @@ export function PaywallModal({ visible, onClose, reason = 'general', onUpgraded 
   const upgrade = async (plan: 'pro' | 'business') => {
     setLoading(true);
     try {
+      if (isNativeIapConfigured()) {
+        const iap = await purchasePlan(plan);
+        if (iap.ok) {
+          Alert.alert(t('success'), t('planUpgraded'));
+          onUpgraded?.();
+          onClose();
+          return;
+        }
+      }
       const { data } = await planApi.upgrade(plan);
       if (data.checkoutUrl) {
         await WebBrowser.openBrowserAsync(data.checkoutUrl);
