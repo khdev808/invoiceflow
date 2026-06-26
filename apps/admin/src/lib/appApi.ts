@@ -67,7 +67,7 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ email, password, captchaToken }),
     }),
-  register: (data: { email: string; password: string; name: string; businessName?: string; captchaToken?: string }) =>
+  register: (data: { email: string; password: string; name: string; businessName?: string; captchaToken?: string; referralCode?: string }) =>
     apiFetch<{ user: User; token: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -190,6 +190,25 @@ export const reportsApi = {
     const qs = q.toString();
     return apiFetch<ProfitLossReport>(`/reports/profit-loss${qs ? `?${qs}` : ''}`);
   },
+  exportQuickBooks: async (from?: string, to?: string) => {
+    const q = new URLSearchParams();
+    if (from) q.set('from', from);
+    if (to) q.set('to', to);
+    const qs = q.toString();
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const token = getToken();
+    const res = await fetch(`${API_URL}/reports/export/quickbooks${qs ? `?${qs}` : ''}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new AppApiError('Export failed', res.status);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `quickbooks-export-${from || 'all'}-${to || 'all'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 };
 
 export const productsApi = {
@@ -225,6 +244,31 @@ export const usersApi = {
     apiFetch('/users/profile', { method: 'PUT', body: JSON.stringify(data) }),
   updateSettings: (data: Record<string, unknown>) =>
     apiFetch('/users/settings', { method: 'PUT', body: JSON.stringify(data) }),
+};
+
+export const ocrApi = {
+  parseReceipt: (base64: string, mimeType?: string) =>
+    apiFetch<{
+      description: string;
+      amount: number;
+      vendor: string;
+      category: string;
+      confidence: number;
+      requiresManualAmount?: boolean;
+    }>('/ocr/receipt', {
+      method: 'POST',
+      body: JSON.stringify({ imageUri: 'web-upload', base64, mimeType }),
+    }),
+};
+
+export const referralsApi = {
+  me: () =>
+    apiFetch<{
+      referralCode: string;
+      referralCount: number;
+      upgradedReferrals: number;
+      reward: string;
+    }>('/referrals/me'),
 };
 
 export const planApi = {

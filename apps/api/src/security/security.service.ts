@@ -27,8 +27,8 @@ export class SecurityService {
     private captcha: CaptchaService,
   ) {}
 
-  async verifyCaptchaForAuth(captchaToken: string | undefined, ip: string): Promise<void> {
-    await this.captcha.verify(captchaToken, ip);
+  async verifyCaptchaForAuth(captchaToken: string | undefined, ip: string, mobileAppKey?: string): Promise<void> {
+    await this.captcha.verify(captchaToken, ip, mobileAppKey);
   }
 
   async assertAuthAllowed(ip: string, email?: string, userId?: string): Promise<void> {

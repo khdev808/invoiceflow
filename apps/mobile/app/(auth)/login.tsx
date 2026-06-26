@@ -12,8 +12,8 @@ import { Text } from '@/components/ui/Text';
 import { fonts, layout, radius, shadows, spacing } from '@/constants/theme';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('demo@invoiceflow.app');
-  const [password, setPassword] = useState('demo1234');
+  const [email, setEmail] = useState(__DEV__ ? 'demo@invoiceflow.app' : '');
+  const [password, setPassword] = useState(__DEV__ ? 'demo1234' : '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const login = useAuthStore((s) => s.login);

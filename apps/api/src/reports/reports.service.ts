@@ -66,4 +66,39 @@ export class ReportsService {
       incomeByMonth: income.byMonth,
     };
   }
+
+  async exportQuickBooksCsv(userId: string, from?: string, to?: string) {
+    const invoices = await this.prisma.invoice.findMany({
+      where: {
+        userId,
+        documentType: 'INVOICE',
+        status: { in: ['PAID', 'SENT', 'VIEWED', 'OVERDUE'] },
+        ...(from || to
+          ? {
+              issueDate: {
+                ...(from && { gte: new Date(from) }),
+                ...(to && { lte: new Date(to) }),
+              },
+            }
+          : {}),
+      },
+      include: { client: { select: { name: true, email: true } } },
+      orderBy: { issueDate: 'asc' },
+    });
+
+    const header = 'Date,Num,Customer,Amount,Memo,Email';
+    const rows = invoices.map((inv) => {
+      const date = inv.issueDate.toISOString().slice(0, 10);
+      const customer = (inv.client?.name || '').replace(/"/g, '""');
+      const memo = (inv.notes || inv.documentNumber).replace(/"/g, '""');
+      const email = inv.client?.email || '';
+      return `${date},"${inv.documentNumber}","${customer}",${inv.total.toFixed(2)},"${memo}","${email}"`;
+    });
+
+    return {
+      filename: `invoiceflow-export-${new Date().toISOString().slice(0, 10)}.csv`,
+      content: [header, ...rows].join('\n'),
+      count: invoices.length,
+    };
+  }
 }

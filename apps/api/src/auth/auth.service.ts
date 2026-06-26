@@ -13,6 +13,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { SecurityService } from '../security/security.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
+import { ReferralsService } from '../referrals/referrals.service';
+
+function generateReferralCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
 
 @Injectable()
 export class AuthService {
@@ -22,11 +30,12 @@ export class AuthService {
     private email: EmailService,
     private config: ConfigService,
     private security: SecurityService,
+    private referrals: ReferralsService,
   ) {}
 
-  async register(dto: RegisterDto, ip: string, userAgent: string) {
+  async register(dto: RegisterDto, ip: string, userAgent: string, mobileAppKey?: string) {
     try {
-      await this.security.verifyCaptchaForAuth(dto.captchaToken, ip);
+      await this.security.verifyCaptchaForAuth(dto.captchaToken, ip, mobileAppKey);
     } catch (e) {
       await this.security.logCaptchaFailure(ip, dto.email);
       throw e;
@@ -38,6 +47,17 @@ export class AuthService {
     if (existing) throw new ConflictException('Email already registered');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
+    let referralCode = generateReferralCode();
+    for (let i = 0; i < 5; i++) {
+      const taken = await this.prisma.user.findUnique({ where: { referralCode } });
+      if (!taken) break;
+      referralCode = generateReferralCode();
+    }
+
+    const referredByUserId = dto.referralCode
+      ? await this.referrals.resolveReferrerId(dto.referralCode)
+      : null;
+
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
@@ -45,10 +65,16 @@ export class AuthService {
         name: dto.name,
         businessName: dto.businessName,
         role: 'USER',
+        referralCode,
+        referredByUserId,
         settings: { create: {} },
       },
-      select: { id: true, email: true, name: true, role: true, businessName: true },
+      select: { id: true, email: true, name: true, role: true, businessName: true, referralCode: true },
     });
+
+    if (referredByUserId) {
+      await this.referrals.onReferralSignup(referredByUserId, user.id, user.name);
+    }
 
     const token = this.signAppToken(user.id, user.email, user.role);
     await this.security.logEvent('REGISTER_SUCCESS', {
@@ -60,9 +86,9 @@ export class AuthService {
     return { user, token };
   }
 
-  async login(dto: LoginDto, ip: string, userAgent: string) {
+  async login(dto: LoginDto, ip: string, userAgent: string, mobileAppKey?: string) {
     try {
-      await this.security.verifyCaptchaForAuth(dto.captchaToken, ip);
+      await this.security.verifyCaptchaForAuth(dto.captchaToken, ip, mobileAppKey);
     } catch (e) {
       await this.security.logCaptchaFailure(ip, dto.email);
       throw e;

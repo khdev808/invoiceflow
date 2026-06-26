@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PlanService } from '../plan/plan.service';
 
 const VENDOR_PATTERNS: { pattern: RegExp; vendor: string; category: string }[] = [
@@ -18,9 +19,21 @@ const VENDOR_PATTERNS: { pattern: RegExp; vendor: string; category: string }[] =
   { pattern: /staples|office\s?depot/i, vendor: 'Office Supplies', category: 'Office' },
 ];
 
+type VisionResponse = {
+  responses?: Array<{
+    fullTextAnnotation?: { text?: string };
+    textAnnotations?: Array<{ description?: string }>;
+  }>;
+};
+
 @Injectable()
 export class OcrService {
-  constructor(private plan: PlanService) {}
+  private readonly logger = new Logger(OcrService.name);
+
+  constructor(
+    private plan: PlanService,
+    private config: ConfigService,
+  ) {}
 
   async parseReceipt(
     userId: string,
@@ -29,8 +42,15 @@ export class OcrService {
   ) {
     await this.plan.checkFeature(userId, 'ocr');
 
-    const textBlob = [imageUri, hints?.base64?.slice(0, 500) || ''].join(' ');
-    let vendor = hints?.vendor || 'Unknown Vendor';
+    const rawBase64 = hints?.base64?.replace(/^data:[^;]+;base64,/, '') || '';
+    let ocrText = '';
+
+    if (rawBase64) {
+      ocrText = await this.extractTextWithVision(rawBase64);
+    }
+
+    const textBlob = [ocrText, imageUri, hints?.vendor || ''].join('\n');
+    let vendor = hints?.vendor || this.matchVendor(textBlob) || 'Unknown Vendor';
     let category = 'General';
 
     for (const { pattern, vendor: v, category: c } of VENDOR_PATTERNS) {
@@ -41,42 +61,104 @@ export class OcrService {
       }
     }
 
-    const amount = hints?.amount ?? this.extractAmount(textBlob) ?? this.extractAmountFromBase64(hints?.base64);
+    const amount = hints?.amount ?? this.extractAmount(textBlob);
+    const confidence = ocrText ? (amount ? 0.94 : 0.78) : amount ? 0.85 : 0.5;
 
     return {
       description: `Receipt from ${vendor}`,
-      amount,
+      amount: amount ?? 0,
       vendor,
       category,
-      confidence: amount ? 0.92 : 0.75,
+      confidence,
+      requiresManualAmount: !amount,
+      rawTextPreview: ocrText ? ocrText.slice(0, 200) : undefined,
     };
+  }
+
+  private async extractTextWithVision(base64: string): Promise<string> {
+    const apiKey = this.config.get<string>('GOOGLE_VISION_API_KEY');
+    if (!apiKey || apiKey.includes('placeholder')) {
+      return this.decodeBase64Text(base64);
+    }
+
+    try {
+      const res = await fetch(
+        `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requests: [
+              {
+                image: { content: base64 },
+                features: [{ type: 'TEXT_DETECTION', maxResults: 1 }],
+              },
+            ],
+          }),
+        },
+      );
+
+      if (!res.ok) {
+        this.logger.warn(`Vision API HTTP ${res.status}`);
+        return this.decodeBase64Text(base64);
+      }
+
+      const data = (await res.json()) as VisionResponse;
+      const text =
+        data.responses?.[0]?.fullTextAnnotation?.text ||
+        data.responses?.[0]?.textAnnotations?.[0]?.description ||
+        '';
+      return text;
+    } catch (err) {
+      this.logger.warn(`Vision API error: ${err instanceof Error ? err.message : err}`);
+      return this.decodeBase64Text(base64);
+    }
+  }
+
+  private decodeBase64Text(base64: string): string {
+    try {
+      return Buffer.from(base64.slice(0, 12000), 'base64').toString('utf8');
+    } catch {
+      return '';
+    }
+  }
+
+  private matchVendor(text: string): string | null {
+    for (const { pattern, vendor } of VENDOR_PATTERNS) {
+      if (pattern.test(text)) return vendor;
+    }
+    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+    return lines[0]?.slice(0, 40) || null;
   }
 
   private extractAmount(text: string): number | null {
     const patterns = [
-      /total[:\s]*\$?\s*(\d{1,6}[.,]\d{2})/i,
-      /amount[:\s]*\$?\s*(\d{1,6}[.,]\d{2})/i,
+      /(?:grand\s*)?total[:\s]*\$?\s*(\d{1,6}[.,]\d{2})/i,
+      /amount\s*due[:\s]*\$?\s*(\d{1,6}[.,]\d{2})/i,
       /balance[:\s]*\$?\s*(\d{1,6}[.,]\d{2})/i,
-      /\$\s*(\d{1,6}[.,]\d{2})/,
-      /(\d{1,6}[.,]\d{2})\s*(?:USD|EUR|GBP)?/,
+      /subtotal[:\s]*\$?\s*(\d{1,6}[.,]\d{2})/i,
+      /\$\s*(\d{1,6}[.,]\d{2})/g,
+      /(\d{1,6}[.,]\d{2})\s*(?:USD|EUR|GBP)/i,
     ];
+
+    const candidates: number[] = [];
     for (const p of patterns) {
-      const m = text.match(p);
-      if (m) {
-        const val = parseFloat(m[1].replace(',', '.'));
-        if (val > 0 && val < 100000) return Math.round(val * 100) / 100;
+      if (p.global) {
+        let m: RegExpExecArray | null;
+        while ((m = p.exec(text)) !== null) {
+          const val = parseFloat(m[1].replace(',', '.'));
+          if (val > 0 && val < 100000) candidates.push(Math.round(val * 100) / 100);
+        }
+      } else {
+        const m = text.match(p);
+        if (m) {
+          const val = parseFloat(m[1].replace(',', '.'));
+          if (val > 0 && val < 100000) candidates.push(Math.round(val * 100) / 100);
+        }
       }
     }
-    return null;
-  }
 
-  private extractAmountFromBase64(base64?: string): number {
-    if (!base64) return this.fallbackAmount();
-    const decoded = Buffer.from(base64.replace(/^data:[^;]+;base64,/, '').slice(0, 8000), 'base64').toString('utf8');
-    return this.extractAmount(decoded) ?? this.fallbackAmount();
-  }
-
-  private fallbackAmount() {
-    return Math.round((Math.random() * 120 + 8) * 100) / 100;
+    if (!candidates.length) return null;
+    return Math.max(...candidates);
   }
 }

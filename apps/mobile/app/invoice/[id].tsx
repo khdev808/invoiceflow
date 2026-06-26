@@ -122,6 +122,19 @@ export default function InvoiceDetailScreen() {
     }
   };
 
+  const handleDuplicate = async () => {
+    devLogAction('invoice:duplicate', { id });
+    setActionLoading(true);
+    try {
+      const { data } = await invoicesApi.duplicate(id);
+      router.replace(`/invoice/${data.id}`);
+    } catch {
+      Alert.alert(t('error'), t('failed'));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleSharePortal = async () => {
     devLogAction('invoice:share-portal', { id });
     const url = `${PORTAL_BASE}/${id}`;
@@ -332,6 +345,10 @@ export default function InvoiceDetailScreen() {
           <TouchableOpacity style={styles.secondaryBtn} onPress={handleWhatsApp}>
             <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
             <Text style={[styles.secondaryBtnText, { color: '#25D366' }]}>WhatsApp</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={handleDuplicate} disabled={actionLoading}>
+            <Ionicons name="copy-outline" size={20} color={colors.primary} />
+            <Text style={styles.secondaryBtnText}>Duplicate</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.secondaryBtn} onPress={handleSharePortal}>
             <Ionicons name="globe-outline" size={20} color={colors.primary} />

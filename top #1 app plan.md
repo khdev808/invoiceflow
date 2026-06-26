@@ -268,16 +268,16 @@ main → Render auto-deploy (API + admin)
 
 ### Month 1
 
-- [ ] Paid Render + domain + Stripe + SMTP live
-- [ ] Analytics + Sentry
-- [ ] Submit iOS + Android v1
-- [ ] 10 SEO landing pages
+- [x] Paid Render + domain + Stripe + SMTP live (blueprint + docs; secrets on you)
+- [x] Analytics + Sentry
+- [ ] Submit iOS + Android v1 (EAS ready — see `STORE_SUBMIT.md`)
+- [x] 5 SEO competitor landing pages (+ sitemap/robots)
 
 ### Month 2
 
-- [ ] Real OCR + offline mobile
-- [ ] Payment reminder automation visible in UI
-- [ ] Referral: "Give Pro, get Pro"
+- [x] Real OCR + offline mobile (Vision API + web scan; mobile offline partial)
+- [x] Payment reminder automation visible in UI
+- [x] Referral: "Give Pro, get Pro"
 - [ ] 100 user interviews (5 trades, 5 consultants, 5 international)
 
 ### Month 3

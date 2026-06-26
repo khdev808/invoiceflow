@@ -63,7 +63,9 @@
     "build:dev:ios": "APP_VARIANT=development eas build --profile development --platform ios",
     "build:dev:android": "APP_VARIANT=development eas build --profile development --platform android",
     "build:prod:ios": "APP_VARIANT=production eas build --profile production --platform ios",
-    "build:prod:android": "APP_VARIANT=production eas build --profile production --platform android"
+    "build:prod:android": "APP_VARIANT=production eas build --profile production --platform android",
+    "submit:prod:ios": "eas submit --profile production --platform ios",
+    "submit:prod:android": "eas submit --profile production --platform android"
   },
   "private": true,
   "expo": {

@@ -6,6 +6,11 @@ import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from './dt
 import { AppUserGuard } from './guards';
 import { getClientIp, getUserAgent } from '../security/security.utils';
 
+function getMobileAppKey(req: Request): string | undefined {
+  const raw = req.headers['x-invoiceflow-app-key'];
+  return typeof raw === 'string' ? raw : undefined;
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(private auth: AuthService) {}
@@ -13,13 +18,13 @@ export class AuthController {
   @Post('register')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   register(@Body() dto: RegisterDto, @Req() req: Request) {
-    return this.auth.register(dto, getClientIp(req), getUserAgent(req));
+    return this.auth.register(dto, getClientIp(req), getUserAgent(req), getMobileAppKey(req));
   }
 
   @Post('login')
   @Throttle({ default: { limit: 8, ttl: 60000 } })
   login(@Body() dto: LoginDto, @Req() req: Request) {
-    return this.auth.login(dto, getClientIp(req), getUserAgent(req));
+    return this.auth.login(dto, getClientIp(req), getUserAgent(req), getMobileAppKey(req));
   }
 
   @Post('forgot-password')

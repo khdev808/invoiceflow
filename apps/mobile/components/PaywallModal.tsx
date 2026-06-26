@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Alert } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useI18n } from '@/hooks/useI18n';
@@ -28,10 +29,19 @@ export function PaywallModal({ visible, onClose, reason = 'general', onUpgraded 
   const upgrade = async (plan: 'pro' | 'business') => {
     setLoading(true);
     try {
-      await planApi.upgrade(plan);
-      Alert.alert(t('success'), t('planUpgraded'));
-      onUpgraded?.();
-      onClose();
+      const { data } = await planApi.upgrade(plan);
+      if (data.checkoutUrl) {
+        await WebBrowser.openBrowserAsync(data.checkoutUrl);
+        onClose();
+        return;
+      }
+      if (data.message || data.plan) {
+        Alert.alert(t('success'), data.message || t('planUpgraded'));
+        onUpgraded?.();
+        onClose();
+        return;
+      }
+      Alert.alert(t('error'), t('upgradeFailed'));
     } catch {
       Alert.alert(t('error'), t('upgradeFailed'));
     } finally {

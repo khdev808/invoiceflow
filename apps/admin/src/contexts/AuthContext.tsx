@@ -16,7 +16,7 @@ type AuthContextValue = {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string, captchaToken?: string) => Promise<void>;
-  register: (data: { email: string; password: string; name: string; businessName?: string; captchaToken?: string }) => Promise<void>;
+  register: (data: { email: string; password: string; name: string; businessName?: string; captchaToken?: string; referralCode?: string }) => Promise<void>;
   logout: () => void;
   refresh: () => Promise<void>;
 };

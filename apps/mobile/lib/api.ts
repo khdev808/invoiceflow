@@ -1,7 +1,13 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 import { getApiUrl, getPortalBase } from './config';
 import { devLogApiError } from './devLog';
+
+const MOBILE_APP_KEY =
+  Constants.expoConfig?.extra?.mobileAppKey ||
+  process.env.EXPO_PUBLIC_MOBILE_APP_KEY ||
+  '';
 
 export const api = axios.create({
   timeout: 15000,
@@ -12,6 +18,7 @@ api.interceptors.request.use(async (config) => {
   config.baseURL = getApiUrl();
   const token = await SecureStore.getItemAsync('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (MOBILE_APP_KEY) config.headers['X-InvoiceFlow-App-Key'] = MOBILE_APP_KEY;
   return config;
 });
 
@@ -66,6 +73,7 @@ export const invoicesApi = {
   create: (data: any) => api.post('/invoices', data),
   update: (id: string, data: any) => api.put(`/invoices/${id}`, data),
   send: (id: string) => api.post(`/invoices/${id}/send`),
+  duplicate: (id: string) => api.post(`/invoices/${id}/duplicate`),
   convert: (id: string, dueDate?: string) => api.post(`/invoices/${id}/convert`, { dueDate }),
   recordPayment: (id: string, data: { amount: number; method: string }) =>
     api.post(`/invoices/${id}/payments`, data),

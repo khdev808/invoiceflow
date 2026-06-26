@@ -18,6 +18,10 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   captchaToken?: string;
+
+  @IsOptional()
+  @IsString()
+  referralCode?: string;
 }
 
 export class LoginDto {

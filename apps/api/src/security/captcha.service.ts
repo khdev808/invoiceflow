@@ -17,7 +17,12 @@ export class CaptchaService {
     return Boolean(secret && !secret.includes('placeholder'));
   }
 
-  async verify(token: string | undefined, ip: string): Promise<void> {
+  async verify(token: string | undefined, ip: string, mobileAppKey?: string): Promise<void> {
+    const expectedMobileKey = this.config.get<string>('MOBILE_APP_KEY');
+    if (expectedMobileKey && !expectedMobileKey.includes('placeholder') && mobileAppKey === expectedMobileKey) {
+      return;
+    }
+
     const secret = this.config.get<string>('TURNSTILE_SECRET_KEY');
     if (!secret || secret.includes('placeholder')) {
       if (process.env.NODE_ENV === 'production') {

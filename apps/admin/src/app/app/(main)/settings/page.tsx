@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { integrationsApi, planApi, uploadsApi, usersApi } from '@/lib/appApi';
+import { integrationsApi, planApi, referralsApi, uploadsApi, usersApi } from '@/lib/appApi';
 import { templates } from '@/lib/constants';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 
-const TABS = ['Profile', 'Business', 'Invoicing', 'Integrations', 'Plan'] as const;
+const TABS = ['Profile', 'Business', 'Invoicing', 'Integrations', 'Referrals', 'Plan'] as const;
 
 export default function SettingsPage() {
   const { user, refresh } = useAuth();
@@ -32,6 +32,16 @@ export default function SettingsPage() {
   });
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  const [referral, setReferral] = useState<{
+    referralCode: string;
+    referralCount: number;
+    upgradedReferrals: number;
+    reward: string;
+  } | null>(null);
+
+  useEffect(() => {
+    referralsApi.me().then(setReferral).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -254,6 +264,37 @@ export default function SettingsPage() {
           </div>
         </Card>
       )}
+
+      {tab === 'Referrals' && referral ? (
+        <Card className="space-y-4">
+          <p className="text-slate-600">{referral.reward}</p>
+          <div className="rounded-xl bg-indigo-50 p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-indigo-500">Your referral code</p>
+            <p className="mt-1 text-2xl font-extrabold tracking-widest text-indigo-700">{referral.referralCode}</p>
+            <button
+              type="button"
+              className="mt-3 text-sm font-semibold text-indigo-600 hover:underline"
+              onClick={() => {
+                const url = `${window.location.origin}/app/register?ref=${referral.referralCode}`;
+                navigator.clipboard.writeText(url);
+                setMessage('Referral link copied!');
+              }}
+            >
+              Copy invite link
+            </button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="text-2xl font-bold">{referral.referralCount}</p>
+              <p className="text-sm text-slate-500">Friends joined</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="text-2xl font-bold">{referral.upgradedReferrals}</p>
+              <p className="text-sm text-slate-500">Upgraded to paid</p>
+            </div>
+          </div>
+        </Card>
+      ) : null}
 
       {tab === 'Plan' && usage ? (
         <Card className="space-y-4">

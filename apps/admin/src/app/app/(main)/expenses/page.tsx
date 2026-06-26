@@ -1,14 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { expensesApi, type Expense } from '@/lib/appApi';
+import { useEffect, useRef, useState } from 'react';
+import { expensesApi, ocrApi, type Expense } from '@/lib/appApi';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function ExpensesPage() {
+  const { user } = useAuth();
+  const isPro = user?.plan === 'pro' || user?.plan === 'business';
+  const fileRef = useRef<HTMLInputElement>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [summary, setSummary] = useState({ total: 0, count: 0 });
   const [form, setForm] = useState({ description: '', amount: '', category: 'General', vendor: '' });
   const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState('');
 
   const load = () => {
     Promise.all([expensesApi.list(), expensesApi.summary()]).then(([list, sum]) => {
@@ -31,6 +37,37 @@ export default function ExpensesPage() {
     load();
   };
 
+  const scanReceipt = async (file: File) => {
+    if (!isPro) {
+      setScanError('Receipt OCR requires Pro. Upgrade in Settings → Plan.');
+      return;
+    }
+    setScanning(true);
+    setScanError('');
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const result = await ocrApi.parseReceipt(base64, file.type);
+      setForm({
+        description: result.description,
+        amount: result.amount > 0 ? String(result.amount) : '',
+        category: result.category || 'General',
+        vendor: result.vendor || '',
+      });
+      if (result.requiresManualAmount) {
+        setScanError('Amount not detected — please confirm the total before saving.');
+      }
+    } catch (err: unknown) {
+      setScanError(err instanceof Error ? err.message : 'Scan failed');
+    } finally {
+      setScanning(false);
+    }
+  };
+
   const remove = async (id: string) => {
     if (!confirm('Delete expense?')) return;
     await expensesApi.delete(id);
@@ -39,15 +76,41 @@ export default function ExpensesPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Expenses</h1>
-        <p className="text-slate-500">{summary.count} expenses · {formatCurrency(summary.total)} total</p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Expenses</h1>
+          <p className="text-slate-500">{summary.count} expenses · {formatCurrency(summary.total)} total</p>
+        </div>
+        <div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) scanReceipt(file);
+              e.target.value = '';
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={scanning}
+            className="if-btn-secondary"
+          >
+            {scanning ? 'Scanning…' : '📷 Scan receipt (Pro)'}
+          </button>
+        </div>
       </div>
 
-      <form onSubmit={add} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:grid-cols-5">
+      {scanError ? <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{scanError}</p> : null}
+
+      <form onSubmit={add} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:grid-cols-6">
         <input required placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
         <input required type="number" step="0.01" placeholder="Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
         <input placeholder="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+        <input placeholder="Vendor" value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
         <button type="submit" className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Add</button>
       </form>
 

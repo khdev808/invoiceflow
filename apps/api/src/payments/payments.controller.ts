@@ -9,6 +9,7 @@ import { PayPalService } from './paypal.service';
 import { AppUserGuard } from '../auth/guards';
 import { NotificationsService } from '../notifications/notifications.service';
 import { IntegrationsService } from '../integrations/integrations.service';
+import { ReferralsService } from '../referrals/referrals.service';
 
 @Controller('payments')
 export class PaymentsController {
@@ -21,6 +22,7 @@ export class PaymentsController {
     private config: ConfigService,
     private notifications: NotificationsService,
     private integrations: IntegrationsService,
+    private referrals: ReferralsService,
   ) {
     const key = this.config.get('STRIPE_SECRET_KEY');
     if (key && !key.includes('placeholder')) this.stripe = new Stripe(key);
@@ -69,6 +71,7 @@ export class PaymentsController {
             where: { id: session.metadata.userId },
             data: { plan, planExpiresAt: expires },
           });
+          await this.referrals.rewardReferrerOnUpgrade(session.metadata.userId);
         }
         return { received: true };
       }

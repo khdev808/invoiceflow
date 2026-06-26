@@ -46,7 +46,7 @@
       },
       "android": {
         "serviceAccountKeyPath": "${GOOGLE_SERVICE_ACCOUNT_KEY_PATH}",
-        "track": "internal"
+        "track": "production"
       }
     }
   }

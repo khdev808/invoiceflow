@@ -7,20 +7,33 @@ const bundleId = IS_DEV ? 'com.kh.everything.qr.dev' : 'com.kh.everything.qr';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: IS_DEV ? 'InvoiceFlow Dev' : 'InvoiceFlow',
+  name: IS_DEV ? 'InvoiceFlow Dev' : 'InvoiceFlow: Invoice & Estimate',
   slug: 'invoiceflow',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: IS_DEV ? 'invoiceflow-dev' : 'invoiceflow',
   userInterfaceStyle: 'automatic',
+  description: 'Create and send professional invoices in under 60 seconds. Free invoice maker for freelancers and small businesses.',
+  privacy: 'https://invoiceflow-admin.onrender.com/privacy',
   ios: {
     supportsTablet: true,
     bundleIdentifier: bundleId,
+    buildNumber: '1',
+    config: {
+      usesNonExemptEncryption: false,
+    },
+    infoPlist: {
+      CFBundleDisplayName: 'InvoiceFlow',
+      ITSAppUsesNonExemptEncryption: false,
+    },
+    appStoreUrl: 'https://apps.apple.com/app/invoiceflow',
   },
   android: {
     package: bundleId,
+    versionCode: 1,
     usesCleartextTraffic: IS_DEV,
+    permissions: ['CAMERA', 'READ_CONTACTS'],
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
       foregroundImage: './assets/images/android-icon-foreground.png',
@@ -68,6 +81,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     appVariant: IS_DEV ? 'development' : 'production',
     apiUrl: process.env.EXPO_PUBLIC_API_URL ?? API_URL,
     portalUrl: process.env.EXPO_PUBLIC_PORTAL_URL ?? PORTAL_BASE,
+    mobileAppKey: process.env.EXPO_PUBLIC_MOBILE_APP_KEY ?? '',
     eas: {
       projectId: '5be40599-752d-4be8-8f57-1895687a4ad1',
     },

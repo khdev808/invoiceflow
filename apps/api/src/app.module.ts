@@ -22,6 +22,7 @@ import { PlanModule } from './plan/plan.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { SecurityModule } from './security/security.module';
+import { ReferralsModule } from './referrals/referrals.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -48,6 +49,7 @@ import { HealthController } from './health.controller';
     IntegrationsModule,
     UploadsModule,
     SecurityModule,
+    ReferralsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

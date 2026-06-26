@@ -57,6 +57,8 @@ model User {
   stripeAccountId String?
   plan          String    @default("free")
   planExpiresAt DateTime?
+  referralCode  String?   @unique
+  referredByUserId String?
   isBlocked     Boolean   @default(false)
   blockedReason String?
   blockedAt     DateTime?
@@ -76,8 +78,11 @@ model User {
   settings      UserSettings?
   recurringSchedules RecurringSchedule[]
   passwordResetTokens PasswordResetToken[]
+  referrals           User[]  @relation("UserReferrals")
+  referredBy          User?   @relation("UserReferrals", fields: [referredByUserId], references: [id], onDelete: SetNull)
 
   @@index([email])
+  @@index([referredByUserId])
 }
 
 model PasswordResetToken {

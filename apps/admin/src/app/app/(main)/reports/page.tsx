@@ -39,7 +39,12 @@ export default function ReportsPage() {
       <PageHeader
         title="Reports"
         subtitle="Income and profit & loss for your date range"
-        actions={<button type="button" onClick={exportCsv} className="if-btn-secondary">Export CSV</button>}
+        actions={
+          <div className="flex gap-2">
+            <button type="button" onClick={exportCsv} className="if-btn-secondary">Export income CSV</button>
+            <button type="button" onClick={() => reportsApi.exportQuickBooks(from, to)} className="if-btn-secondary">QuickBooks export</button>
+          </div>
+        }
       />
 
       <Card className="mb-6">

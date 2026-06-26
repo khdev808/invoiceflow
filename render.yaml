@@ -60,6 +60,10 @@ services:
         sync: false
       - key: SENTRY_DSN
         sync: false
+      - key: GOOGLE_VISION_API_KEY
+        sync: false
+      - key: MOBILE_APP_KEY
+        sync: false
 
   - type: web
     name: invoiceflow-admin

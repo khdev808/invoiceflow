@@ -14,8 +14,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "InvoiceFlow — Professional invoicing in under 30 seconds",
-  description: "Mobile and web invoicing for freelancers and small businesses. Stripe, PayPal, reminders, client portal, and full web app.",
+  title: "InvoiceFlow — Free Invoice Maker & Estimate App",
+  description: "Create and send professional invoices in under 60 seconds. Free invoice maker for freelancers. Stripe, PayPal, client portal, mobile apps.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://invoiceflow-admin.onrender.com'),
+  openGraph: {
+    title: 'InvoiceFlow — Free Invoice Maker',
+    description: 'The fastest way to invoice and get paid. Free plan with 25 invoices/month.',
+    type: 'website',
+    siteName: 'InvoiceFlow',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'InvoiceFlow — Free Invoice Maker',
+    description: 'Invoice and get paid in under a minute.',
+  },
+  keywords: ['free invoice', 'invoice maker', 'invoice app', 'freelance invoice', 'estimate app', 'invoice template'],
 };
 
 export default function RootLayout({
