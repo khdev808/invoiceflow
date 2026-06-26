@@ -284,7 +284,7 @@ main → Render auto-deploy (API + admin)
 
 - [x] ES + FR in-app (AppShell, dashboard, invoices list; landing `/es` + `/fr`)
 - [ ] App Store optimization round 2 from review keywords
-- [ ] Case study: "Saved $X vs Invoice Fly"
+- [ ] Case study: "Saved $X vs Invoice Fly" (see `/case-studies/design-freelancer`)
 - [ ] Target: 1,000 users, $1k MRR
 
 ---

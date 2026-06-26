@@ -42,6 +42,17 @@ export const appEn = {
   searchClients: 'Search clients…',
   noClients: 'No clients yet',
   noClientsHint: 'Add your first client to start creating invoices.',
+  settingsTitle: 'Settings',
+  settingsSubtitle: 'Profile, invoicing defaults, reminders, and integrations',
+  tabProfile: 'Profile',
+  tabBusiness: 'Business',
+  tabInvoicing: 'Invoicing',
+  tabIntegrations: 'Integrations',
+  tabReferrals: 'Referrals',
+  tabPlan: 'Plan',
+  saveProfile: 'Save profile',
+  saveBusiness: 'Save business info',
+  saveInvoicing: 'Save invoicing settings',
 };
 
 export type AppTranslationKey = keyof typeof appEn;

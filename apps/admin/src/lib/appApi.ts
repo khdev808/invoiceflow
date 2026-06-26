@@ -160,6 +160,20 @@ export const timeApi = {
   delete: (id: string) => apiFetch(`/time-entries/${id}`, { method: 'DELETE' }),
   toLineItems: (entryIds: string[]) =>
     apiFetch<LineItem[]>('/time-entries/to-line-items', { method: 'POST', body: JSON.stringify({ entryIds }) }),
+  exportIcs: async () => {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/time-entries/export/ics`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new AppApiError('Calendar export failed', res.status);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'invoiceflow-time.ics';
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 };
 
 export const mileageApi = {

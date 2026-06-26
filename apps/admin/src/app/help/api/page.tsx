@@ -16,6 +16,7 @@ const ENDPOINTS = [
   { method: 'GET', path: '/clients', auth: true, desc: 'List clients' },
   { method: 'POST', path: '/clients', auth: true, desc: 'Create client' },
   { method: 'GET', path: '/reports/export/quickbooks', auth: true, desc: 'QuickBooks CSV export' },
+  { method: 'GET', path: '/time-entries/export/ics', auth: true, desc: 'Download billable time as .ics for Google Calendar' },
   { method: 'PUT', path: '/integrations/webhook', auth: true, desc: 'Set outbound webhook URL' },
 ];
 

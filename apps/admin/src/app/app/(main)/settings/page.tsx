@@ -7,11 +7,23 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import { COUNTRY_COMPLIANCE, getCountryCompliance } from '@/lib/countryCompliance';
+import { useAppLocale } from '@/lib/i18n/AppLocaleContext';
+import type { AppTranslationKey } from '@/lib/i18n/app/en';
+
+const TAB_KEYS: Record<string, AppTranslationKey> = {
+  Profile: 'tabProfile',
+  Business: 'tabBusiness',
+  Invoicing: 'tabInvoicing',
+  Integrations: 'tabIntegrations',
+  Referrals: 'tabReferrals',
+  Plan: 'tabPlan',
+};
 
 const TABS = ['Profile', 'Business', 'Invoicing', 'Integrations', 'Referrals', 'Plan'] as const;
 
 export default function SettingsPage() {
   const { user, refresh } = useAuth();
+  const { t } = useAppLocale();
   const [tab, setTab] = useState<(typeof TABS)[number]>('Profile');
   const [usage, setUsage] = useState<{
     used: number;
@@ -177,19 +189,19 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl animate-fade-in">
-      <PageHeader title="Settings" subtitle="Profile, invoicing defaults, reminders, and integrations" />
+      <PageHeader title={t('settingsTitle')} subtitle={t('settingsSubtitle')} />
 
       <div className="mb-6 flex flex-wrap gap-2">
-        {TABS.map((t) => (
+        {TABS.map((tabKey) => (
           <button
-            key={t}
+            key={tabKey}
             type="button"
-            onClick={() => setTab(t)}
+            onClick={() => setTab(tabKey)}
             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-              tab === t ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:ring-indigo-200'
+              tab === tabKey ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:ring-indigo-200'
             }`}
           >
-            {t}
+            {t(TAB_KEYS[tabKey])}
           </button>
         ))}
       </div>
@@ -205,7 +217,7 @@ export default function SettingsPage() {
             </div>
           ))}
           <p className="text-sm text-slate-500">Account email: {user?.email}</p>
-          <button type="button" onClick={saveProfile} disabled={saving} className="if-btn-primary">Save profile</button>
+          <button type="button" onClick={saveProfile} disabled={saving} className="if-btn-primary">{t('saveProfile')}</button>
         </Card>
       )}
 
@@ -223,7 +235,7 @@ export default function SettingsPage() {
             <label className="if-label">Business logo</label>
             <input type="file" accept="image/*" onChange={uploadLogo} className="if-input" />
           </div>
-          <button type="button" onClick={saveProfile} disabled={saving} className="if-btn-primary">Save business info</button>
+          <button type="button" onClick={saveProfile} disabled={saving} className="if-btn-primary">{t('saveBusiness')}</button>
         </Card>
       )}
 
@@ -284,7 +296,7 @@ export default function SettingsPage() {
               className="if-input"
             />
           </div>
-          <button type="button" onClick={saveSettings} disabled={saving} className="if-btn-primary">Save invoicing settings</button>
+          <button type="button" onClick={saveSettings} disabled={saving} className="if-btn-primary">{t('saveInvoicing')}</button>
         </Card>
       )}
 

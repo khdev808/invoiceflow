@@ -59,11 +59,16 @@ export default function TimePage() {
         title="Time tracking"
         subtitle="Log billable hours and add them to invoices"
         actions={
-          selected.size > 0 ? (
-            <button type="button" onClick={billToInvoice} className="if-btn-primary">
-              Bill {selected.size} entries to invoice
+          <div className="flex gap-2">
+            {selected.size > 0 ? (
+              <button type="button" onClick={billToInvoice} className="if-btn-primary">
+                Bill {selected.size} entries to invoice
+              </button>
+            ) : null}
+            <button type="button" onClick={() => timeApi.exportIcs()} className="if-btn-secondary">
+              Export to calendar (.ics)
             </button>
-          ) : null
+          </div>
         }
       />
 

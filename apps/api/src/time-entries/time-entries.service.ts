@@ -44,6 +44,28 @@ export class TimeEntriesService {
     return this.prisma.timeEntry.delete({ where: { id } });
   }
 
+  toIcs(entries: Array<{ id: string; description: string; hours: number; rate: number; date: Date | string }>) {
+    const esc = (s: string) => s.replace(/[,;\\]/g, ' ').replace(/\n/g, ' ');
+    const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//InvoiceFlow//Time//EN', 'CALSCALE:GREGORIAN'];
+    for (const e of entries) {
+      const start = new Date(e.date);
+      const end = new Date(start.getTime() + e.hours * 3_600_000);
+      lines.push(
+        'BEGIN:VEVENT',
+        `UID:time-${e.id}@invoiceflow.app`,
+        `DTSTAMP:${fmt(new Date())}`,
+        `DTSTART:${fmt(start)}`,
+        `DTEND:${fmt(end)}`,
+        `SUMMARY:${esc(e.description)}`,
+        `DESCRIPTION:${esc(`${e.hours}h @ $${e.rate}/hr`)}`,
+        'END:VEVENT',
+      );
+    }
+    lines.push('END:VCALENDAR');
+    return lines.join('\r\n');
+  }
+
   async toLineItems(userId: string, entryIds: string[]) {
     const entries = await this.prisma.timeEntry.findMany({
       where: { id: { in: entryIds }, userId, invoiced: false },
