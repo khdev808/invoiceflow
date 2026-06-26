@@ -58,6 +58,9 @@ export class InvoicesService {
       },
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
+    if (invoice.status === 'DRAFT' || invoice.status === 'CANCELLED') {
+      throw new NotFoundException('Invoice not found');
+    }
     return invoice;
   }
 

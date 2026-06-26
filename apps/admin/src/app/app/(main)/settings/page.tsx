@@ -12,16 +12,22 @@ const TABS = ['Profile', 'Business', 'Invoicing', 'Integrations', 'Plan'] as con
 export default function SettingsPage() {
   const { user, refresh } = useAuth();
   const [tab, setTab] = useState<(typeof TABS)[number]>('Profile');
-  const [usage, setUsage] = useState<{ invoicesUsed: number; invoiceLimit: number; plan: string } | null>(null);
+  const [usage, setUsage] = useState<{
+    used: number;
+    limit: number;
+    plan: string;
+    stripeConfigured?: boolean;
+  } | null>(null);
   const [profile, setProfile] = useState({ name: '', businessName: '', businessEmail: '', businessPhone: '', businessAddress: '', taxId: '' });
   const [settings, setSettings] = useState({
     defaultTaxRate: '0',
     defaultPaymentTerms: '30',
     templateId: 'modern',
+    enablePaymentReminders: true,
+    enableLateFees: false,
     reminderDaysBefore: '3',
     reminderDaysAfter: '7',
     lateFeePercent: '0',
-    lateFeeFlat: '0',
     webhookUrl: '',
   });
   const [message, setMessage] = useState('');
@@ -44,16 +50,27 @@ export default function SettingsPage() {
           defaultTaxRate: String(s.defaultTaxRate ?? 0),
           defaultPaymentTerms: String(s.defaultPaymentTerms ?? 30),
           templateId: String(s.templateId ?? 'modern'),
+          enablePaymentReminders: s.enablePaymentReminders !== false,
+          enableLateFees: Boolean(s.enableLateFees),
           reminderDaysBefore: String(s.reminderDaysBefore ?? 3),
           reminderDaysAfter: String(s.reminderDaysAfter ?? 7),
           lateFeePercent: String(s.lateFeePercent ?? 0),
-          lateFeeFlat: String(s.lateFeeFlat ?? 0),
           webhookUrl: String(s.webhookUrl ?? ''),
         }));
       }
     }
     planApi.usage().then(setUsage).catch(() => {});
   }, [user]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('upgraded')) {
+      setMessage(`Welcome to ${params.get('upgraded')}! Your plan is now active.`);
+      planApi.usage().then(setUsage);
+      refresh();
+      window.history.replaceState({}, '', '/app/settings');
+    }
+  }, [refresh]);
 
   const saveProfile = async () => {
     setSaving(true);
@@ -74,10 +91,11 @@ export default function SettingsPage() {
         defaultTaxRate: Number(settings.defaultTaxRate),
         defaultPaymentTerms: Number(settings.defaultPaymentTerms),
         templateId: settings.templateId,
+        enablePaymentReminders: settings.enablePaymentReminders,
+        enableLateFees: settings.enableLateFees,
         reminderDaysBefore: Number(settings.reminderDaysBefore),
         reminderDaysAfter: Number(settings.reminderDaysAfter),
         lateFeePercent: Number(settings.lateFeePercent),
-        lateFeeFlat: Number(settings.lateFeeFlat),
       });
       await refresh();
       setMessage('Settings saved.');
@@ -102,10 +120,18 @@ export default function SettingsPage() {
   };
 
   const upgrade = async (plan: 'pro' | 'business') => {
-    await planApi.upgrade(plan);
-    await refresh();
-    planApi.usage().then(setUsage);
-    setMessage(`Upgraded to ${plan}!`);
+    try {
+      const res = await planApi.upgrade(plan);
+      if (res.checkoutUrl) {
+        window.location.href = res.checkoutUrl;
+        return;
+      }
+      await refresh();
+      planApi.usage().then(setUsage);
+      setMessage(res.message || `Upgraded to ${plan}!`);
+    } catch {
+      setMessage('Upgrade failed. Ensure Stripe is configured on the server.');
+    }
   };
 
   const uploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -186,21 +212,25 @@ export default function SettingsPage() {
             </div>
             <div>
               <label className="if-label">Reminder days before due</label>
-              <input type="number" value={settings.reminderDaysBefore} onChange={(e) => setSettings({ ...settings, reminderDaysBefore: e.target.value })} className="if-input" />
+              <input type="number" value={settings.reminderDaysBefore} onChange={(e) => setSettings({ ...settings, reminderDaysBefore: e.target.value })} className="if-input" disabled={!settings.enablePaymentReminders} />
             </div>
             <div>
               <label className="if-label">Reminder days after due</label>
-              <input type="number" value={settings.reminderDaysAfter} onChange={(e) => setSettings({ ...settings, reminderDaysAfter: e.target.value })} className="if-input" />
+              <input type="number" value={settings.reminderDaysAfter} onChange={(e) => setSettings({ ...settings, reminderDaysAfter: e.target.value })} className="if-input" disabled={!settings.enablePaymentReminders} />
             </div>
             <div>
               <label className="if-label">Late fee %</label>
-              <input type="number" value={settings.lateFeePercent} onChange={(e) => setSettings({ ...settings, lateFeePercent: e.target.value })} className="if-input" />
-            </div>
-            <div>
-              <label className="if-label">Late fee flat</label>
-              <input type="number" value={settings.lateFeeFlat} onChange={(e) => setSettings({ ...settings, lateFeeFlat: e.target.value })} className="if-input" />
+              <input type="number" value={settings.lateFeePercent} onChange={(e) => setSettings({ ...settings, lateFeePercent: e.target.value })} className="if-input" disabled={!settings.enableLateFees} />
             </div>
           </div>
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <input type="checkbox" checked={settings.enablePaymentReminders} onChange={(e) => setSettings({ ...settings, enablePaymentReminders: e.target.checked })} className="h-4 w-4 rounded border-slate-300 text-indigo-600" />
+            Send automated payment reminders
+          </label>
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <input type="checkbox" checked={settings.enableLateFees} onChange={(e) => setSettings({ ...settings, enableLateFees: e.target.checked })} className="h-4 w-4 rounded border-slate-300 text-indigo-600" />
+            Apply late fees on overdue invoices
+          </label>
           <div>
             <label className="if-label">Default template</label>
             <select value={settings.templateId} onChange={(e) => setSettings({ ...settings, templateId: e.target.value })} className="if-input">
@@ -231,16 +261,21 @@ export default function SettingsPage() {
             <p className="text-sm font-semibold uppercase tracking-wide opacity-80">Current plan</p>
             <p className="mt-1 text-3xl font-bold capitalize">{usage.plan}</p>
             <p className="mt-2 text-indigo-100">
-              {usage.invoicesUsed} / {usage.invoiceLimit < 0 ? '∞' : usage.invoiceLimit} invoices this month
+              {usage.used} / {usage.limit >= 999999 ? '∞' : usage.limit} invoices this month
             </p>
           </div>
+          {!usage.stripeConfigured ? (
+            <p className="text-sm text-amber-700 rounded-lg bg-amber-50 px-3 py-2">
+              Online billing requires STRIPE_SECRET_KEY on the API. Contact your administrator or configure Stripe in Render.
+            </p>
+          ) : null}
           <div className="grid gap-3 sm:grid-cols-2">
             <button type="button" onClick={() => upgrade('pro')} className="if-btn-secondary justify-start text-left">
-              <span className="block font-bold">Upgrade to Pro</span>
-              <span className="text-xs text-slate-500">Unlimited invoices, premium templates, OCR</span>
+              <span className="block font-bold">Upgrade to Pro — $9.99/mo</span>
+              <span className="text-xs text-slate-500">Unlimited invoices, premium templates, OCR on mobile</span>
             </button>
             <button type="button" onClick={() => upgrade('business')} className="if-btn-secondary justify-start text-left">
-              <span className="block font-bold">Upgrade to Business</span>
+              <span className="block font-bold">Upgrade to Business — $19.99/mo</span>
               <span className="text-xs text-slate-500">Everything in Pro + API access</span>
             </button>
           </div>

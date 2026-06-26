@@ -59,6 +59,20 @@ export class PaymentsController {
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
+
+      if (session.metadata?.type === 'subscription' && session.metadata?.userId && session.metadata?.plan) {
+        const plan = session.metadata.plan as 'pro' | 'business';
+        if (plan === 'pro' || plan === 'business') {
+          const expires = new Date();
+          expires.setMonth(expires.getMonth() + 1);
+          await this.prisma.user.update({
+            where: { id: session.metadata.userId },
+            data: { plan, planExpiresAt: expires },
+          });
+        }
+        return { received: true };
+      }
+
       const invoiceId = session.metadata?.invoiceId;
       const amount = (session.amount_total || 0) / 100;
       if (invoiceId && amount > 0) {

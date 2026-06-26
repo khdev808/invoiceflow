@@ -6,9 +6,13 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(config: ConfigService) {
+    const secret = config.get<string>('JWT_SECRET');
+    if (!secret && process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET environment variable is required in production');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: config.get('JWT_SECRET') || 'invoiceflow-dev-secret',
+      secretOrKey: secret || 'invoiceflow-dev-secret',
     });
   }
 

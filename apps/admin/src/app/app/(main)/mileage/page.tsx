@@ -1,21 +1,31 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { mileageApi, type MileageEntry } from '@/lib/appApi';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 
+function entryAmount(e: MileageEntry) {
+  return e.amount ?? e.miles * e.rate;
+}
+
 export default function MileagePage() {
+  const router = useRouter();
   const [entries, setEntries] = useState<MileageEntry[]>([]);
   const [summary, setSummary] = useState({ totalMiles: 0, totalAmount: 0, unbilledMiles: 0 });
   const [form, setForm] = useState({ description: '', miles: '', purpose: 'Business' });
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const load = () => {
+    setError('');
     Promise.all([mileageApi.list(), mileageApi.summary()])
       .then(([list, sum]) => { setEntries(list); setSummary(sum); })
+      .catch(() => setError('Failed to load mileage entries.'))
       .finally(() => setLoading(false));
   };
 
@@ -38,15 +48,39 @@ export default function MileagePage() {
     load();
   };
 
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const billToInvoice = async () => {
+    if (selected.size === 0) return;
+    const lineItems = await mileageApi.toLineItems([...selected]);
+    sessionStorage.setItem('prefilledLineItems', JSON.stringify(lineItems));
+    router.push('/app/invoices/new');
+  };
+
   return (
     <div className="mx-auto max-w-6xl animate-fade-in">
       <PageHeader
         title="Mileage tracking"
         subtitle="IRS-rate mileage logs — bill clients or track deductions"
         actions={
-          <Link href="/app/invoices/new" className="if-btn-primary">+ New invoice</Link>
+          selected.size > 0 ? (
+            <button type="button" onClick={billToInvoice} className="if-btn-primary">
+              Bill {selected.size} trips to invoice
+            </button>
+          ) : (
+            <Link href="/app/invoices/new" className="if-btn-primary">+ New invoice</Link>
+          )
         }
       />
+
+      {error ? <p className="mb-4 text-sm text-red-600">{error}</p> : null}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         {[
@@ -73,13 +107,18 @@ export default function MileagePage() {
         <div className="space-y-3">
           {entries.map((e) => (
             <Card key={e.id} className="flex flex-wrap items-center justify-between gap-3 !p-4">
-              <div>
-                <p className="font-semibold">{e.description}</p>
-                <p className="text-sm text-slate-500">{formatDate(e.date)} · {e.miles} mi @ {formatCurrency(e.rate)}/mi</p>
-              </div>
+              <label className="flex flex-1 cursor-pointer items-center gap-3">
+                {!e.invoiced ? (
+                  <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggle(e.id)} className="h-4 w-4 rounded border-slate-300 text-indigo-600" />
+                ) : null}
+                <div>
+                  <p className="font-semibold">{e.description}</p>
+                  <p className="text-sm text-slate-500">{formatDate(e.date)} · {e.miles} mi @ {formatCurrency(e.rate)}/mi</p>
+                </div>
+              </label>
               <div className="flex items-center gap-3">
-                <span className="text-lg font-bold">{formatCurrency(e.amount)}</span>
-                {e.billed ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Billed</span> : null}
+                <span className="text-lg font-bold">{formatCurrency(entryAmount(e))}</span>
+                {e.invoiced ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Billed</span> : null}
                 <button type="button" onClick={() => remove(e.id)} className="text-xs font-medium text-red-600">Delete</button>
               </div>
             </Card>

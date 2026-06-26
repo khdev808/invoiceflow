@@ -1,4 +1,6 @@
 import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 
 export const PLAN_LIMITS: Record<string, number> = {
@@ -15,7 +17,17 @@ export const PLAN_PRICES: Record<string, number> = {
 
 @Injectable()
 export class PlanService {
-  constructor(private prisma: PrismaService) {}
+  private stripe: Stripe | null = null;
+
+  constructor(
+    private prisma: PrismaService,
+    private config: ConfigService,
+  ) {
+    const key = this.config.get<string>('STRIPE_SECRET_KEY');
+    if (key && !key.includes('placeholder')) {
+      this.stripe = new Stripe(key);
+    }
+  }
 
   async getEffectivePlan(userId: string): Promise<string> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -64,11 +76,14 @@ export class PlanService {
     return {
       used,
       limit,
+      invoicesUsed: used,
+      invoiceLimit: limit,
       plan,
       remaining: Math.max(0, limit - used),
       planExpiresAt: user?.planExpiresAt,
       prices: PLAN_PRICES,
       features: this.getPlanFeatures(plan),
+      stripeConfigured: Boolean(this.stripe),
     };
   }
 
@@ -96,18 +111,59 @@ export class PlanService {
     return true;
   }
 
-  /** Demo upgrade — production should validate App Store / Play Billing receipts */
-  async upgradePlan(userId: string, plan: 'pro' | 'business') {
-    if (!['pro', 'business'].includes(plan)) {
-      throw new BadRequestException('Invalid plan');
-    }
+  async applyPlanUpgrade(userId: string, plan: 'pro' | 'business', months = 1) {
     const expires = new Date();
-    expires.setMonth(expires.getMonth() + 1);
-    const user = await this.prisma.user.update({
+    expires.setMonth(expires.getMonth() + months);
+    return this.prisma.user.update({
       where: { id: userId },
       data: { plan, planExpiresAt: expires },
       select: { id: true, plan: true, planExpiresAt: true },
     });
-    return { ...user, message: 'Plan upgraded successfully' };
+  }
+
+  /** Stripe Checkout for subscriptions when configured; direct upgrade in dev only */
+  async upgradePlan(userId: string, plan: 'pro' | 'business') {
+    if (!['pro', 'business'].includes(plan)) {
+      throw new BadRequestException('Invalid plan');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new BadRequestException('User not found');
+
+    if (this.stripe) {
+      const adminUrl = (this.config.get('ADMIN_APP_URL') || 'http://localhost:3000').replace(/\/$/, '');
+      const price = PLAN_PRICES[plan];
+      const session = await this.stripe.checkout.sessions.create({
+        mode: 'subscription',
+        customer_email: user.email,
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: `InvoiceFlow ${plan.charAt(0).toUpperCase() + plan.slice(1)}`,
+                description: `Monthly ${plan} subscription`,
+              },
+              unit_amount: Math.round(price * 100),
+              recurring: { interval: 'month' },
+            },
+            quantity: 1,
+          },
+        ],
+        metadata: { userId, plan, type: 'subscription' },
+        success_url: `${adminUrl}/app/settings?upgraded=${plan}`,
+        cancel_url: `${adminUrl}/app/settings`,
+      });
+      return { checkoutUrl: session.url, plan };
+    }
+
+    if (process.env.NODE_ENV === 'production') {
+      throw new BadRequestException(
+        'Online billing is not configured. Set STRIPE_SECRET_KEY on the API service.',
+      );
+    }
+
+    const updated = await this.applyPlanUpgrade(userId, plan);
+    return { ...updated, message: 'Plan upgraded (dev mode — configure Stripe for production billing)' };
   }
 }

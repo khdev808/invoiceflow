@@ -13,21 +13,34 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recent, setRecent] = useState<Invoice[]>([]);
   const [unread, setUnread] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     Promise.all([
       invoicesApi.dashboard(),
       invoicesApi.list(),
       notificationsApi.unreadCount().catch(() => 0),
-    ]).then(([dash, list, count]) => {
-      setStats(dash);
-      setRecent(list.slice(0, 5));
-      setUnread(typeof count === 'number' ? count : 0);
-    });
+    ])
+      .then(([dash, list, count]) => {
+        setStats(dash);
+        setRecent(list.slice(0, 5));
+        setUnread(typeof count === 'number' ? count : 0);
+      })
+      .catch(() => setError('Failed to load dashboard. Try refreshing the page.'))
+      .finally(() => setLoading(false));
   }, []);
 
   const currency = user?.currency || 'USD';
   const firstName = user?.name?.split(' ')[0] || 'there';
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-6xl py-16 text-center text-sm text-slate-500">
+        Loading dashboard…
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl animate-fade-in">
@@ -40,6 +53,8 @@ export default function DashboardPage() {
           </Link>
         }
       />
+
+      {error ? <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[

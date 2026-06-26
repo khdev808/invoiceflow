@@ -63,6 +63,17 @@ export class EmailService {
     return this.send(params.to, subject, html);
   }
 
+  async sendPasswordResetEmail(params: { to: string; name: string; resetUrl: string }) {
+    const subject = 'Reset your InvoiceFlow password';
+    const html = `
+      <p>Hi ${params.name},</p>
+      <p>We received a request to reset your password. Click the link below — it expires in 1 hour.</p>
+      <p><a href="${params.resetUrl}" style="background:#2563EB;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">Reset password</a></p>
+      <p>If you did not request this, you can ignore this email.</p>
+    `;
+    return this.send(params.to, subject, html);
+  }
+
   private async send(to: string, subject: string, html: string) {
     if (!this.transporter) {
       this.logger.log(`[EMAIL-DEV] To: ${to} | Subject: ${subject}`);

@@ -19,9 +19,11 @@ export class MileageService {
     const settings = await this.prisma.userSettings.findUnique({ where: { userId } });
     const defaultRate = settings?.mileageRate ?? 0.67;
     const entries = await this.findAll(userId);
+    const totalDeduction = entries.reduce((s, e) => s + e.miles * e.rate, 0);
     return {
       totalMiles: entries.reduce((s, e) => s + e.miles, 0),
-      totalDeduction: entries.reduce((s, e) => s + e.miles * e.rate, 0),
+      totalDeduction,
+      totalAmount: totalDeduction,
       unbilledMiles: entries.filter((e) => !e.invoiced).reduce((s, e) => s + e.miles, 0),
       unbilledDeduction: entries.filter((e) => !e.invoiced).reduce((s, e) => s + e.miles * e.rate, 0),
       defaultRate,

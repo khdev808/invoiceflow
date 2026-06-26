@@ -46,6 +46,12 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 
   if (res.status === 401) {
     clearAppToken();
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (!path.includes('/app/login') && !path.includes('/app/register') && !path.includes('/app/forgot-password') && !path.includes('/app/reset-password')) {
+        window.location.href = '/app/login?expired=1';
+      }
+    }
     throw new AppApiError('Session expired. Please sign in again.', 401);
   }
   if (!res.ok) {
@@ -67,6 +73,16 @@ export const authApi = {
       body: JSON.stringify(data),
     }),
   me: () => apiFetch<User>('/auth/me'),
+  forgotPassword: (email: string) =>
+    apiFetch<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (token: string, password: string) =>
+    apiFetch<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    }),
 };
 
 export const clientsApi = {
@@ -211,9 +227,20 @@ export const usersApi = {
 };
 
 export const planApi = {
-  usage: () => apiFetch<{ invoicesUsed: number; invoiceLimit: number; plan: string }>('/plan/usage'),
+  usage: () =>
+    apiFetch<{
+      used: number;
+      limit: number;
+      invoicesUsed: number;
+      invoiceLimit: number;
+      plan: string;
+      stripeConfigured?: boolean;
+    }>('/plan/usage'),
   upgrade: (plan: 'pro' | 'business') =>
-    apiFetch('/plan/upgrade', { method: 'POST', body: JSON.stringify({ plan }) }),
+    apiFetch<{ checkoutUrl?: string; message?: string; plan?: string }>('/plan/upgrade', {
+      method: 'POST',
+      body: JSON.stringify({ plan }),
+    }),
 };
 
 export type Client = {
@@ -363,10 +390,10 @@ export type MileageEntry = {
   description: string;
   miles: number;
   rate: number;
-  amount: number;
+  amount?: number;
   date: string;
   purpose?: string;
-  billed: boolean;
+  invoiced: boolean;
 };
 
 export type RecurringSchedule = {

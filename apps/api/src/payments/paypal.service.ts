@@ -25,6 +25,9 @@ export class PayPalService {
 
     const clientId = this.config.get('PAYPAL_CLIENT_ID');
     if (!clientId || clientId.includes('placeholder')) {
+      if (process.env.NODE_ENV === 'production') {
+        return { url: null, configured: false, message: 'PayPal is not configured', provider: 'paypal' };
+      }
       const url = `https://www.paypal.com/paypalme/invoiceflow/${amount.toFixed(2)}?invoice=${invoice.documentNumber}`;
       return { url, mock: true, provider: 'paypal', amount };
     }

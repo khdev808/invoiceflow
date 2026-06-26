@@ -18,8 +18,8 @@ type PeriodKey = 'today' | 'month' | 'year';
 
 export function AdminDashboard() {
   const [token, setToken] = useState<string | null>(null);
-  const [email, setEmail] = useState('admin@invoiceflow.app');
-  const [password, setPassword] = useState('Admin123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [period, setPeriod] = useState<PeriodKey>('month');
   const [error, setError] = useState('');

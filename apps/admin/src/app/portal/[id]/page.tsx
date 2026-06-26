@@ -6,6 +6,11 @@ import { showBranding } from '@/lib/constants';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+function resolveAssetUrl(path: string) {
+  if (path.startsWith('data:') || path.startsWith('http')) return path;
+  return `${API_URL}${path}`;
+}
+
 const TEMPLATE_COLORS: Record<string, string> = {
   modern: '#4F46E5',
   classic: '#1E293B',
@@ -39,13 +44,18 @@ export default function ClientPortalPage() {
 
   useEffect(() => {
     fetch(`${API_URL}/invoices/public/${id}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error('not found');
+        return r.json();
+      })
       .then((data) => {
+        if (data.statusCode) throw new Error('not found');
         setInvoice(data);
         fetch(`${API_URL}/invoices/public/${id}/view`, { method: 'PATCH' });
         return fetch(`${API_URL}/payments/public/link/${id}`).then((r) => r.json());
       })
       .then((link) => { if (link?.amount) setPayAmount(link.amount); })
+      .catch(() => setInvoice(null))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -107,7 +117,7 @@ export default function ClientPortalPage() {
       const res = await fetch(`${API_URL}/payments/public/link/${id}`);
       const data = await res.json();
       if (data.url) window.open(data.url, '_blank');
-      else alert(data.alreadyPaid ? 'Already paid.' : 'Card payments not configured yet.');
+      else alert(data.alreadyPaid ? 'Already paid.' : (data.message || 'Card payments are not configured yet.'));
     } finally { setPaying(false); }
   };
 
@@ -117,7 +127,7 @@ export default function ClientPortalPage() {
       const res = await fetch(`${API_URL}/payments/public/paypal/${id}`);
       const data = await res.json();
       if (data.url) window.open(data.url, '_blank');
-      else alert(data.alreadyPaid ? 'Already paid.' : 'PayPal not configured yet.');
+      else alert(data.alreadyPaid ? 'Already paid.' : (data.message || 'PayPal is not configured yet.'));
     } finally { setPaying(false); }
   };
 
@@ -142,7 +152,7 @@ export default function ClientPortalPage() {
       <div className="mx-auto max-w-2xl overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-2xl shadow-slate-300/30">
         <div className="relative overflow-hidden p-8 text-white md:p-10" style={{ background: `linear-gradient(135deg, ${headerColor}, ${headerColor}dd)` }}>
           <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10" />
-          {biz?.businessLogo ? <img src={biz.businessLogo.startsWith('http') ? biz.businessLogo : `${API_URL.replace('/api', '')}${biz.businessLogo}`} alt="" className="mb-4 h-10 object-contain" /> : null}
+          {biz?.businessLogo ? <img src={resolveAssetUrl(biz.businessLogo)} alt="" className="mb-4 h-10 object-contain" /> : null}
           <p className="text-xs font-bold uppercase tracking-widest text-white/70">{invoice.documentType.replace('_', ' ')}</p>
           <h1 className="mt-1 text-3xl font-extrabold tracking-tight md:text-4xl">{invoice.documentNumber}</h1>
           <p className="mt-2 text-lg text-white/90">{biz?.businessName || biz?.name}</p>

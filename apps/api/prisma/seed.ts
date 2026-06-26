@@ -9,20 +9,33 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const adminHash = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'Admin123!', 10);
+  const isProd = process.env.NODE_ENV === 'production';
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@invoiceflow.app';
+  const adminPassword = process.env.ADMIN_PASSWORD;
 
-  const admin = await prisma.user.upsert({
-    where: { email: process.env.ADMIN_EMAIL || 'admin@invoiceflow.app' },
-    update: {},
-    create: {
-      email: process.env.ADMIN_EMAIL || 'admin@invoiceflow.app',
-      passwordHash: adminHash,
-      name: 'Admin',
-      role: 'ADMIN',
-      businessName: 'InvoiceFlow',
-      settings: { create: {} },
-    },
-  });
+  if (isProd && !adminPassword) {
+    console.log('Skipping admin seed: set ADMIN_EMAIL and ADMIN_PASSWORD when BOOTSTRAP_ADMIN=true');
+  } else {
+    const adminHash = await bcrypt.hash(adminPassword || 'Admin123!', 10);
+    const admin = await prisma.user.upsert({
+      where: { email: adminEmail },
+      update: isProd && adminPassword ? { passwordHash: adminHash } : {},
+      create: {
+        email: adminEmail,
+        passwordHash: adminHash,
+        name: 'Admin',
+        role: 'ADMIN',
+        businessName: 'InvoiceFlow',
+        settings: { create: {} },
+      },
+    });
+    console.log('Admin user:', admin.email);
+  }
+
+  if (isProd && process.env.SEED_DEMO !== 'true') {
+    console.log('Skipping demo seed in production (set SEED_DEMO=true to include demo data)');
+    return;
+  }
 
   const demoHash = await bcrypt.hash('demo1234', 10);
   const demo = await prisma.user.upsert({
@@ -144,7 +157,7 @@ async function main() {
     }
   }
 
-  console.log('Seed complete:', { admin: admin.email, demo: demo.email });
+  console.log('Seed complete:', { demo: demo.email });
 }
 
 main()

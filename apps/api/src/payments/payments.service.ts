@@ -44,6 +44,9 @@ export class PaymentsService {
     const portalBase = getPortalBase();
 
     if (!this.stripe) {
+      if (process.env.NODE_ENV === 'production') {
+        return { url: null, configured: false, message: 'Stripe is not configured for online payments' };
+      }
       const mockLink = `${portalBase}/${invoiceId}?pay=mock&amount=${chargeAmount}`;
       await this.prisma.invoice.update({
         where: { id: invoiceId },
