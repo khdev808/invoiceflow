@@ -53,6 +53,7 @@ export default function HelpPage() {
       <div className="mt-10 flex flex-wrap gap-4 text-sm">
         <Link href="/app/login" className="text-indigo-600 hover:underline">Sign in to the app</Link>
         <Link href="/help/integrations" className="text-indigo-600 hover:underline">Zapier & webhooks</Link>
+        <Link href="/help/api" className="text-indigo-600 hover:underline">REST API</Link>
         <Link href="/privacy" className="text-indigo-600 hover:underline">Privacy policy</Link>
         <Link href="/terms" className="text-indigo-600 hover:underline">Terms of service</Link>
       </div>

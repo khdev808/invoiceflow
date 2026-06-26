@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
 import { getTemplateColors } from './invoice-templates';
+import { getCountryCompliance } from '../compliance/country-compliance';
 
 export type InvoicePdfInput = {
   documentType: string;
@@ -60,6 +61,7 @@ export class InvoicePdfService {
       const { primary } = getTemplateColors(invoice.templateId);
       const currency = invoice.currency || 'USD';
       const biz = invoice.user?.businessName || invoice.user?.name || 'InvoiceFlow';
+      const compliance = getCountryCompliance(invoice.invoiceCountry);
 
       doc.rect(0, 0, doc.page.width, 88).fill(primary);
       doc.fillColor('#ffffff').fontSize(10).text(docLabel(invoice.documentType).toUpperCase(), 48, 28, { characterSpacing: 1 });
@@ -75,7 +77,7 @@ export class InvoicePdfService {
       if (invoice.client.email) doc.text(invoice.client.email, 48, y + (invoice.client.company ? 42 : 28));
       if (invoice.client.vatId) {
         const vatY = y + (invoice.client.company ? 56 : 42);
-        doc.text(`VAT: ${invoice.client.vatId}`, 48, vatY);
+        doc.text(`${compliance.clientTaxIdLabel}: ${invoice.client.vatId}`, 48, vatY);
       }
 
       const rightX = 320;
@@ -123,7 +125,7 @@ export class InvoicePdfService {
         y += 16;
       }
       if (invoice.taxTotal > 0) {
-        doc.text(`Tax: ${fmt(invoice.taxTotal, currency)}`, totalsX, y, { width: 150, align: 'right' });
+        doc.text(`${compliance.taxLabel}: ${fmt(invoice.taxTotal, currency)}`, totalsX, y, { width: 150, align: 'right' });
         y += 16;
       }
       if (invoice.depositPercent) {
@@ -150,7 +152,7 @@ export class InvoicePdfService {
       }
       if (invoice.user?.businessEmail) doc.text(invoice.user.businessEmail, 48, footerY);
       if (invoice.user?.businessPhone) doc.text(invoice.user.businessPhone, 48, footerY + 12);
-      if (invoice.user?.taxId) doc.text(`Tax ID: ${invoice.user.taxId}`, 48, footerY + 24);
+      if (invoice.user?.taxId) doc.text(`${compliance.businessTaxIdLabel}: ${invoice.user.taxId}`, 48, footerY + 24);
 
       doc.end();
     });

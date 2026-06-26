@@ -6,6 +6,7 @@ import { templates } from '@/lib/constants';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
+import { COUNTRY_COMPLIANCE, getCountryCompliance } from '@/lib/countryCompliance';
 
 const TABS = ['Profile', 'Business', 'Invoicing', 'Integrations', 'Referrals', 'Plan'] as const;
 
@@ -163,6 +164,17 @@ export default function SettingsPage() {
     reader.readAsDataURL(file);
   };
 
+  const compliance = getCountryCompliance(settings.invoiceCountry);
+
+  const onCountryChange = (code: string) => {
+    const next = getCountryCompliance(code);
+    setSettings((prev) => ({
+      ...prev,
+      invoiceCountry: code,
+      legalFooter: prev.legalFooter.trim() ? prev.legalFooter : (next.defaultLegalFooter || ''),
+    }));
+  };
+
   return (
     <div className="mx-auto max-w-3xl animate-fade-in">
       <PageHeader title="Settings" subtitle="Profile, invoicing defaults, reminders, and integrations" />
@@ -204,8 +216,8 @@ export default function SettingsPage() {
             <textarea value={profile.businessAddress} onChange={(e) => setProfile({ ...profile, businessAddress: e.target.value })} rows={3} className="if-input" />
           </div>
           <div>
-            <label className="if-label">Tax ID</label>
-            <input value={profile.taxId} onChange={(e) => setProfile({ ...profile, taxId: e.target.value })} className="if-input" />
+            <label className="if-label">{compliance.businessTaxIdLabel}</label>
+            <input value={profile.taxId} onChange={(e) => setProfile({ ...profile, taxId: e.target.value })} className="if-input" placeholder={compliance.businessTaxIdLabel} />
           </div>
           <div>
             <label className="if-label">Business logo</label>
@@ -255,11 +267,12 @@ export default function SettingsPage() {
           </div>
           <div>
             <label className="if-label">Invoice country (compliance)</label>
-            <select value={settings.invoiceCountry} onChange={(e) => setSettings({ ...settings, invoiceCountry: e.target.value })} className="if-input">
-              {['US', 'GB', 'CA', 'AU', 'DE', 'FR', 'ES', 'IT', 'NL', 'IE'].map((c) => (
-                <option key={c} value={c}>{c}</option>
+            <select value={settings.invoiceCountry} onChange={(e) => onCountryChange(e.target.value)} className="if-input">
+              {COUNTRY_COMPLIANCE.map((c) => (
+                <option key={c.code} value={c.code}>{c.name} ({c.code})</option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-slate-500">PDFs use {compliance.taxLabel} labels and {compliance.clientTaxIdLabel} fields for this country.</p>
           </div>
           <div>
             <label className="if-label">Legal footer on PDFs</label>
@@ -286,6 +299,10 @@ export default function SettingsPage() {
             <button type="button" onClick={saveWebhook} className="if-btn-primary">Save webhook</button>
             <button type="button" onClick={testWebhook} className="if-btn-secondary">Send test</button>
           </div>
+          <p className="text-sm text-slate-600">
+            Connect Zapier or Make — see <a href="/help/integrations" className="text-indigo-600 hover:underline">integration guide</a>.
+            For REST API access, see <a href="/help/api" className="text-indigo-600 hover:underline">API documentation</a>.
+          </p>
         </Card>
       )}
 

@@ -22,7 +22,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/alternatives/honeybook',
     '/es',
     '/fr',
+    '/de',
     '/help/integrations',
+    '/help/api',
   ];
 
   return routes.map((path) => ({

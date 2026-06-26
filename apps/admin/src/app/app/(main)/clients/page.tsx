@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { clientsApi, type Client } from '@/lib/appApi';
 import { EmptyState } from '@/components/app/EmptyState';
+import { useAppLocale } from '@/lib/i18n/AppLocaleContext';
 
 export default function ClientsPage() {
+  const { t } = useAppLocale();
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -19,29 +21,29 @@ export default function ClientsPage() {
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Clients</h1>
-          <p className="text-slate-500">{clients.length} clients</p>
+          <h1 className="text-3xl font-bold">{t('clientsTitle')}</h1>
+          <p className="text-slate-500">{clients.length} {t('clientsCount')}</p>
         </div>
         <Link href="/app/clients/new" className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">
-          + Add client
+          + {t('addClient')}
         </Link>
       </div>
 
       <input
         type="search"
-        placeholder="Search clients…"
+        placeholder={t('searchClients')}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="w-full max-w-md rounded-xl border border-slate-200 px-4 py-2.5 text-sm"
       />
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading…</p>
+        <p className="text-sm text-slate-500">{t('loading')}</p>
       ) : clients.length === 0 ? (
         <EmptyState
-          title="No clients yet"
-          description="Add your first client to start creating invoices."
-          action={<Link href="/app/clients/new" className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Add client</Link>}
+          title={t('noClients')}
+          description={t('noClientsHint')}
+          action={<Link href="/app/clients/new" className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">{t('addClient')}</Link>}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

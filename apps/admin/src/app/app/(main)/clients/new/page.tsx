@@ -4,9 +4,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { clientsApi } from '@/lib/appApi';
+import { useAuth } from '@/contexts/AuthContext';
+import { getCountryCompliance } from '@/lib/countryCompliance';
 
 export default function NewClientPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const clientTaxLabel = getCountryCompliance((user?.settings as { invoiceCountry?: string } | undefined)?.invoiceCountry).clientTaxIdLabel;
   const [form, setForm] = useState({ name: '', email: '', phone: '', company: '', address: '', city: '', state: '', zip: '', vatId: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,9 +35,9 @@ export default function NewClientPage() {
       <h1 className="text-3xl font-bold">Add client</h1>
       <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        {(['name', 'company', 'email', 'phone', 'vatId', 'address', 'city', 'state', 'zip'] as const).map((field) => (
+        {(['name', 'company', 'email', 'phone', 'address', 'city', 'state', 'zip'] as const).map((field) => (
           <div key={field}>
-            <label className="mb-1 block text-sm font-medium capitalize">{field === 'vatId' ? 'VAT ID' : field}</label>
+            <label className="mb-1 block text-sm font-medium capitalize">{field}</label>
             <input
               type={field === 'email' ? 'email' : 'text'}
               required={field === 'name'}
@@ -43,6 +47,16 @@ export default function NewClientPage() {
             />
           </div>
         ))}
+        <div>
+          <label className="mb-1 block text-sm font-medium">{clientTaxLabel}</label>
+          <input
+            type="text"
+            value={form.vatId}
+            onChange={(e) => setForm({ ...form, vatId: e.target.value })}
+            placeholder={clientTaxLabel}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"
+          />
+        </div>
         <button type="submit" disabled={loading} className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white">
           {loading ? 'Saving…' : 'Save client'}
         </button>

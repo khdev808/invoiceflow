@@ -36,6 +36,12 @@ export const appEn = {
   newInvoiceShort: 'Invoice',
   noInvoices: 'No invoices yet',
   noInvoicesHint: 'Create your first invoice to get paid faster.',
+  clientsTitle: 'Clients',
+  clientsCount: 'clients',
+  addClient: 'Add client',
+  searchClients: 'Search clients…',
+  noClients: 'No clients yet',
+  noClientsHint: 'Add your first client to start creating invoices.',
 };
 
 export type AppTranslationKey = keyof typeof appEn;

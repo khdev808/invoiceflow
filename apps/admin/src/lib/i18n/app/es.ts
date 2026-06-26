@@ -38,4 +38,10 @@ export const appEs: Partial<Record<AppTranslationKey, string>> = {
   newInvoiceShort: 'Factura',
   noInvoices: 'Aún no hay facturas',
   noInvoicesHint: 'Crea tu primera factura para cobrar más rápido.',
+  clientsTitle: 'Clientes',
+  clientsCount: 'clientes',
+  addClient: 'Añadir cliente',
+  searchClients: 'Buscar clientes…',
+  noClients: 'Aún no hay clientes',
+  noClientsHint: 'Añade tu primer cliente para crear facturas.',
 };
