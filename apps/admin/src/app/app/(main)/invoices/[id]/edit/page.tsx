@@ -7,11 +7,13 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { invoicesApi } from '@/lib/appApi';
 import { formToPayload } from '@/lib/invoicePayload';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppLocale } from '@/lib/i18n/AppLocaleContext';
 
 export default function EditInvoicePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
+  const { t } = useAppLocale();
   const [initial, setInitial] = useState<Parameters<typeof InvoiceForm>[0]['initial']>();
   const [loading, setLoading] = useState(true);
 
@@ -33,15 +35,15 @@ export default function EditInvoicePage() {
     }).finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <p className="text-sm text-slate-500">Loading…</p>;
+  if (loading) return <p className="text-sm text-slate-500">{t('loading')}</p>;
 
   return (
     <>
-      <PageHeader title="Edit invoice" backHref={`/app/invoices/${id}`} />
+      <PageHeader title={t('editInvoiceTitle')} backHref={`/app/invoices/${id}`} />
       <InvoiceForm
         invoiceId={id}
         initial={initial}
-        submitLabel="Update invoice"
+        submitLabel={t('updateInvoiceBtn')}
         onSubmit={async (form) => {
           await invoicesApi.update(id, formToPayload(form, user?.currency || 'USD'));
           router.push(`/app/invoices/${id}`);

@@ -7,6 +7,7 @@ import { getLastClientId, saveLastClientId } from '@/lib/invoicePrefs';
 import { Card } from '@/components/ui/Card';
 import { LineItemsEditor } from '@/components/ui/LineItemsEditor';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppLocale } from '@/lib/i18n/AppLocaleContext';
 
 export type InvoiceFormValues = {
   clientId: string;
@@ -32,6 +33,7 @@ type Props = {
 
 export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel, onClientSaved }: Props) {
   const { user } = useAuth();
+  const { t } = useAppLocale();
   const currency = user?.currency || 'USD';
   const isPro = user?.plan === 'pro' || user?.plan === 'business';
   const formRef = useRef<HTMLFormElement>(null);
@@ -127,7 +129,7 @@ export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel, onClien
         onClientSaved?.(form.clientId);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Save failed');
+      setError(err instanceof Error ? err.message : t('saveFailed'));
     } finally {
       setLoading(false);
     }
@@ -136,27 +138,27 @@ export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel, onClien
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="mx-auto max-w-4xl space-y-6 animate-fade-in">
       {!invoiceId ? (
-        <p className="text-xs text-slate-500">Tip: Press <kbd className="rounded bg-slate-100 px-1.5 py-0.5 font-mono">⌘</kbd>+<kbd className="rounded bg-slate-100 px-1.5 py-0.5 font-mono">Enter</kbd> to save quickly.</p>
+        <p className="text-xs text-slate-500">{t('keyboardTip')}</p>
       ) : null}
       {error ? <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
 
       <Card>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <div>
-            <label className="if-label">Document type</label>
+            <label className="if-label">{t('docType')}</label>
             <select
               value={form.documentType}
               onChange={(e) => setForm({ ...form, documentType: e.target.value })}
               className="if-input"
               disabled={!!invoiceId}
             >
-              <option value="INVOICE">Invoice</option>
-              <option value="ESTIMATE">Estimate</option>
-              <option value="CREDIT_NOTE">Credit note</option>
+              <option value="INVOICE">{t('docInvoice')}</option>
+              <option value="ESTIMATE">{t('docEstimate')}</option>
+              <option value="CREDIT_NOTE">{t('docCreditNote')}</option>
             </select>
           </div>
           <div>
-            <label className="if-label">Client</label>
+            <label className="if-label">{t('client')}</label>
             <select
               value={form.clientId}
               onChange={(e) => setForm({ ...form, clientId: e.target.value })}
@@ -170,15 +172,15 @@ export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel, onClien
           </div>
           {form.documentType === 'INVOICE' ? (
             <div>
-              <label className="if-label">Due date</label>
+              <label className="if-label">{t('dueDate')}</label>
               <input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} className="if-input" />
             </div>
           ) : null}
           {form.documentType === 'CREDIT_NOTE' ? (
             <div>
-              <label className="if-label">Linked invoice</label>
+              <label className="if-label">{t('linkedInvoice')}</label>
               <select value={form.linkedInvoiceId} onChange={(e) => setForm({ ...form, linkedInvoiceId: e.target.value })} className="if-input">
-                <option value="">Select invoice</option>
+                <option value="">{t('selectInvoice')}</option>
                 {invoices.map((inv) => (
                   <option key={inv.id} value={inv.id}>{inv.documentNumber}</option>
                 ))}
@@ -190,7 +192,7 @@ export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel, onClien
 
       {products.length > 0 ? (
         <Card>
-          <p className="mb-3 text-sm font-semibold text-slate-700">Quick add from catalog</p>
+          <p className="mb-3 text-sm font-semibold text-slate-700">{t('quickAddCatalog')}</p>
           <div className="flex flex-wrap gap-2">
             {products.map((p) => (
               <button key={p.id} type="button" onClick={() => addProduct(p)} className="if-btn-secondary py-1.5 text-xs">
@@ -208,7 +210,7 @@ export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel, onClien
       <Card>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="if-label">Template</label>
+            <label className="if-label">{t('template')}</label>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {templates.map((t) => {
                 const locked = t.premium && !isPro;
@@ -232,22 +234,22 @@ export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel, onClien
           </div>
           <div className="space-y-3">
             <div>
-              <label className="if-label">Deposit %</label>
-              <input type="number" min={0} max={100} value={form.depositPercent} onChange={(e) => setForm({ ...form, depositPercent: e.target.value })} className="if-input" placeholder="e.g. 50" />
+              <label className="if-label">{t('depositPercent')}</label>
+              <input type="number" min={0} max={100} value={form.depositPercent} onChange={(e) => setForm({ ...form, depositPercent: e.target.value })} className="if-input" placeholder="50" />
             </div>
             <div>
-              <label className="if-label">Or flat deposit</label>
+              <label className="if-label">{t('flatDeposit')}</label>
               <input type="number" min={0} step={0.01} value={form.depositAmount} onChange={(e) => setForm({ ...form, depositAmount: e.target.value })} className="if-input" />
             </div>
             {!invoiceId ? (
               <div>
-                <label className="if-label">Recurring (optional)</label>
+                <label className="if-label">{t('recurringOptional')}</label>
                 <select value={form.recurringRule} onChange={(e) => setForm({ ...form, recurringRule: e.target.value })} className="if-input">
-                  <option value="">One-time</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                  <option value="yearly">Yearly</option>
+                  <option value="">{t('recurringOneTime')}</option>
+                  <option value="weekly">{t('recurringWeekly')}</option>
+                  <option value="monthly">{t('recurringMonthly')}</option>
+                  <option value="quarterly">{t('recurringQuarterly')}</option>
+                  <option value="yearly">{t('recurringYearly')}</option>
                 </select>
               </div>
             ) : null}
@@ -257,17 +259,17 @@ export function InvoiceForm({ initial, invoiceId, onSubmit, submitLabel, onClien
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <label className="if-label">Notes</label>
+          <label className="if-label">{t('notes')}</label>
           <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={4} className="if-input" />
         </Card>
         <Card>
-          <label className="if-label">Terms</label>
+          <label className="if-label">{t('terms')}</label>
           <textarea value={form.terms} onChange={(e) => setForm({ ...form, terms: e.target.value })} rows={4} className="if-input" />
         </Card>
       </div>
 
       <button type="submit" disabled={loading} className="if-btn-primary px-8 py-3">
-        {loading ? 'Saving…' : submitLabel}
+        {loading ? t('saving') : submitLabel}
       </button>
     </form>
   );

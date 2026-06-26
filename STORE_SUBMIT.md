@@ -53,3 +53,56 @@ npm run submit:prod:android
 - [ ] Localized screenshots for ES/FR (optional round 2)
 - [ ] Respond to reviews within 24h
 - [ ] Ask for review after first **paid** invoice (not signup)
+
+## Localized ASO (round 2)
+
+Copy-paste into App Store Connect / Google Play Console per locale.
+
+### Español (ES)
+
+| Field | Copy |
+|-------|------|
+| **Name** | InvoiceFlow: Facturas y Presupuestos |
+| **Subtitle** | Factura gratis para autónomos |
+| **Keywords** | factura,presupuesto,freelance,cobros,recibo,negocio,gratis |
+| **Short description (Play)** | Crea y envía facturas profesionales en 60 segundos. Plan gratis. |
+
+### Français (FR)
+
+| Field | Copy |
+|-------|------|
+| **Name** | InvoiceFlow: Factures & Devis |
+| **Subtitle** | Facturation gratuite pour indépendants |
+| **Keywords** | facture,devis,freelance,paiement,reçu,entreprise,gratuit |
+| **Short description (Play)** | Créez et envoyez des factures en 60 secondes. Gratuit pour commencer. |
+
+### Deutsch (DE)
+
+| Field | Copy |
+|-------|------|
+| **Name** | InvoiceFlow: Rechnungen & Angebote |
+| **Subtitle** | Kostenlose Rechnungs-App |
+| **Keywords** | rechnung,angebot,freelancer,abrechnung,beleg,kleinunternehmen |
+| **Short description (Play)** | Professionelle Rechnungen in 60 Sekunden. Kostenloser Einstieg. |
+
+### Português (PT)
+
+| Field | Copy |
+|-------|------|
+| **Name** | InvoiceFlow: Faturas e Orçamentos |
+| **Subtitle** | Faturação grátis para freelancers |
+| **Keywords** | fatura,orçamento,freelance,cobrança,recibo,negócio,grátis |
+| **Short description (Play)** | Envie faturas profissionais em 60 segundos. Plano gratuito. |
+
+### हिन्दी (HI)
+
+| Field | Copy |
+|-------|------|
+| **Name** | InvoiceFlow: इनवॉइस और अनुमान |
+| **Subtitle** | फ्रीलांसर्स के लिए मुफ्त बिलिंग |
+| **Keywords** | invoice,bill,estimate,freelance,भुगतान,रसीद,व्यापार |
+| **Short description (Play)** | 60 सेकंड में प्रोफेशनल इनवॉइस बनाएं। मुफ्त शुरुआत। |
+
+## In-app localization (web)
+
+Web app supports **English, Español, Français** in Settings → language picker (AppShell) and on login/register.

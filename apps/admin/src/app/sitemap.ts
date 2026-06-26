@@ -24,6 +24,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/fr',
     '/de',
     '/pt',
+    '/hi',
     '/case-studies/design-freelancer',
     '/help/integrations',
     '/help/api',

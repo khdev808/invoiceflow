@@ -2,6 +2,7 @@
 
 import { type LineItem } from '@/lib/appApi';
 import { calcLineTotal, formatCurrency } from '@/lib/format';
+import { useAppLocale } from '@/lib/i18n/AppLocaleContext';
 
 export function LineItemsEditor({
   items,
@@ -12,6 +13,8 @@ export function LineItemsEditor({
   onChange: (items: LineItem[]) => void;
   currency?: string;
 }) {
+  const { t } = useAppLocale();
+
   const update = (index: number, patch: Partial<LineItem>) => {
     onChange(items.map((item, i) => (i === index ? { ...item, ...patch } : item)));
   };
@@ -27,15 +30,15 @@ export function LineItemsEditor({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-slate-800">Line items</h3>
+        <h3 className="font-semibold text-slate-800">{t('lineItems')}</h3>
         <button type="button" onClick={add} className="text-sm font-semibold text-indigo-600 hover:underline">
-          + Add line
+          + {t('addLine')}
         </button>
       </div>
       {items.map((line, i) => (
         <div key={i} className="grid gap-2 rounded-xl border border-slate-100 bg-slate-50/80 p-3 md:grid-cols-12">
           <input
-            placeholder="Description"
+            placeholder={t('description')}
             value={line.description}
             onChange={(e) => update(i, { description: e.target.value })}
             className="if-input md:col-span-4"
@@ -45,7 +48,7 @@ export function LineItemsEditor({
             type="number"
             min={0}
             step={0.01}
-            placeholder="Qty"
+            placeholder={t('qty')}
             value={line.quantity}
             onChange={(e) => update(i, { quantity: Number(e.target.value) })}
             className="if-input md:col-span-2"
@@ -54,7 +57,7 @@ export function LineItemsEditor({
             type="number"
             min={0}
             step={0.01}
-            placeholder="Price"
+            placeholder={t('price')}
             value={line.unitPrice}
             onChange={(e) => update(i, { unitPrice: Number(e.target.value) })}
             className="if-input md:col-span-2"
@@ -63,7 +66,7 @@ export function LineItemsEditor({
             type="number"
             min={0}
             step={0.01}
-            placeholder="Tax %"
+            placeholder={t('taxPercent')}
             value={line.taxRate ?? 0}
             onChange={(e) => update(i, { taxRate: Number(e.target.value) })}
             className="if-input md:col-span-2"
@@ -71,12 +74,12 @@ export function LineItemsEditor({
           <div className="flex items-center justify-between md:col-span-2">
             <span className="text-sm font-semibold text-slate-800">{formatCurrency(calcLineTotal(line), currency)}</span>
             <button type="button" onClick={() => remove(i)} className="text-xs font-medium text-red-600 hover:underline">
-              Remove
+              {t('removeLine')}
             </button>
           </div>
         </div>
       ))}
-      <p className="text-right text-lg font-bold text-indigo-700">Total: {formatCurrency(total, currency)}</p>
+      <p className="text-right text-lg font-bold text-indigo-700">{t('lineTotal')}: {formatCurrency(total, currency)}</p>
     </div>
   );
 }

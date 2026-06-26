@@ -6,10 +6,13 @@ import { useState, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppApiError } from '@/lib/appApi';
 import { TurnstileWidget, isTurnstileEnabled } from '@/components/security/TurnstileWidget';
+import { AuthLangPicker } from '@/components/app/AuthLangPicker';
+import { useAppLocale } from '@/lib/i18n/AppLocaleContext';
 
 function LoginForm() {
   const searchParams = useSearchParams();
   const { login } = useAuth();
+  const { t } = useAppLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [captchaToken, setCaptchaToken] = useState<string | undefined>();
@@ -24,12 +27,12 @@ function LoginForm() {
     setLoading(true);
     try {
       if (isTurnstileEnabled() && !captchaToken) {
-        setError('Please complete the human verification check.');
+        setError(t('captchaRequired'));
         return;
       }
       await login(email, password, captchaToken);
     } catch (err) {
-      setError(err instanceof AppApiError ? err.message : 'Login failed');
+      setError(err instanceof AppApiError ? err.message : t('loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -37,19 +40,20 @@ function LoginForm() {
 
   return (
     <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      <AuthLangPicker />
       <div className="mb-8 text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-sm font-bold text-white">
           IF
         </div>
-        <h1 className="text-2xl font-bold">Sign in to InvoiceFlow</h1>
-        <p className="mt-2 text-sm text-slate-500">Manage invoices, clients, and payments from your browser.</p>
+        <h1 className="text-2xl font-bold">{t('signInTitle')}</h1>
+        <p className="mt-2 text-sm text-slate-500">{t('signInSubtitle')}</p>
       </div>
-      {expired ? <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Your session expired. Please sign in again.</p> : null}
-      {reset ? <p className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">Password updated. Sign in with your new password.</p> : null}
+      {expired ? <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{t('sessionExpired')}</p> : null}
+      {reset ? <p className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{t('passwordUpdated')}</p> : null}
       <form onSubmit={onSubmit} className="space-y-4">
         {error ? <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
+          <label className="mb-1 block text-sm font-medium text-slate-700">{t('email')}</label>
           <input
             type="email"
             required
@@ -60,9 +64,9 @@ function LoginForm() {
         </div>
         <div>
           <div className="mb-1 flex items-center justify-between">
-            <label className="text-sm font-medium text-slate-700">Password</label>
+            <label className="text-sm font-medium text-slate-700">{t('password')}</label>
             <Link href="/app/forgot-password" className="text-xs font-semibold text-indigo-600 hover:underline">
-              Forgot password?
+              {t('forgotPassword')}
             </Link>
           </div>
           <input
@@ -79,28 +83,33 @@ function LoginForm() {
           disabled={loading}
           className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-3 text-sm font-semibold text-white hover:opacity-95 disabled:opacity-60"
         >
-          {loading ? 'Signing in…' : 'Sign in'}
+          {loading ? t('signingIn') : t('signIn')}
         </button>
       </form>
       <p className="mt-6 text-center text-sm text-slate-500">
-        No account?{' '}
+        {t('noAccount')}{' '}
         <Link href="/app/register" className="font-semibold text-indigo-600 hover:underline">
-          Create one free
+          {t('createOneFree')}
         </Link>
       </p>
       <p className="mt-3 text-center text-sm text-slate-500">
         <Link href="/" className="hover:text-indigo-600">
-          ← Back to home
+          {t('backToHome')}
         </Link>
       </p>
     </div>
   );
 }
 
+function LoginFallback() {
+  const { t } = useAppLocale();
+  return <p className="text-sm text-slate-500">{t('loading')}</p>;
+}
+
 export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F6F8FC] px-4">
-      <Suspense fallback={<p className="text-sm text-slate-500">Loading…</p>}>
+      <Suspense fallback={<LoginFallback />}>
         <LoginForm />
       </Suspense>
     </div>
