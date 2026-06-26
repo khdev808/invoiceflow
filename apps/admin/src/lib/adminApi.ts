@@ -53,6 +53,9 @@ export type AdminUser = {
   businessName?: string | null;
   role: string;
   plan: string;
+  isBlocked?: boolean;
+  lockedUntil?: string | null;
+  failedLoginAttempts?: number;
   createdAt: string;
   _count: { invoices: number; clients: number };
 };
@@ -130,17 +133,14 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   return data as T;
 }
 
-export async function adminLogin(email: string, password: string) {
-  const res = await fetch(`${API_URL}/auth/login`, {
+export async function adminLogin(email: string, password: string, captchaToken?: string) {
+  const res = await fetch(`${API_URL}/admin/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, captchaToken }),
   });
   const data = await res.json();
   if (!res.ok) throw new AdminApiError(data.message || 'Login failed', res.status);
-  if (data.user?.role !== 'ADMIN') {
-    throw new AdminApiError('This account does not have admin access.', 403);
-  }
   saveAdminToken(data.token);
   return data;
 }
@@ -160,6 +160,55 @@ export function updateUserPlan(userId: string, plan: string) {
     method: 'PATCH',
     body: JSON.stringify({ plan }),
   });
+}
+
+export type SecurityEvent = {
+  id: string;
+  eventType: string;
+  email?: string;
+  ipAddress?: string;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type SecurityBlock = {
+  id: string;
+  blockType: string;
+  value: string;
+  scope: string;
+  reason?: string;
+  expiresAt?: string;
+  createdAt: string;
+};
+
+export function fetchSecurityEvents(limit = 50) {
+  return apiFetch<SecurityEvent[]>(`/admin/security/events?limit=${limit}`);
+}
+
+export function fetchSecurityBlocks() {
+  return apiFetch<SecurityBlock[]>('/admin/security/blocks');
+}
+
+export function createSecurityBlock(data: {
+  blockType: 'ip' | 'email';
+  value: string;
+  scope: 'temporary' | 'permanent';
+  reason?: string;
+  hours?: number;
+}) {
+  return apiFetch('/admin/security/blocks', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function removeSecurityBlock(id: string) {
+  return apiFetch(`/admin/security/blocks/${id}`, { method: 'DELETE' });
+}
+
+export function blockUser(userId: string, data: { scope: 'temporary' | 'permanent'; reason?: string; hours?: number }) {
+  return apiFetch(`/admin/users/${userId}/block`, { method: 'PATCH', body: JSON.stringify(data) });
+}
+
+export function unblockUser(userId: string) {
+  return apiFetch(`/admin/users/${userId}/unblock`, { method: 'PATCH' });
 }
 
 export function formatMoney(amount: number, currency = 'USD') {

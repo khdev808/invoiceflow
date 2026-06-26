@@ -1,10 +1,10 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { ClientsService } from './clients.service';
 import { CreateClientDto, UpdateClientDto } from './dto/client.dto';
-import { JwtAuthGuard } from '../auth/guards';
+import { AppUserGuard } from '../auth/guards';
 
 @Controller('clients')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AppUserGuard)
 export class ClientsController {
   constructor(private clients: ClientsService) {}
 

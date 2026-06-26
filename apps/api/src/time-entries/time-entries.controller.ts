@@ -1,9 +1,9 @@
 import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { TimeEntriesService } from './time-entries.service';
-import { JwtAuthGuard } from '../auth/guards';
+import { AppUserGuard } from '../auth/guards';
 
 @Controller('time-entries')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AppUserGuard)
 export class TimeEntriesController {
   constructor(private timeEntries: TimeEntriesService) {}
 

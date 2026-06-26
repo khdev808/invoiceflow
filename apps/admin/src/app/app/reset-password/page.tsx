@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import { authApi, AppApiError } from '@/lib/appApi';
+import { TurnstileWidget, isTurnstileEnabled } from '@/components/security/TurnstileWidget';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -11,6 +12,7 @@ function ResetPasswordForm() {
   const token = searchParams.get('token') || '';
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -27,7 +29,11 @@ function ResetPasswordForm() {
     }
     setLoading(true);
     try {
-      await authApi.resetPassword(token, password);
+      if (isTurnstileEnabled() && !captchaToken) {
+        setError('Please complete the human verification check.');
+        return;
+      }
+      await authApi.resetPassword(token, password, captchaToken);
       router.push('/app/login?reset=1');
     } catch (err) {
       setError(err instanceof AppApiError ? err.message : 'Reset failed');
@@ -63,6 +69,7 @@ function ResetPasswordForm() {
             className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
           />
         </div>
+        <TurnstileWidget onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(undefined)} />
         <button
           type="submit"
           disabled={loading}

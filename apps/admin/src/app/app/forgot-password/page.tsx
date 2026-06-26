@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { authApi, AppApiError } from '@/lib/appApi';
+import { TurnstileWidget, isTurnstileEnabled } from '@/components/security/TurnstileWidget';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>();
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,7 +18,11 @@ export default function ForgotPasswordPage() {
     setMessage('');
     setLoading(true);
     try {
-      const res = await authApi.forgotPassword(email);
+      if (isTurnstileEnabled() && !captchaToken) {
+        setError('Please complete the human verification check.');
+        return;
+      }
+      const res = await authApi.forgotPassword(email, captchaToken);
       setMessage(res.message);
     } catch (err) {
       setError(err instanceof AppApiError ? err.message : 'Request failed');
@@ -43,6 +49,7 @@ export default function ForgotPasswordPage() {
               className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
             />
           </div>
+          <TurnstileWidget onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(undefined)} />
           <button
             type="submit"
             disabled={loading}

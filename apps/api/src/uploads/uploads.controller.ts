@@ -1,10 +1,10 @@
 import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { UploadsService } from './uploads.service';
-import { JwtAuthGuard } from '../auth/guards';
+import { AppUserGuard } from '../auth/guards';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('uploads')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AppUserGuard)
 export class UploadsController {
   constructor(
     private uploads: UploadsService,

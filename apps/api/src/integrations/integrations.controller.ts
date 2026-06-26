@@ -1,10 +1,10 @@
 import { Controller, Put, Body, UseGuards, Request } from '@nestjs/common';
 import { IntegrationsService } from './integrations.service';
-import { JwtAuthGuard } from '../auth/guards';
+import { AppUserGuard } from '../auth/guards';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('integrations')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AppUserGuard)
 export class IntegrationsController {
   constructor(
     private integrations: IntegrationsService,

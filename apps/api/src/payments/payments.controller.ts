@@ -6,7 +6,7 @@ import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from './payments.service';
 import { PayPalService } from './paypal.service';
-import { JwtAuthGuard } from '../auth/guards';
+import { AppUserGuard } from '../auth/guards';
 import { NotificationsService } from '../notifications/notifications.service';
 import { IntegrationsService } from '../integrations/integrations.service';
 
@@ -26,7 +26,7 @@ export class PaymentsController {
     if (key && !key.includes('placeholder')) this.stripe = new Stripe(key);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AppUserGuard)
   @Post('link/:invoiceId')
   createLink(@Param('invoiceId') invoiceId: string) {
     return this.payments.createPaymentLink(invoiceId);

@@ -6,10 +6,13 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { EmailModule } from '../email/email.module';
+import { SecurityModule } from '../security/security.module';
+import { AdminGuard, AppUserGuard } from './guards';
 
 @Module({
   imports: [
     EmailModule,
+    SecurityModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -21,7 +24,7 @@ import { EmailModule } from '../email/email.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, JwtStrategy, AdminGuard, AppUserGuard],
+  exports: [AuthService, AdminGuard, AppUserGuard],
 })
 export class AuthModule {}

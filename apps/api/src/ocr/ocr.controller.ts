@@ -1,9 +1,9 @@
 import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { OcrService } from './ocr.service';
-import { JwtAuthGuard } from '../auth/guards';
+import { AppUserGuard } from '../auth/guards';
 
 @Controller('ocr')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AppUserGuard)
 export class OcrController {
   constructor(private ocr: OcrService) {}
 

@@ -1,9 +1,9 @@
 import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { PlanService } from './plan.service';
-import { JwtAuthGuard } from '../auth/guards';
+import { AppUserGuard } from '../auth/guards';
 
 @Controller('plan')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AppUserGuard)
 export class PlanController {
   constructor(private plan: PlanService) {}
 

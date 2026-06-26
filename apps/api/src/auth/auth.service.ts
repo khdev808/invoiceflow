@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -10,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { SecurityService } from '../security/security.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
 
 @Injectable()
@@ -19,9 +21,19 @@ export class AuthService {
     private jwt: JwtService,
     private email: EmailService,
     private config: ConfigService,
+    private security: SecurityService,
   ) {}
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, ip: string, userAgent: string) {
+    try {
+      await this.security.verifyCaptchaForAuth(dto.captchaToken, ip);
+    } catch (e) {
+      await this.security.logCaptchaFailure(ip, dto.email);
+      throw e;
+    }
+
+    await this.security.assertAuthAllowed(ip, dto.email);
+
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Email already registered');
 
@@ -32,23 +44,73 @@ export class AuthService {
         passwordHash,
         name: dto.name,
         businessName: dto.businessName,
+        role: 'USER',
         settings: { create: {} },
       },
       select: { id: true, email: true, name: true, role: true, businessName: true },
     });
 
-    const token = this.signToken(user.id, user.email, user.role);
+    const token = this.signAppToken(user.id, user.email, user.role);
+    await this.security.logEvent('REGISTER_SUCCESS', {
+      userId: user.id,
+      email: user.email,
+      ipAddress: ip,
+      userAgent,
+    });
     return { user, token };
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, ip: string, userAgent: string) {
+    try {
+      await this.security.verifyCaptchaForAuth(dto.captchaToken, ip);
+    } catch (e) {
+      await this.security.logCaptchaFailure(ip, dto.email);
+      throw e;
+    }
+
+    await this.security.assertAuthAllowed(ip, dto.email);
+
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (!user) throw new UnauthorizedException('Invalid credentials');
+
+    if (!user) {
+      await this.security.recordLoginFailure({ email: dto.email, ip, userAgent, context: 'app' });
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.role === 'ADMIN') {
+      await this.security.recordLoginFailure({
+        email: dto.email,
+        ip,
+        userAgent,
+        context: 'app',
+        userId: user.id,
+      });
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    await this.security.assertUserAllowed(user.id);
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!valid) throw new UnauthorizedException('Invalid credentials');
+    if (!valid) {
+      await this.security.recordLoginFailure({
+        email: dto.email,
+        ip,
+        userAgent,
+        context: 'app',
+        userId: user.id,
+      });
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
-    const token = this.signToken(user.id, user.email, user.role);
+    await this.security.recordLoginSuccess({
+      userId: user.id,
+      email: user.email,
+      ip,
+      userAgent,
+      context: 'app',
+    });
+
+    const token = this.signAppToken(user.id, user.email, user.role);
     return {
       user: {
         id: user.id,
@@ -61,7 +123,16 @@ export class AuthService {
     };
   }
 
-  async forgotPassword(email: string) {
+  async forgotPassword(email: string, captchaToken: string | undefined, ip: string) {
+    try {
+      await this.security.verifyCaptchaForAuth(captchaToken, ip);
+    } catch (e) {
+      await this.security.logCaptchaFailure(ip, email);
+      throw e;
+    }
+
+    await this.security.assertAuthAllowed(ip, email);
+
     const user = await this.prisma.user.findUnique({ where: { email } });
     const message = 'If an account exists for that email, a reset link has been sent.';
 
@@ -88,9 +159,21 @@ export class AuthService {
     return { message };
   }
 
-  async resetPassword(token: string, password: string) {
+  async resetPassword(token: string, password: string, captchaToken: string | undefined, ip: string) {
+    try {
+      await this.security.verifyCaptchaForAuth(captchaToken, ip);
+    } catch (e) {
+      await this.security.logCaptchaFailure(ip);
+      throw e;
+    }
+
     const record = await this.prisma.passwordResetToken.findUnique({ where: { token } });
     if (!record || record.expiresAt < new Date()) {
+      throw new BadRequestException('Invalid or expired reset link. Please request a new one.');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: record.userId } });
+    if (!user || user.role === 'ADMIN') {
       throw new BadRequestException('Invalid or expired reset link. Please request a new one.');
     }
 
@@ -98,7 +181,7 @@ export class AuthService {
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: record.userId },
-        data: { passwordHash },
+        data: { passwordHash, failedLoginAttempts: 0, lockedUntil: null },
       }),
       this.prisma.passwordResetToken.deleteMany({ where: { userId: record.userId } }),
     ]);
@@ -107,7 +190,7 @@ export class AuthService {
   }
 
   async getProfile(userId: string) {
-    return this.prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -129,9 +212,17 @@ export class AuthService {
         createdAt: true,
       },
     });
+    if (!user || user.role === 'ADMIN') {
+      throw new ForbiddenException('User profile not available');
+    }
+    return user;
   }
 
-  private signToken(userId: string, email: string, role: string) {
-    return this.jwt.sign({ sub: userId, email, role });
+  signAppToken(userId: string, email: string, role: string) {
+    return this.jwt.sign({ sub: userId, email, role, aud: 'app' });
+  }
+
+  signAdminToken(userId: string, email: string) {
+    return this.jwt.sign({ sub: userId, email, role: 'ADMIN', aud: 'admin' });
   }
 }

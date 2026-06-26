@@ -62,26 +62,26 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 }
 
 export const authApi = {
-  login: (email: string, password: string) =>
+  login: (email: string, password: string, captchaToken?: string) =>
     apiFetch<{ user: User; token: string }>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, captchaToken }),
     }),
-  register: (data: { email: string; password: string; name: string; businessName?: string }) =>
+  register: (data: { email: string; password: string; name: string; businessName?: string; captchaToken?: string }) =>
     apiFetch<{ user: User; token: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
   me: () => apiFetch<User>('/auth/me'),
-  forgotPassword: (email: string) =>
+  forgotPassword: (email: string, captchaToken?: string) =>
     apiFetch<{ message: string }>('/auth/forgot-password', {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, captchaToken }),
     }),
-  resetPassword: (token: string, password: string) =>
+  resetPassword: (token: string, password: string, captchaToken?: string) =>
     apiFetch<{ message: string }>('/auth/reset-password', {
       method: 'POST',
-      body: JSON.stringify({ token, password }),
+      body: JSON.stringify({ token, password, captchaToken }),
     }),
 };
 

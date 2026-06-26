@@ -14,8 +14,8 @@ import {
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (data: { email: string; password: string; name: string; businessName?: string }) => Promise<void>;
+  login: (email: string, password: string, captchaToken?: string) => Promise<void>;
+  register: (data: { email: string; password: string; name: string; businessName?: string; captchaToken?: string }) => Promise<void>;
   logout: () => void;
   refresh: () => Promise<void>;
 };
@@ -50,10 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const login = useCallback(
-    async (email: string, password: string) => {
-      const { user: u, token } = await authApi.login(email, password);
+    async (email: string, password: string, captchaToken?: string) => {
+      const { user: u, token } = await authApi.login(email, password, captchaToken);
       if (u.role === 'ADMIN') {
-        throw new AppApiError('Use /admin for platform admin access.', 403);
+        throw new AppApiError('Admin accounts cannot sign in to the user app.', 403);
       }
       saveAppToken(token);
       setUser(u);
@@ -63,8 +63,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const register = useCallback(
-    async (data: { email: string; password: string; name: string; businessName?: string }) => {
+    async (data: { email: string; password: string; name: string; businessName?: string; captchaToken?: string }) => {
       const { user: u, token } = await authApi.register(data);
+      if (u.role === 'ADMIN') {
+        throw new AppApiError('Registration failed.', 403);
+      }
       saveAppToken(token);
       setUser(u);
       router.push('/app');

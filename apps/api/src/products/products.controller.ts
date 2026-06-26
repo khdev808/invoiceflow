@@ -1,9 +1,9 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { ProductsService } from './products.service';
-import { JwtAuthGuard } from '../auth/guards';
+import { AppUserGuard } from '../auth/guards';
 
 @Controller('products')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AppUserGuard)
 export class ProductsController {
   constructor(private products: ProductsService) {}
 

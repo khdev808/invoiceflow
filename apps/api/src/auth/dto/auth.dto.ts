@@ -14,6 +14,10 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   businessName?: string;
+
+  @IsOptional()
+  @IsString()
+  captchaToken?: string;
 }
 
 export class LoginDto {
@@ -22,11 +26,19 @@ export class LoginDto {
 
   @IsString()
   password: string;
+
+  @IsOptional()
+  @IsString()
+  captchaToken?: string;
 }
 
 export class ForgotPasswordDto {
   @IsEmail()
   email: string;
+
+  @IsOptional()
+  @IsString()
+  captchaToken?: string;
 }
 
 export class ResetPasswordDto {
@@ -36,4 +48,8 @@ export class ResetPasswordDto {
   @IsString()
   @MinLength(6)
   password: string;
+
+  @IsOptional()
+  @IsString()
+  captchaToken?: string;
 }

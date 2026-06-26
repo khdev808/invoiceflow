@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppApiError } from '@/lib/appApi';
+import { TurnstileWidget, isTurnstileEnabled } from '@/components/security/TurnstileWidget';
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -11,6 +12,7 @@ export default function RegisterPage() {
   const [businessName, setBusinessName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -19,7 +21,11 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      await register({ name, email, password, businessName: businessName || undefined });
+      if (isTurnstileEnabled() && !captchaToken) {
+        setError('Please complete the human verification check.');
+        return;
+      }
+      await register({ name, email, password, businessName: businessName || undefined, captchaToken });
     } catch (err) {
       setError(err instanceof AppApiError ? err.message : 'Registration failed');
     } finally {
@@ -71,9 +77,10 @@ export default function RegisterPage() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-            />
-          </div>
+            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          />
+        </div>
+          <TurnstileWidget onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(undefined)} />
           <button
             type="submit"
             disabled={loading}

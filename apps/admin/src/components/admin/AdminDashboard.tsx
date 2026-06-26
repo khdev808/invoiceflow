@@ -13,6 +13,8 @@ import {
 import { GrowthChart } from '@/components/admin/GrowthChart';
 import { PeriodStatsPanel } from '@/components/admin/PeriodStatsPanel';
 import { UsersTable } from '@/components/admin/UsersTable';
+import { SecurityPanel } from '@/components/admin/SecurityPanel';
+import { TurnstileWidget, isTurnstileEnabled } from '@/components/security/TurnstileWidget';
 
 type PeriodKey = 'today' | 'month' | 'year';
 
@@ -26,6 +28,7 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [growthView, setGrowthView] = useState<'monthly' | 'daily'>('monthly');
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>();
 
   const loadDashboard = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
@@ -47,7 +50,11 @@ export function AdminDashboard() {
     setLoading(true);
     setError('');
     try {
-      const data = await adminLogin(email.trim(), password);
+      if (isTurnstileEnabled() && !captchaToken) {
+        setError('Please complete the human verification check.');
+        return;
+      }
+      const data = await adminLogin(email.trim(), password, captchaToken);
       setToken(data.token);
       await loadDashboard();
     } catch (e) {
@@ -101,6 +108,7 @@ export function AdminDashboard() {
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
           />
+          <TurnstileWidget onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(undefined)} />
           <button
             type="button"
             onClick={handleLogin}
@@ -285,6 +293,7 @@ export function AdminDashboard() {
             </div>
 
             <UsersTable />
+            <SecurityPanel />
           </>
         ) : (
           <div className="py-20 text-center text-slate-500">Loading dashboard...</div>

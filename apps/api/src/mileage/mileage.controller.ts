@@ -1,9 +1,9 @@
 import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { MileageService } from './mileage.service';
-import { JwtAuthGuard } from '../auth/guards';
+import { AppUserGuard } from '../auth/guards';
 
 @Controller('mileage')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AppUserGuard)
 export class MileageController {
   constructor(private mileage: MileageService) {}
 

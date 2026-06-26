@@ -5,12 +5,14 @@ import { useSearchParams } from 'next/navigation';
 import { useState, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppApiError } from '@/lib/appApi';
+import { TurnstileWidget, isTurnstileEnabled } from '@/components/security/TurnstileWidget';
 
 function LoginForm() {
   const searchParams = useSearchParams();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const expired = searchParams.get('expired') === '1';
@@ -21,7 +23,11 @@ function LoginForm() {
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
+      if (isTurnstileEnabled() && !captchaToken) {
+        setError('Please complete the human verification check.');
+        return;
+      }
+      await login(email, password, captchaToken);
     } catch (err) {
       setError(err instanceof AppApiError ? err.message : 'Login failed');
     } finally {
@@ -67,6 +73,7 @@ function LoginForm() {
             className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
           />
         </div>
+        <TurnstileWidget onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(undefined)} />
         <button
           type="submit"
           disabled={loading}

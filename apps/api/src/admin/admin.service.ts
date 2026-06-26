@@ -4,13 +4,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { SecurityService } from '../security/security.service';
 import { AdminPlan, ADMIN_PLANS } from './dto/admin.dto';
+import { BlockUserDto } from './dto/security.dto';
 
 type PeriodKey = 'today' | 'month' | 'year';
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private security: SecurityService,
+  ) {}
 
   async getDashboard() {
     const now = new Date();
@@ -123,6 +128,9 @@ export class AdminService {
           businessName: true,
           role: true,
           plan: true,
+          isBlocked: true,
+          lockedUntil: true,
+          failedLoginAttempts: true,
           createdAt: true,
           _count: { select: { invoices: true, clients: true } },
         },
@@ -176,6 +184,56 @@ export class AdminService {
       take: safeLimit,
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async blockUser(adminId: string, userId: string, body: BlockUserDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    if (user.role === 'ADMIN') throw new BadRequestException('Cannot block admin accounts');
+
+    if (body.scope === 'permanent') {
+      await this.security.blockUser(userId, body.reason || 'Blocked by administrator', adminId);
+    } else {
+      const hours = body.hours || 24;
+      const lockedUntil = new Date(Date.now() + hours * 60 * 60 * 1000);
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { lockedUntil, blockedReason: body.reason || 'Temporary block by administrator' },
+      });
+      await this.security.logEvent('USER_LOCKED_TEMP', {
+        userId,
+        metadata: { adminId, hours, reason: body.reason },
+      });
+    }
+
+    await this.prisma.adminAuditLog.create({
+      data: {
+        adminId,
+        action: 'USER_BLOCKED',
+        target: userId,
+        metadata: { scope: body.scope, reason: body.reason, userEmail: user.email },
+      },
+    });
+
+    return { success: true };
+  }
+
+  async unblockUser(adminId: string, userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    await this.security.unblockUser(userId, adminId);
+
+    await this.prisma.adminAuditLog.create({
+      data: {
+        adminId,
+        action: 'USER_UNBLOCKED',
+        target: userId,
+        metadata: { userEmail: user.email },
+      },
+    });
+
+    return { success: true };
   }
 
   private async getTotals() {

@@ -1,14 +1,15 @@
 import { Controller, Put, Body, UseGuards, Request } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { JwtAuthGuard } from '../auth/guards';
+import { AppUserGuard } from '../auth/guards';
+import { UpdateProfileDto, UpdateSettingsDto } from './dto/user.dto';
 
 @Controller('users')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AppUserGuard)
 export class UsersController {
   constructor(private users: UsersService) {}
 
   @Put('profile')
-  updateProfile(@Request() req: { user: { userId: string } }, @Body() body: any) {
+  updateProfile(@Request() req: { user: { userId: string } }, @Body() body: UpdateProfileDto) {
     return this.users.updateProfile(req.user.userId, body);
   }
 
@@ -18,7 +19,7 @@ export class UsersController {
   }
 
   @Put('settings')
-  updateSettings(@Request() req: { user: { userId: string } }, @Body() body: any) {
+  updateSettings(@Request() req: { user: { userId: string } }, @Body() body: UpdateSettingsDto) {
     return this.users.updateSettings(req.user.userId, body);
   }
 }
