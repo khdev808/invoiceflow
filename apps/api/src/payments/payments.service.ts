@@ -57,6 +57,10 @@ export class PaymentsService {
 
     const session = await this.stripe.checkout.sessions.create({
       mode: 'payment',
+      payment_method_types: ['card', 'link'],
+      payment_method_options: {
+        card: { request_three_d_secure: 'automatic' },
+      },
       line_items: [
         {
           price_data: {
@@ -87,7 +91,42 @@ export class PaymentsService {
     return { url: session.url, amount: chargeAmount, qrData: session.url };
   }
 
-  async processStripePayment(invoiceId: string, amount: number, transactionId?: string) {
+  getPublishableKey() {
+    const key = this.config.get<string>('STRIPE_PUBLISHABLE_KEY');
+    return key && !key.includes('placeholder') ? key : null;
+  }
+
+  async createPaymentIntent(invoiceId: string) {
+    const { invoice, due, paidTotal } = await this.resolveChargeAmount(invoiceId);
+    if (due <= 0 && paidTotal >= invoice.total) {
+      return { alreadyPaid: true, amount: 0 };
+    }
+
+    const publishableKey = this.getPublishableKey();
+    if (!this.stripe || !publishableKey) {
+      if (process.env.NODE_ENV === 'production') {
+        return { configured: false, message: 'Stripe is not configured' };
+      }
+      return { mock: true, clientSecret: null, publishableKey: null, amount: due };
+    }
+
+    const intent = await this.stripe.paymentIntents.create({
+      amount: Math.round(due * 100),
+      currency: invoice.currency.toLowerCase(),
+      automatic_payment_methods: { enabled: true },
+      metadata: { invoiceId },
+      description: `Invoice ${invoice.documentNumber}`,
+    });
+
+    return {
+      clientSecret: intent.client_secret,
+      publishableKey,
+      amount: due,
+      currency: invoice.currency,
+    };
+  }
+
+  async processStripePayment(invoiceId: string, amount: number, transactionId?: string, method: 'STRIPE' | 'APPLE_PAY' | 'GOOGLE_PAY' = 'STRIPE') {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: { payments: true },
@@ -98,7 +137,7 @@ export class PaymentsService {
       data: {
         invoiceId,
         amount,
-        method: 'STRIPE',
+        method,
         transactionId,
       },
     });

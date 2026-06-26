@@ -7,8 +7,10 @@ import { PlanModule } from '../plan/plan.module';
 import { IntegrationsModule } from '../integrations/integrations.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
+import { ShareModule } from '../share/share.module';
+
 @Module({
-  imports: [EmailModule, PlanModule, IntegrationsModule, NotificationsModule],
+  imports: [EmailModule, PlanModule, IntegrationsModule, NotificationsModule, ShareModule],
   controllers: [InvoicesController],
   providers: [InvoicesService, InvoicePdfService],
   exports: [InvoicesService],

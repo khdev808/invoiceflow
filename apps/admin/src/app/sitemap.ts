@@ -15,6 +15,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/alternatives/freshbooks',
     '/alternatives/invoice-simple',
     '/alternatives/zoho-invoice',
+    '/alternatives/quickbooks',
+    '/alternatives/xero',
+    '/alternatives/paypal-invoicing',
+    '/alternatives/harvest',
+    '/alternatives/honeybook',
+    '/es',
   ];
 
   return routes.map((path) => ({

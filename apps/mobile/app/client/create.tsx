@@ -2,6 +2,8 @@ import { View, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-na
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { clientsApi } from '@/lib/api';
+import { runWithOfflineFallback, queueClientCreate, queueClientUpdate } from '@/lib/offlineMutation';
+import { checkOnline } from '@/lib/offline';
 import { useTheme } from '@/contexts/ThemeContext';
 import { FormField } from '@/components/ui/FormField';
 import { Button } from '@/components/ui/Button';
@@ -38,6 +40,15 @@ export default function CreateClientScreen() {
     if (!form.name.trim()) { Alert.alert('Error', 'Name is required'); return; }
     setLoading(true);
     try {
+      const online = await checkOnline();
+      if (!online) {
+        if (isEdit && id) await queueClientUpdate(id, form);
+        else await queueClientCreate(form);
+        Alert.alert('Saved offline', 'Changes will sync when you are back online.');
+        hapticSuccess();
+        router.back();
+        return;
+      }
       if (isEdit && id) {
         await clientsApi.update(id, form);
       } else {

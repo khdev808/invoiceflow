@@ -105,4 +105,14 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsString()
   webhookUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2)
+  invoiceCountry?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  legalFooter?: string;
 }

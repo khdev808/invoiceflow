@@ -43,6 +43,10 @@ export class CreateClientDto {
   @IsOptional()
   @IsString()
   contactId?: string;
+
+  @IsOptional()
+  @IsString()
+  vatId?: string;
 }
 
 export class UpdateClientDto extends CreateClientDto {}

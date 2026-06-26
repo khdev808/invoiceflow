@@ -111,6 +111,11 @@ export const invoicesApi = {
     apiFetch<Invoice>(`/invoices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   send: (id: string) => apiFetch<Invoice>(`/invoices/${id}/send`, { method: 'POST' }),
   duplicate: (id: string) => apiFetch<Invoice>(`/invoices/${id}/duplicate`, { method: 'POST' }),
+  sendSms: (id: string, phone: string) =>
+    apiFetch<{ sent: boolean; dev?: boolean; telLink?: string; error?: string }>(`/invoices/${id}/sms`, {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    }),
   convert: (id: string, dueDate?: string) =>
     apiFetch<Invoice>(`/invoices/${id}/convert`, { method: 'POST', body: JSON.stringify({ dueDate }) }),
   recordPayment: (id: string, data: { amount: number; method: string }) =>

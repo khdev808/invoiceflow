@@ -100,6 +100,16 @@ export class InvoicesController {
   }
 
   @UseGuards(AppUserGuard)
+  @Post(':id/sms')
+  sendSms(
+    @Request() req: { user: { userId: string } },
+    @Param('id') id: string,
+    @Body() body: { phone: string },
+  ) {
+    return this.invoices.sendSmsLink(req.user.userId, id, body.phone);
+  }
+
+  @UseGuards(AppUserGuard)
   @Post(':id/duplicate')
   duplicate(@Request() req: { user: { userId: string } }, @Param('id') id: string) {
     return this.invoices.duplicate(req.user.userId, id);

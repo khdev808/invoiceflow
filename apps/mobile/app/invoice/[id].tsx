@@ -141,6 +141,31 @@ export default function InvoiceDetailScreen() {
     await Share.share({ message: `View invoice ${invoice.documentNumber}: ${url}`, url });
   };
 
+  const handleSms = async () => {
+    const phone = invoice.client?.phone?.trim();
+    if (!phone) {
+      Alert.alert(t('error'), 'Add a phone number to this client first.');
+      return;
+    }
+    devLogAction('invoice:sms', { id });
+    setActionLoading(true);
+    try {
+      const { data } = await invoicesApi.sendSms(id, phone);
+      if (data.dev && data.telLink) {
+        await Linking.openURL(data.telLink);
+      } else if (data.sent) {
+        Alert.alert(t('success'), 'SMS sent');
+        load();
+      } else {
+        Alert.alert(t('error'), data.error || t('failed'));
+      }
+    } catch {
+      Alert.alert(t('error'), t('failed'));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleExportPdf = async () => {
     if (!pdfData) return;
     devLogAction('invoice:export-pdf', { id });
@@ -345,6 +370,10 @@ export default function InvoiceDetailScreen() {
           <TouchableOpacity style={styles.secondaryBtn} onPress={handleWhatsApp}>
             <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
             <Text style={[styles.secondaryBtnText, { color: '#25D366' }]}>WhatsApp</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={handleSms} disabled={actionLoading}>
+            <Ionicons name="chatbubble-outline" size={20} color={colors.primary} />
+            <Text style={styles.secondaryBtnText}>SMS link</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.secondaryBtn} onPress={handleDuplicate} disabled={actionLoading}>
             <Ionicons name="copy-outline" size={20} color={colors.primary} />

@@ -8,9 +8,11 @@ import { getLastClientId } from '@/lib/invoicePrefs';
 import { StatusBadge } from '@/components/app/StatusBadge';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppLocale } from '@/lib/i18n/AppLocaleContext';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { t } = useAppLocale();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recent, setRecent] = useState<Invoice[]>([]);
   const [unread, setUnread] = useState(0);
@@ -43,7 +45,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-6xl py-16 text-center text-sm text-slate-500">
-        Loading dashboard…
+        {t('loading')}
       </div>
     );
   }
@@ -51,17 +53,17 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-6xl animate-fade-in">
       <PageHeader
-        title={`Welcome back, ${firstName} 👋`}
+        title={`${t('welcomeBack')}, ${firstName} 👋`}
         subtitle={user?.businessName || 'Your business dashboard'}
         actions={
           <div className="flex flex-wrap gap-2">
             {lastClientId ? (
               <Link href={`/app/invoices/new?clientId=${lastClientId}`} className="if-btn-secondary">
-                Invoice last client
+                {t('invoiceLastClient')}
               </Link>
             ) : null}
             <Link href="/app/invoices/new" className="if-btn-primary shadow-lg">
-              + Create invoice
+              + {t('createInvoice')}
             </Link>
           </div>
         }

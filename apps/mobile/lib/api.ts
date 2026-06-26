@@ -74,6 +74,7 @@ export const invoicesApi = {
   update: (id: string, data: any) => api.put(`/invoices/${id}`, data),
   send: (id: string) => api.post(`/invoices/${id}/send`),
   duplicate: (id: string) => api.post(`/invoices/${id}/duplicate`),
+  sendSms: (id: string, phone: string) => api.post(`/invoices/${id}/sms`, { phone }),
   convert: (id: string, dueDate?: string) => api.post(`/invoices/${id}/convert`, { dueDate }),
   recordPayment: (id: string, data: { amount: number; method: string }) =>
     api.post(`/invoices/${id}/payments`, data),

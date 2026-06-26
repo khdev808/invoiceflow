@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { showBranding } from '@/lib/constants';
+import { PortalStripePay } from '@/components/portal/PortalStripePay';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -305,7 +306,11 @@ export default function ClientPortalPage() {
               </div>
             ) : null}
 
-            {/* Desktop pay buttons */}
+            {canPay ? (
+              <PortalStripePay invoiceId={id} onPaid={() => setPaidBanner(true)} />
+            ) : null}
+
+            {/* Desktop pay buttons (fallback / PayPal) */}
             {canPay ? (
               <div className="mt-8 hidden space-y-3 md:block">
                 <button type="button" onClick={payStripe} disabled={paying} className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 py-4 text-lg font-bold text-white shadow-lg shadow-emerald-200 hover:opacity-95 disabled:opacity-60">

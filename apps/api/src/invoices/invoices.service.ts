@@ -8,6 +8,7 @@ import { PlanService } from '../plan/plan.service';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { getDepositDue } from '../payments/payment.utils';
+import { SmsService } from '../share/sms.service';
 import { getPortalBase } from '../config/portal-url';
 import { InvoicePdfService } from './invoice-pdf.service';
 import { getTemplateColors } from './invoice-templates';
@@ -21,6 +22,7 @@ export class InvoicesService {
     private integrations: IntegrationsService,
     private notifications: NotificationsService,
     private pdf: InvoicePdfService,
+    private sms: SmsService,
   ) {}
 
   async findAll(userId: string, filters?: { status?: string; type?: string; clientId?: string }) {
@@ -65,6 +67,55 @@ export class InvoicesService {
       throw new NotFoundException('Invoice not found');
     }
     return invoice;
+  }
+
+  private async buildPdfInput(invoice: {
+    userId: string;
+    documentType: string;
+    documentNumber: string;
+    issueDate: Date | string;
+    dueDate?: Date | string | null;
+    subtotal: number;
+    taxTotal: number;
+    discountTotal: number;
+    total: number;
+    currency?: string;
+    notes?: string | null;
+    terms?: string | null;
+    templateId?: string | null;
+    depositPercent?: number | null;
+    client: { name: string; email?: string | null; company?: string | null; vatId?: string | null };
+    lineItems: Array<{ description: string; quantity: number; unitPrice: number; total: number }>;
+    user?: {
+      businessName?: string | null;
+      name?: string | null;
+      businessEmail?: string | null;
+      businessPhone?: string | null;
+      businessAddress?: string | null;
+      taxId?: string | null;
+    } | null;
+  }) {
+    const settings = await this.prisma.userSettings.findUnique({ where: { userId: invoice.userId } });
+    return {
+      documentType: invoice.documentType,
+      documentNumber: invoice.documentNumber,
+      issueDate: invoice.issueDate,
+      dueDate: invoice.dueDate,
+      subtotal: invoice.subtotal,
+      taxTotal: invoice.taxTotal,
+      discountTotal: invoice.discountTotal,
+      total: invoice.total,
+      currency: invoice.currency,
+      notes: invoice.notes,
+      terms: invoice.terms,
+      templateId: invoice.templateId,
+      depositPercent: invoice.depositPercent,
+      client: invoice.client,
+      lineItems: invoice.lineItems,
+      user: invoice.user,
+      legalFooter: settings?.legalFooter,
+      invoiceCountry: settings?.invoiceCountry,
+    };
   }
 
   async findOne(userId: string, id: string) {
@@ -261,24 +312,7 @@ export class InvoicesService {
     const businessName = invoice.user?.businessName || invoice.user?.name || 'InvoiceFlow';
     const { primary } = getTemplateColors(invoice.templateId);
 
-    const pdfBuffer = await this.pdf.generate({
-      documentType: invoice.documentType,
-      documentNumber: invoice.documentNumber,
-      issueDate: invoice.issueDate,
-      dueDate: invoice.dueDate,
-      subtotal: invoice.subtotal,
-      taxTotal: invoice.taxTotal,
-      discountTotal: invoice.discountTotal,
-      total: invoice.total,
-      currency: invoice.currency,
-      notes: invoice.notes,
-      terms: invoice.terms,
-      templateId: invoice.templateId,
-      depositPercent: invoice.depositPercent,
-      client: invoice.client,
-      lineItems: invoice.lineItems,
-      user: invoice.user,
-    });
+    const pdfBuffer = await this.pdf.generate(await this.buildPdfInput(invoice));
 
     const emailResult = await this.email.sendInvoiceEmail({
       to: invoice.client.email,
@@ -345,26 +379,31 @@ export class InvoicesService {
     return updated;
   }
 
-  async generatePublicPdf(id: string): Promise<Buffer> {
-    const invoice = await this.findPublic(id);
-    return this.pdf.generate({
-      documentType: invoice.documentType,
+  async sendSmsLink(userId: string, id: string, phone: string) {
+    const invoice = await this.findOne(userId, id);
+    if (!phone?.trim()) throw new BadRequestException('Phone number is required');
+    const portalUrl = `${getPortalBase()}/${id}`;
+    const result = await this.sms.sendInvoiceLink({
+      to: phone.trim(),
+      portalUrl,
       documentNumber: invoice.documentNumber,
-      issueDate: invoice.issueDate,
-      dueDate: invoice.dueDate,
-      subtotal: invoice.subtotal,
-      taxTotal: invoice.taxTotal,
-      discountTotal: invoice.discountTotal,
+      businessName: invoice.user?.businessName || invoice.user?.name || 'InvoiceFlow',
       total: invoice.total,
       currency: invoice.currency,
-      notes: invoice.notes,
-      terms: invoice.terms,
-      templateId: invoice.templateId,
-      depositPercent: invoice.depositPercent,
-      client: invoice.client,
-      lineItems: invoice.lineItems,
-      user: invoice.user,
     });
+    await this.prisma.invoiceActivity.create({
+      data: {
+        invoiceId: id,
+        action: result.sent ? 'SMS_SENT' : 'SMS_DEV',
+        metadata: { phone: phone.trim(), ...(result.error ? { error: result.error } : {}) },
+      },
+    });
+    return result;
+  }
+
+  async generatePublicPdf(id: string): Promise<Buffer> {
+    const invoice = await this.findPublic(id);
+    return this.pdf.generate(await this.buildPdfInput(invoice));
   }
 
   async markViewed(id: string) {

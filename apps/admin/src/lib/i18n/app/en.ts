@@ -1,0 +1,27 @@
+export const appEn = {
+  dashboard: 'Dashboard',
+  notifications: 'Notifications',
+  invoices: 'Invoices',
+  clients: 'Clients',
+  recurring: 'Recurring',
+  time: 'Time',
+  expenses: 'Expenses',
+  mileage: 'Mileage',
+  products: 'Products',
+  reports: 'Reports',
+  settings: 'Settings',
+  help: 'Help',
+  signOut: 'Sign out',
+  home: 'Home',
+  newInvoice: 'New invoice',
+  welcomeBack: 'Welcome back',
+  createInvoice: 'Create invoice',
+  invoiceLastClient: 'Invoice last client',
+  loading: 'Loading…',
+  save: 'Save',
+  send: 'Send',
+  duplicate: 'Duplicate',
+  language: 'Language',
+};
+
+export type AppTranslationKey = keyof typeof appEn;

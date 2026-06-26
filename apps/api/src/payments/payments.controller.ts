@@ -44,6 +44,16 @@ export class PaymentsController {
     return this.paypal.createCheckout(invoiceId);
   }
 
+  @Get('public/stripe-config')
+  stripeConfig() {
+    return { publishableKey: this.payments.getPublishableKey() };
+  }
+
+  @Get('public/intent/:invoiceId')
+  publicIntent(@Param('invoiceId') invoiceId: string) {
+    return this.payments.createPaymentIntent(invoiceId);
+  }
+
   @Post('webhook/stripe')
   async stripeWebhook(
     @Req() req: RawBodyRequest<Request>,
@@ -100,6 +110,38 @@ export class PaymentsController {
         }
       }
     }
+
+    if (event.type === 'payment_intent.succeeded') {
+      const intent = event.data.object as Stripe.PaymentIntent;
+      const invoiceId = intent.metadata?.invoiceId;
+      const amount = (intent.amount_received || 0) / 100;
+      if (invoiceId && amount > 0) {
+        const invoice = await this.prisma.invoice.findUnique({ where: { id: invoiceId } });
+        if (invoice) {
+          let method: 'STRIPE' | 'APPLE_PAY' | 'GOOGLE_PAY' = 'STRIPE';
+          if (this.stripe && intent.payment_method) {
+            try {
+              const pm = await this.stripe.paymentMethods.retrieve(intent.payment_method as string);
+              if (pm.card?.wallet?.type === 'apple_pay') method = 'APPLE_PAY';
+              else if (pm.card?.wallet?.type === 'google_pay') method = 'GOOGLE_PAY';
+            } catch { /* keep STRIPE */ }
+          }
+          await this.payments.processStripePayment(invoiceId, amount, intent.id, method);
+          await this.notifications.notify(invoice.userId, {
+            title: 'Payment Received',
+            body: `Payment of $${amount.toFixed(2)} for ${invoice.documentNumber}`,
+            type: 'payment_received',
+            data: { invoiceId },
+          });
+          await this.integrations.dispatch(invoice.userId, 'payment.received', {
+            invoiceId,
+            amount,
+            method: method.toLowerCase(),
+          });
+        }
+      }
+    }
+
     return { received: true };
   }
 }

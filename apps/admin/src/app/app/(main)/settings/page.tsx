@@ -29,6 +29,8 @@ export default function SettingsPage() {
     reminderDaysAfter: '7',
     lateFeePercent: '0',
     webhookUrl: '',
+    invoiceCountry: 'US',
+    legalFooter: '',
   });
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
@@ -66,6 +68,8 @@ export default function SettingsPage() {
           reminderDaysAfter: String(s.reminderDaysAfter ?? 7),
           lateFeePercent: String(s.lateFeePercent ?? 0),
           webhookUrl: String(s.webhookUrl ?? ''),
+          invoiceCountry: String(s.invoiceCountry ?? 'US'),
+          legalFooter: String(s.legalFooter ?? ''),
         }));
       }
     }
@@ -106,6 +110,8 @@ export default function SettingsPage() {
         reminderDaysBefore: Number(settings.reminderDaysBefore),
         reminderDaysAfter: Number(settings.reminderDaysAfter),
         lateFeePercent: Number(settings.lateFeePercent),
+        invoiceCountry: settings.invoiceCountry,
+        legalFooter: settings.legalFooter || undefined,
       });
       await refresh();
       setMessage('Settings saved.');
@@ -246,6 +252,24 @@ export default function SettingsPage() {
             <select value={settings.templateId} onChange={(e) => setSettings({ ...settings, templateId: e.target.value })} className="if-input">
               {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
+          </div>
+          <div>
+            <label className="if-label">Invoice country (compliance)</label>
+            <select value={settings.invoiceCountry} onChange={(e) => setSettings({ ...settings, invoiceCountry: e.target.value })} className="if-input">
+              {['US', 'GB', 'CA', 'AU', 'DE', 'FR', 'ES', 'IT', 'NL', 'IE'].map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="if-label">Legal footer on PDFs</label>
+            <textarea
+              value={settings.legalFooter}
+              onChange={(e) => setSettings({ ...settings, legalFooter: e.target.value })}
+              rows={3}
+              placeholder="Registered company details, VAT reverse-charge notice, etc."
+              className="if-input"
+            />
           </div>
           <button type="button" onClick={saveSettings} disabled={saving} className="if-btn-primary">Save invoicing settings</button>
         </Card>

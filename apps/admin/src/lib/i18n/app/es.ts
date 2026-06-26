@@ -1,0 +1,27 @@
+import type { AppTranslationKey } from './en';
+
+export const appEs: Partial<Record<AppTranslationKey, string>> = {
+  dashboard: 'Panel',
+  notifications: 'Notificaciones',
+  invoices: 'Facturas',
+  clients: 'Clientes',
+  recurring: 'Recurrentes',
+  time: 'Tiempo',
+  expenses: 'Gastos',
+  mileage: 'Kilometraje',
+  products: 'Productos',
+  reports: 'Informes',
+  settings: 'Ajustes',
+  help: 'Ayuda',
+  signOut: 'Cerrar sesión',
+  home: 'Inicio',
+  newInvoice: 'Nueva factura',
+  welcomeBack: 'Bienvenido de nuevo',
+  createInvoice: 'Crear factura',
+  invoiceLastClient: 'Factura al último cliente',
+  loading: 'Cargando…',
+  save: 'Guardar',
+  send: 'Enviar',
+  duplicate: 'Duplicar',
+  language: 'Idioma',
+};

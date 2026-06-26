@@ -13,6 +13,7 @@ import { useAuthStore } from '@/stores/auth';
 import { formatCurrency } from '@/lib/format';
 import { previewInvoicePdf } from '@/lib/exportInvoicePdf';
 import { calcLineTotals } from '@/lib/invoiceCalc';
+import { runWithOfflineFallback, queueInvoiceUpdate } from '@/lib/offlineMutation';
 import { paymentTermOptions, templates } from '@/constants/theme';
 import { radius, spacing } from '@/constants/theme';
 
@@ -169,7 +170,7 @@ export default function EditInvoiceScreen() {
 
     setLoading(true);
     try {
-      await invoicesApi.update(id, {
+      const payload = {
         clientId,
         dueDate: buildDueDate(),
         notes,
@@ -185,7 +186,16 @@ export default function EditInvoiceScreen() {
           taxRate: parseFloat(i.taxRate),
           discount: parseFloat(i.discount),
         })),
+      };
+      const result = await runWithOfflineFallback({
+        online: () => invoicesApi.update(id, payload).then(() => true),
+        queue: () => queueInvoiceUpdate(id, payload),
+        onQueued: () => Alert.alert('Saved offline', 'Invoice will sync when you are back online.'),
       });
+      if (result === null) {
+        router.replace(`/invoice/${id}`);
+        return;
+      }
       router.replace(`/invoice/${id}`);
     } catch (e: any) {
       if (e.response?.status === 403) {

@@ -21,6 +21,7 @@ export default function InvoiceDetailPage() {
   const [actionLoading, setActionLoading] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('manual');
+  const [smsPhone, setSmsPhone] = useState('');
   const [error, setError] = useState('');
 
   const load = () => {
@@ -78,6 +79,25 @@ export default function InvoiceDetailPage() {
   const copyPortal = async () => {
     await navigator.clipboard.writeText(portalUrl);
     alert('Portal link copied!');
+  };
+
+  const sendSms = async () => {
+    const phone = smsPhone.trim() || invoice?.client?.phone?.trim() || '';
+    if (!phone) { setError('Enter a phone number or add one to the client.'); return; }
+    setActionLoading('sms');
+    try {
+      const result = await invoicesApi.sendSms(id, phone);
+      if (result.dev && result.telLink) {
+        window.open(result.telLink, '_blank');
+        alert('SMS not configured — opened your phone’s SMS app with the message prefilled.');
+      } else if (result.sent) {
+        alert('SMS sent!');
+        load();
+      } else {
+        setError(result.error || 'SMS failed');
+      }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'SMS failed'); }
+    finally { setActionLoading(''); }
   };
 
   if (loading) return <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" /></div>;
@@ -170,6 +190,18 @@ export default function InvoiceDetailPage() {
           {actionLoading === 'duplicate' ? 'Duplicating…' : 'Duplicate'}
         </button>
         <button type="button" onClick={copyPortal} className="if-btn-secondary">Copy portal link</button>
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <input
+            type="tel"
+            placeholder={invoice.client?.phone || 'Client phone for SMS'}
+            value={smsPhone}
+            onChange={(e) => setSmsPhone(e.target.value)}
+            className="if-input max-w-xs"
+          />
+          <button type="button" onClick={sendSms} disabled={!!actionLoading} className="if-btn-secondary">
+            {actionLoading === 'sms' ? 'Sending…' : 'Send SMS link'}
+          </button>
+        </div>
         <a href={portalUrl} target="_blank" rel="noreferrer" className="if-btn-secondary">Preview portal</a>
       </div>
 

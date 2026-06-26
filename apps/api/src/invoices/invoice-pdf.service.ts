@@ -16,7 +16,7 @@ export type InvoicePdfInput = {
   terms?: string | null;
   templateId?: string | null;
   depositPercent?: number | null;
-  client: { name: string; email?: string | null; company?: string | null };
+  client: { name: string; email?: string | null; company?: string | null; vatId?: string | null };
   lineItems: Array<{ description: string; quantity: number; unitPrice: number; total: number }>;
   user?: {
     businessName?: string | null;
@@ -26,6 +26,8 @@ export type InvoicePdfInput = {
     businessAddress?: string | null;
     taxId?: string | null;
   } | null;
+  legalFooter?: string | null;
+  invoiceCountry?: string | null;
 };
 
 function fmt(amount: number, currency = 'USD') {
@@ -71,6 +73,10 @@ export class InvoicePdfService {
       doc.font('Helvetica').text(invoice.client.name, 48, y + 14);
       if (invoice.client.company) doc.text(invoice.client.company, 48, y + 28);
       if (invoice.client.email) doc.text(invoice.client.email, 48, y + (invoice.client.company ? 42 : 28));
+      if (invoice.client.vatId) {
+        const vatY = y + (invoice.client.company ? 56 : 42);
+        doc.text(`VAT: ${invoice.client.vatId}`, 48, vatY);
+      }
 
       const rightX = 320;
       doc.font('Helvetica-Bold').text('Issue date', rightX, y);
@@ -139,6 +145,9 @@ export class InvoicePdfService {
 
       const footerY = doc.page.height - 60;
       doc.fontSize(8).fillColor('#94A3B8');
+      if (invoice.legalFooter) {
+        doc.text(invoice.legalFooter, 48, footerY - 20, { width: 500 });
+      }
       if (invoice.user?.businessEmail) doc.text(invoice.user.businessEmail, 48, footerY);
       if (invoice.user?.businessPhone) doc.text(invoice.user.businessPhone, 48, footerY + 12);
       if (invoice.user?.taxId) doc.text(`Tax ID: ${invoice.user.taxId}`, 48, footerY + 24);

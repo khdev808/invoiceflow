@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/Card';
 export default function EditClientPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [form, setForm] = useState({ name: '', email: '', phone: '', company: '', address: '', city: '', state: '', zip: '', notes: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', company: '', address: '', city: '', state: '', zip: '', notes: '', vatId: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -26,6 +26,7 @@ export default function EditClientPage() {
         state: c.state || '',
         zip: c.zip || '',
         notes: c.notes || '',
+        vatId: (c as { vatId?: string }).vatId || '',
       });
     }).finally(() => setLoading(false));
   }, [id]);
@@ -44,9 +45,9 @@ export default function EditClientPage() {
       <PageHeader title="Edit client" backHref={`/app/clients/${id}`} />
       <Card>
         <form onSubmit={save} className="space-y-4">
-          {(['name', 'company', 'email', 'phone', 'address', 'city', 'state', 'zip'] as const).map((field) => (
+          {(['name', 'company', 'email', 'phone', 'vatId', 'address', 'city', 'state', 'zip'] as const).map((field) => (
             <div key={field}>
-              <label className="if-label capitalize">{field}</label>
+              <label className="if-label">{field === 'vatId' ? 'VAT ID' : field.charAt(0).toUpperCase() + field.slice(1)}</label>
               <input required={field === 'name'} value={form[field]} onChange={(e) => setForm({ ...form, [field]: e.target.value })} className="if-input" />
             </div>
           ))}
