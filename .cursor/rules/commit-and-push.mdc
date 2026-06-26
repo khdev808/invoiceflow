@@ -1,0 +1,37 @@
+---
+description: Commit and push after every change batch in InvoiceFlow
+alwaysApply: true
+---
+
+# Commit and Push After Changes
+
+For this project, **always commit and push** after completing a coherent batch of work — do not wait for the user to ask.
+
+## When to commit
+
+- After finishing a feature, fix, refactor, or config change
+- After adding or updating project rules, docs, or workflows tied to the change
+- One commit per logical unit of work (not one commit per line)
+
+## Commit message
+
+- Use the repo's existing style (e.g. `feat:`, `fix:`, `chore:`)
+- 1–2 sentences focused on **why**, not a file list
+- Pass the message via HEREDOC: `git commit -m "$(cat <<'EOF' ... EOF)"`
+
+## Push
+
+- Push to `origin` on the current branch after each successful commit: `git push -u origin HEAD` (first push) or `git push`
+- Do not force-push to `main`/`master` unless the user explicitly requests it
+- Never commit secrets (`.env`, credentials, API keys)
+
+## Before committing
+
+Run in parallel: `git status`, `git diff`, `git log -1 --oneline`
+Stage only files related to the change; verify the commit message matches the diff.
+
+## Exceptions
+
+- Skip commit/push if there are no file changes
+- If a pre-commit hook fails, fix the issue and create a **new** commit (do not amend unless amend rules apply)
+- Ask before destructive git operations (force push, hard reset)
