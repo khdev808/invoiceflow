@@ -38,11 +38,12 @@ function CheckoutForm({ amount, currency, onSuccess }: { amount: number; currenc
         type="button"
         onClick={pay}
         disabled={!stripe || loading}
-        className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 py-4 text-lg font-bold text-white shadow-lg disabled:opacity-60"
+        className="w-full rounded-lg py-4 text-lg font-semibold text-white transition disabled:opacity-60"
+        style={{ background: 'var(--if-accent)' }}
       >
         {loading ? 'Processing…' : `Pay ${new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount)}`}
       </button>
-      <p className="text-center text-xs text-slate-500">Apple Pay, Google Pay, and cards accepted</p>
+      <p className="text-center text-xs" style={{ color: 'var(--if-muted)' }}>Apple Pay, Google Pay, and cards accepted</p>
     </div>
   );
 }
@@ -74,8 +75,8 @@ export function PortalStripePay({ invoiceId, onPaid }: { invoiceId: string; onPa
   const stripePromise = loadStripe(publishableKey);
 
   return (
-    <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-      <p className="mb-4 text-sm font-bold text-slate-700">Pay securely</p>
+    <div className="mt-6 rounded-xl border p-5" style={{ borderColor: 'var(--if-border)', background: 'var(--if-bg)' }}>
+      <p className="mb-4 text-sm font-semibold" style={{ color: 'var(--if-text)' }}>Pay securely</p>
       <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
         <CheckoutForm amount={amount} currency={currency} onSuccess={onPaid} />
       </Elements>

@@ -49,10 +49,25 @@ pnpm run submit:prod:android
 
 ## ASO checklist
 
-- [ ] Screenshots: dashboard, invoice create, client portal, pay flow
+- [x] App icon 1024×1024 (`apps/mobile/assets/images/icon.png`)
+- [x] Splash screen (ivory `#FAF8F4`, Quiet Ledger mark)
+- [x] Android feature graphic 1024×500 (`docs/brand/store/android-feature-graphic.png`)
+- [x] OG / social image 1200×630 (`apps/admin/public/og/default.png`)
+- [x] Brand logos & illustrations (`docs/brand/assets/`)
+- [ ] Screenshots: dashboard, invoice create, client portal, pay flow (template in `docs/brand/store/ios/6.7/01-dashboard.png`)
 - [ ] Localized screenshots for ES/FR (optional round 2)
 - [ ] Respond to reviews within 24h
 - [ ] Ask for review after first **paid** invoice (not signup)
+
+## Store asset paths
+
+| Asset | Path |
+|-------|------|
+| App icon | `apps/mobile/assets/images/icon.png` |
+| Feature graphic | `docs/brand/store/android-feature-graphic.png` |
+| iOS screenshots | `docs/brand/store/ios/6.7/` |
+| Android screenshots | `docs/brand/store/android/phone/` |
+| OG image | `apps/admin/public/og/default.png` |
 
 ## Localized ASO (round 2)
 

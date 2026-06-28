@@ -10,7 +10,7 @@ export function AuthLangPicker() {
       <select
         value={lang}
         onChange={(e) => setLang(e.target.value)}
-        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600"
+        className="if-input w-auto px-2 py-1 text-xs"
         aria-label={t('language')}
       >
         {appLanguages.map((l) => (

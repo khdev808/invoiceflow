@@ -1,8 +1,8 @@
-import { View, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
-import { fonts, layout, radius, shadows, spacing } from '@/constants/theme';
+import { fonts, layout, radius, spacing } from '@/constants/theme';
 import { getBottomInset } from '@/lib/safeArea';
 import { hapticLight } from '@/lib/haptics';
 import { Text } from './Text';
@@ -16,7 +16,7 @@ const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function CustomTabBar({ state, descriptors, navigation }: any) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const bottomInset = getBottomInset(insets);
 
@@ -29,8 +29,6 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
             backgroundColor: colors.tabBar,
             borderColor: colors.tabBarBorder,
           },
-          shadows.lg,
-          isDark && styles.barDark,
         ]}
       >
         {state.routes.map((route: { key: string; name: string }, index: number) => {
@@ -60,7 +58,7 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
               onPress={onPress}
               style={({ pressed }) => [
                 styles.tab,
-                pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] },
+                pressed && { opacity: 0.85 },
               ]}
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
@@ -69,13 +67,13 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
               <View
                 style={[
                   styles.iconPill,
-                  isFocused && { backgroundColor: colors.primarySoft },
+                  isFocused && { backgroundColor: colors.primary },
                 ]}
               >
                 <Ionicons
                   name={isFocused ? iconName : outlineIcon}
-                  size={22}
-                  color={isFocused ? colors.primary : colors.textMuted}
+                  size={20}
+                  color={isFocused ? colors.navy : colors.textMuted}
                 />
               </View>
               <Text
@@ -83,7 +81,7 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
                 style={[
                   styles.label,
                   {
-                    color: isFocused ? colors.primary : colors.textMuted,
+                    color: isFocused ? colors.navy : colors.textMuted,
                     fontFamily: isFocused ? fonts.semiBold : fonts.medium,
                   },
                 ]}
@@ -112,14 +110,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     height: layout.tabBarHeight,
     borderRadius: radius.xxl,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: spacing.sm,
-  },
-  barDark: {
-    ...Platform.select({
-      ios: { backgroundColor: 'rgba(20, 27, 40, 0.92)' },
-      default: {},
-    }),
   },
   tab: {
     flex: 1,

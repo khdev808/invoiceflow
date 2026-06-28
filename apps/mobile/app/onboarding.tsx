@@ -1,42 +1,37 @@
 import { View, StyleSheet, Dimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { useRef, useState } from 'react';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
+import { getIllustration } from '@/lib/illustrations';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { completeOnboarding } from '@/lib/onboarding';
-import { fonts, layout, radius, shadows, spacing } from '@/constants/theme';
+import { fonts, layout, spacing } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
 
 const SLIDES = [
   {
-    icon: 'flash' as const,
-    title: 'Invoice in 30 seconds',
-    body: 'Create professional invoices, estimates, and credit notes faster than any competitor.',
-    tint: '#4F46E5',
+    illustration: 'onboarding-1.svg',
+    title: 'Records that endure',
+    body: 'Every invoice becomes part of a clear, permanent ledger for your business — organized and easy to find years from now.',
   },
   {
-    icon: 'card' as const,
-    title: 'Get paid your way',
-    body: 'Stripe, PayPal, QR codes, and client portal payments — with deposit support built in.',
-    tint: '#059669',
+    illustration: 'onboarding-2.svg',
+    title: 'Trusted by your clients',
+    body: 'Send polished documents with your branding. Clients pay through a secure portal — no chasing, no confusion.',
   },
   {
-    icon: 'notifications' as const,
-    title: 'Never chase payments',
-    body: 'Automated reminders, late fees, open tracking, and push alerts when clients pay.',
-    tint: '#D97706',
+    illustration: 'onboarding-3.svg',
+    title: 'Gentle reminders',
+    body: 'Automated follow-ups and late-fee options keep cash flow steady without awkward conversations.',
   },
   {
-    icon: 'globe' as const,
-    title: 'Run your business anywhere',
-    body: 'Offline mode, 5 languages, mileage, time tracking, and expense OCR in one app.',
-    tint: '#7C3AED',
+    illustration: 'onboarding-4.svg',
+    title: 'Your business, anywhere',
+    body: 'Works offline when you need it. Time, expenses, and mileage — all in one calm, reliable place.',
   },
-];
+] as const;
 
 export default function OnboardingScreen() {
   const { colors } = useTheme();
@@ -53,19 +48,14 @@ export default function OnboardingScreen() {
     setIndex(i);
   };
 
-  const slide = SLIDES[index];
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient
-        colors={[colors.gradientStart, colors.gradientMid, colors.gradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
-        <Text style={styles.brand}>InvoiceFlow</Text>
-        <Text style={styles.brandSub}>Built for freelancers & trades</Text>
-      </LinearGradient>
+      <View style={styles.header}>
+        <Text style={[styles.brand, { color: colors.text }]}>InvoiceFlow</Text>
+        <Text style={[styles.brandSub, { color: colors.textSecondary }]}>
+          Quiet Ledger for freelancers & trades
+        </Text>
+      </View>
 
       <FlatList
         ref={listRef}
@@ -76,20 +66,20 @@ export default function OnboardingScreen() {
         onScroll={onScroll}
         scrollEventThrottle={16}
         keyExtractor={(item) => item.title}
-        renderItem={({ item }) => (
-          <View style={[styles.slide, { width }]}>
-            <View style={[styles.iconWrap, { backgroundColor: item.tint + '14' }, shadows.md]}>
-              <LinearGradient
-                colors={[item.tint, item.tint + 'CC']}
-                style={styles.iconGradient}
-              >
-                <Ionicons name={item.icon} size={40} color="#fff" />
-              </LinearGradient>
+        renderItem={({ item }) => {
+          const Illustration = getIllustration(item.illustration);
+          return (
+            <View style={[styles.slide, { width }]}>
+              {Illustration ? (
+                <View style={styles.illustrationWrap}>
+                  <Illustration width={220} height={176} />
+                </View>
+              ) : null}
+              <Text variant="title" style={styles.slideTitle}>{item.title}</Text>
+              <Text variant="body" color="secondary" style={styles.slideBody}>{item.body}</Text>
             </View>
-            <Text variant="title" style={styles.slideTitle}>{item.title}</Text>
-            <Text variant="body" color="secondary" style={styles.slideBody}>{item.body}</Text>
-          </View>
-        )}
+          );
+        }}
       />
 
       <View style={styles.dots}>
@@ -99,7 +89,7 @@ export default function OnboardingScreen() {
             style={[
               styles.dot,
               {
-                backgroundColor: i === index ? slide.tint : colors.border,
+                backgroundColor: i === index ? colors.primary : colors.border,
                 width: i === index ? 24 : 8,
               },
             ]}
@@ -119,7 +109,7 @@ export default function OnboardingScreen() {
             />
           </>
         ) : (
-          <Button label="Get Started" onPress={finish} icon="rocket-outline" fullWidth size="lg" />
+          <Button label="Get Started" onPress={finish} icon="checkmark-outline" fullWidth size="lg" />
         )}
       </View>
     </View>
@@ -130,31 +120,19 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     paddingTop: 64,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.lg,
     paddingHorizontal: layout.screenPadding,
-    borderBottomLeftRadius: radius.xxl,
-    borderBottomRightRadius: radius.xxl,
   },
-  brand: { color: '#fff', fontSize: 28, fontFamily: fonts.extraBold, letterSpacing: -0.5 },
-  brandSub: { color: 'rgba(255,255,255,0.85)', fontSize: 15, fontFamily: fonts.medium, marginTop: 4 },
+  brand: { fontSize: 28, fontFamily: fonts.display, letterSpacing: -0.5 },
+  brandSub: { fontSize: 15, fontFamily: fonts.regular, marginTop: 4 },
   slide: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.md,
   },
-  iconWrap: {
-    width: 108,
-    height: 108,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
+  illustrationWrap: {
     marginBottom: spacing.xl,
-  },
-  iconGradient: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },

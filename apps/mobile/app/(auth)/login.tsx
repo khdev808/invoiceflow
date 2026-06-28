@@ -1,15 +1,17 @@
 import { View, StyleSheet, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getApiUrl } from '@/lib/config';
 import { devLogAction } from '@/lib/devLog';
+import { getIllustration } from '@/lib/illustrations';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
-import { fonts, layout, radius, shadows, spacing } from '@/constants/theme';
+import { fonts, layout, radius, spacing } from '@/constants/theme';
+
+const OnboardingIllustration = getIllustration('onboarding-1.svg');
 
 export default function LoginScreen() {
   const [email, setEmail] = useState(__DEV__ ? 'demo@invoiceflow.app' : '');
@@ -42,14 +44,15 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: colors.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={[colors.gradientStart, colors.gradientMid, colors.gradientEnd]} style={styles.hero}>
-          <View style={styles.heroGlow} />
-          <View style={styles.logo}>
-            <Ionicons name="receipt" size={34} color="#fff" />
-          </View>
+        <View style={styles.hero}>
+          {OnboardingIllustration ? (
+            <View style={styles.illustrationWrap}>
+              <OnboardingIllustration width={200} height={160} />
+            </View>
+          ) : null}
           <Text style={styles.brandTitle}>InvoiceFlow</Text>
-          <Text style={styles.brandSubtitle}>Professional invoicing in under 30 seconds</Text>
-        </LinearGradient>
+          <Text style={styles.brandSubtitle}>Quiet invoicing for work that lasts</Text>
+        </View>
 
         <View style={[styles.form, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {error ? (
@@ -83,22 +86,6 @@ export default function LoginScreen() {
           <Button label="Sign In" onPress={handleLogin} loading={loading} fullWidth icon="log-in-outline" style={{ marginTop: spacing.lg }} />
           <Button label="Create free account" onPress={() => router.push('/(auth)/register')} variant="ghost" fullWidth style={{ marginTop: spacing.sm }} />
         </View>
-
-        <View style={styles.features}>
-          {[
-            { icon: 'flash', text: 'Create invoices in 30s' },
-            { icon: 'eye', text: 'Real-time open tracking' },
-            { icon: 'card', text: 'Stripe & PayPal payments' },
-            { icon: 'cloud-offline', text: 'Works offline' },
-          ].map((f) => (
-            <View key={f.text} style={[styles.featureRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <View style={[styles.featureIcon, { backgroundColor: colors.primarySoft }]}>
-                <Ionicons name={f.icon as any} size={16} color={colors.primary} />
-              </View>
-              <Text variant="caption" color="secondary">{f.text}</Text>
-            </View>
-          ))}
-        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -110,42 +97,31 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     scroll: { flexGrow: 1, paddingBottom: spacing.xxl },
     hero: {
       alignItems: 'center',
-      paddingTop: 80,
-      paddingBottom: 48,
+      paddingTop: 72,
+      paddingBottom: spacing.xl,
       paddingHorizontal: layout.screenPadding,
-      borderBottomLeftRadius: radius.xxl,
-      borderBottomRightRadius: radius.xxl,
-      overflow: 'hidden',
     },
-    heroGlow: {
-      position: 'absolute',
-      top: -60,
-      left: -40,
-      width: 180,
-      height: 180,
-      borderRadius: 90,
-      backgroundColor: 'rgba(255,255,255,0.1)',
+    illustrationWrap: {
+      marginBottom: spacing.lg,
     },
-    logo: {
-      width: 76,
-      height: 76,
-      borderRadius: 24,
-      backgroundColor: 'rgba(255,255,255,0.2)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: spacing.md,
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.25)',
+    brandTitle: {
+      fontSize: 32,
+      fontFamily: fonts.display,
+      color: colors.text,
+      letterSpacing: -0.5,
     },
-    brandTitle: { fontSize: 34, fontFamily: fonts.extraBold, color: '#fff', letterSpacing: -0.8 },
-    brandSubtitle: { fontSize: 16, fontFamily: fonts.medium, color: 'rgba(255,255,255,0.88)', marginTop: spacing.xs, textAlign: 'center' },
+    brandSubtitle: {
+      fontSize: 16,
+      fontFamily: fonts.regular,
+      color: colors.textSecondary,
+      marginTop: spacing.xs,
+      textAlign: 'center',
+    },
     form: {
       marginHorizontal: layout.screenPadding,
-      marginTop: -28,
       borderRadius: radius.xl,
       padding: spacing.lg,
-      borderWidth: 1,
-      ...shadows.md,
+      borderWidth: StyleSheet.hairlineWidth,
     },
     input: {
       borderRadius: radius.md,
@@ -153,7 +129,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       paddingVertical: 14,
       fontSize: 16,
       fontFamily: fonts.regular,
-      borderWidth: 1,
+      borderWidth: StyleSheet.hairlineWidth,
     },
     errorBox: {
       flexDirection: 'row',
@@ -162,26 +138,6 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       padding: spacing.md,
       borderRadius: radius.md,
       marginBottom: spacing.sm,
-    },
-    features: {
-      marginTop: spacing.xl,
-      paddingHorizontal: layout.screenPadding,
-      gap: spacing.sm,
-    },
-    featureRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
-      padding: spacing.md,
-      borderRadius: radius.lg,
-      borderWidth: 1,
-    },
-    featureIcon: {
-      width: 32,
-      height: 32,
-      borderRadius: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
   });
 }

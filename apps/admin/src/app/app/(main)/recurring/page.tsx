@@ -1,10 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { recurringApi, type RecurringSchedule } from '@/lib/appApi';
 import { formatDate } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/app/EmptyState';
 
 export default function RecurringPage() {
   const [schedules, setSchedules] = useState<RecurringSchedule[]>([]);
@@ -32,26 +34,39 @@ export default function RecurringPage() {
       <PageHeader
         title="Recurring billing"
         subtitle="Automated invoices generated on schedule — set up from any new invoice"
+        actions={
+          <Link href="/app/invoices/new" className="if-btn-primary">
+            + New invoice
+          </Link>
+        }
       />
 
-      {loading ? <p className="text-sm text-slate-500">Loading…</p> : schedules.length === 0 ? (
-        <Card className="text-center">
-          <p className="text-lg font-semibold">No recurring schedules yet</p>
-          <p className="mt-2 text-sm text-slate-500">Create an invoice and choose Weekly, Monthly, or Quarterly under Recurring.</p>
-        </Card>
+      {loading ? (
+        <p className="text-sm" style={{ color: 'var(--if-muted)' }}>Loading…</p>
+      ) : schedules.length === 0 ? (
+        <EmptyState
+          illustration="/illustrations/empty-recurring.svg"
+          title="No recurring schedules yet"
+          description="Create an invoice and choose Weekly, Monthly, or Quarterly under Recurring."
+          action={<Link href="/app/invoices/new" className="if-btn-primary">Create invoice</Link>}
+        />
       ) : (
         <div className="space-y-3">
           {schedules.map((s) => (
             <Card key={s.id} className="flex flex-wrap items-center justify-between gap-4 !p-5">
               <div>
-                <p className="font-semibold capitalize">{s.frequency} schedule</p>
-                <p className="text-sm text-slate-500">Next run: {formatDate(s.nextRunAt)}</p>
+                <p className="font-semibold capitalize" style={{ color: 'var(--if-text)' }}>{s.frequency} schedule</p>
+                <p className="text-sm" style={{ color: 'var(--if-muted)' }}>Next run: {formatDate(s.nextRunAt)}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => toggle(s.id, !s.active)}
-                  className={`rounded-full px-3 py-1 text-xs font-bold ${s.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}
+                  className="rounded-full px-3 py-1 text-xs font-bold"
+                  style={{
+                    background: s.active ? 'var(--if-success-soft)' : 'var(--if-bg)',
+                    color: s.active ? 'var(--if-success)' : 'var(--if-muted)',
+                  }}
                 >
                   {s.active ? 'Active' : 'Paused'}
                 </button>

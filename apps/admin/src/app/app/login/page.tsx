@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AppApiError } from '@/lib/appApi';
 import { TurnstileWidget, isTurnstileEnabled } from '@/components/security/TurnstileWidget';
 import { AuthLangPicker } from '@/components/app/AuthLangPicker';
+import { AuthLayout } from '@/components/app/AuthLayout';
 import { useAppLocale } from '@/lib/i18n/AppLocaleContext';
 
 function LoginForm() {
@@ -39,33 +40,57 @@ function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+    <>
       <AuthLangPicker />
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-sm font-bold text-white">
-          IF
-        </div>
-        <h1 className="text-2xl font-bold">{t('signInTitle')}</h1>
-        <p className="mt-2 text-sm text-slate-500">{t('signInSubtitle')}</p>
+        <h1 className="font-display text-2xl font-semibold">{t('signInTitle')}</h1>
+        <p className="if-subtitle text-sm">{t('signInSubtitle')}</p>
       </div>
-      {expired ? <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{t('sessionExpired')}</p> : null}
-      {reset ? <p className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{t('passwordUpdated')}</p> : null}
+      {expired ? (
+        <p
+          className="mb-4 rounded-lg px-3 py-2 text-sm"
+          style={{ background: 'var(--if-warning-soft)', color: 'var(--if-warning)' }}
+        >
+          {t('sessionExpired')}
+        </p>
+      ) : null}
+      {reset ? (
+        <p
+          className="mb-4 rounded-lg px-3 py-2 text-sm"
+          style={{ background: 'var(--if-success-soft)', color: 'var(--if-success)' }}
+        >
+          {t('passwordUpdated')}
+        </p>
+      ) : null}
       <form onSubmit={onSubmit} className="space-y-4">
-        {error ? <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+        {error ? (
+          <p
+            className="rounded-lg px-3 py-2 text-sm"
+            style={{ background: 'var(--if-danger-soft)', color: 'var(--if-danger)' }}
+          >
+            {error}
+          </p>
+        ) : null}
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">{t('email')}</label>
+          <label className="if-label">{t('email')}</label>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            className="if-input"
           />
         </div>
         <div>
-          <div className="mb-1 flex items-center justify-between">
-            <label className="text-sm font-medium text-slate-700">{t('password')}</label>
-            <Link href="/app/forgot-password" className="text-xs font-semibold text-indigo-600 hover:underline">
+          <div className="mb-1.5 flex items-center justify-between">
+            <label className="text-sm font-medium" style={{ color: 'var(--if-text)' }}>
+              {t('password')}
+            </label>
+            <Link
+              href="/app/forgot-password"
+              className="text-xs font-semibold hover:underline"
+              style={{ color: 'var(--if-accent-dark)' }}
+            >
               {t('forgotPassword')}
             </Link>
           </div>
@@ -74,44 +99,44 @@ function LoginForm() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            className="if-input"
           />
         </div>
         <TurnstileWidget onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(undefined)} />
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-3 text-sm font-semibold text-white hover:opacity-95 disabled:opacity-60"
-        >
+        <button type="submit" disabled={loading} className="if-btn-primary w-full py-3">
           {loading ? t('signingIn') : t('signIn')}
         </button>
       </form>
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-6 text-center text-sm" style={{ color: 'var(--if-muted)' }}>
         {t('noAccount')}{' '}
-        <Link href="/app/register" className="font-semibold text-indigo-600 hover:underline">
+        <Link
+          href="/app/register"
+          className="font-semibold hover:underline"
+          style={{ color: 'var(--if-accent-dark)' }}
+        >
           {t('createOneFree')}
         </Link>
       </p>
-      <p className="mt-3 text-center text-sm text-slate-500">
-        <Link href="/" className="hover:text-indigo-600">
+      <p className="mt-3 text-center text-sm" style={{ color: 'var(--if-muted)' }}>
+        <Link href="/" className="transition-colors hover:underline" style={{ color: 'var(--if-accent-dark)' }}>
           {t('backToHome')}
         </Link>
       </p>
-    </div>
+    </>
   );
 }
 
 function LoginFallback() {
   const { t } = useAppLocale();
-  return <p className="text-sm text-slate-500">{t('loading')}</p>;
+  return <p className="text-sm" style={{ color: 'var(--if-muted)' }}>{t('loading')}</p>;
 }
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F6F8FC] px-4">
+    <AuthLayout>
       <Suspense fallback={<LoginFallback />}>
         <LoginForm />
       </Suspense>
-    </div>
+    </AuthLayout>
   );
 }

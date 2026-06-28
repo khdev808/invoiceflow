@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { MarketingShell } from '@/components/marketing/MarketingShell';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://invoiceflow-api-v1td.onrender.com';
 
@@ -25,61 +26,104 @@ export const metadata = {
   description: 'InvoiceFlow REST API reference for integrations, scripts, and Business tier automation.',
 };
 
+const linkClass = 'transition-colors hover:underline hover:text-[var(--if-accent-dark)]';
+
 export default function ApiHelpPage() {
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16">
-      <Link href="/help" className="text-sm text-indigo-600 hover:underline">← Help & FAQ</Link>
-      <h1 className="mt-4 text-3xl font-bold">REST API</h1>
-      <p className="mt-2 text-slate-600">
-        Automate invoicing with the InvoiceFlow API. Authenticate with a JWT from login, then call endpoints with{' '}
-        <code className="rounded bg-slate-100 px-1">Authorization: Bearer &lt;token&gt;</code>.
-      </p>
+    <MarketingShell>
+      <div className="mx-auto max-w-3xl px-6 py-16">
+        <Link href="/help" className={`text-sm ${linkClass}`} style={{ color: 'var(--if-accent-dark)' }}>
+          ← Help & FAQ
+        </Link>
+        <h1 className="if-page-title mt-4">REST API</h1>
+        <p className="if-subtitle">
+          Automate invoicing with the InvoiceFlow API. Authenticate with a JWT from login, then call endpoints
+          with{' '}
+          <code className="rounded px-1" style={{ background: 'var(--if-accent-soft)' }}>
+            Authorization: Bearer &lt;token&gt;
+          </code>
+          .
+        </p>
 
-      <section className="mt-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold">Base URL</h2>
-        <pre className="mt-3 overflow-x-auto rounded-xl bg-slate-900 p-4 text-sm text-emerald-300">{API_BASE}</pre>
-      </section>
+        <section className="if-card mt-10 p-6">
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--if-text)' }}>
+            Base URL
+          </h2>
+          <pre
+            className="mt-3 overflow-x-auto rounded-xl p-4 text-sm"
+            style={{ background: 'var(--if-text)', color: 'var(--if-success)' }}
+          >
+            {API_BASE}
+          </pre>
+        </section>
 
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold">Authentication</h2>
-        <pre className="mt-3 overflow-x-auto rounded-xl bg-slate-900 p-4 text-xs text-slate-100">{`POST ${API_BASE}/auth/login
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--if-text)' }}>
+            Authentication
+          </h2>
+          <pre
+            className="mt-3 overflow-x-auto rounded-xl p-4 text-xs"
+            style={{ background: 'var(--if-text)', color: 'var(--if-bg)' }}
+          >{`POST ${API_BASE}/auth/login
 Content-Type: application/json
 
 { "email": "you@company.com", "password": "••••••" }
 
 → { "accessToken": "eyJ…", "user": { … } }`}</pre>
-        <p className="mt-3 text-sm text-slate-600">
-          Include the token on every request: <code className="rounded bg-slate-100 px-1">Authorization: Bearer eyJ…</code>
-        </p>
-      </section>
+          <p className="mt-3 text-sm" style={{ color: 'var(--if-muted)' }}>
+            Include the token on every request:{' '}
+            <code className="rounded px-1" style={{ background: 'var(--if-accent-soft)' }}>
+              Authorization: Bearer eyJ…
+            </code>
+          </p>
+        </section>
 
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold">Core endpoints</h2>
-        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-4 py-3">Method</th>
-                <th className="px-4 py-3">Path</th>
-                <th className="px-4 py-3">Description</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {ENDPOINTS.map((e) => (
-                <tr key={`${e.method}${e.path}`}>
-                  <td className="px-4 py-3 font-mono text-xs font-bold text-indigo-700">{e.method}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-800">{e.path}</td>
-                  <td className="px-4 py-3 text-slate-600">{e.desc}</td>
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--if-text)' }}>
+            Core endpoints
+          </h2>
+          <div className="mt-4 overflow-hidden rounded-xl border" style={{ borderColor: 'var(--if-border)' }}>
+            <table className="min-w-full text-sm">
+              <thead
+                className="text-left text-xs uppercase"
+                style={{ background: 'var(--if-bg)', color: 'var(--if-muted)' }}
+              >
+                <tr>
+                  <th className="px-4 py-3">Method</th>
+                  <th className="px-4 py-3">Path</th>
+                  <th className="px-4 py-3">Description</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </thead>
+              <tbody className="divide-y" style={{ borderColor: 'var(--if-border)' }}>
+                {ENDPOINTS.map((e) => (
+                  <tr key={`${e.method}${e.path}`}>
+                    <td className="px-4 py-3 font-mono text-xs font-bold" style={{ color: 'var(--if-accent-dark)' }}>
+                      {e.method}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--if-text)' }}>
+                      {e.path}
+                    </td>
+                    <td className="px-4 py-3" style={{ color: 'var(--if-muted)' }}>
+                      {e.desc}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-      <section className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-6">
-        <h2 className="font-semibold">Example: create &amp; send invoice</h2>
-        <pre className="mt-3 overflow-x-auto rounded-xl bg-slate-900 p-4 text-xs text-slate-100">{`# 1. Create invoice
+        <section
+          className="mt-8 rounded-xl border p-6"
+          style={{ borderColor: 'var(--if-border)', background: 'var(--if-bg)' }}
+        >
+          <h2 className="font-semibold" style={{ color: 'var(--if-text)' }}>
+            Example: create &amp; send invoice
+          </h2>
+          <pre
+            className="mt-3 overflow-x-auto rounded-xl p-4 text-xs"
+            style={{ background: 'var(--if-text)', color: 'var(--if-bg)' }}
+          >{`# 1. Create invoice
 POST ${API_BASE}/invoices
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -95,28 +139,48 @@ Content-Type: application/json
 # 2. Send to client (requires client email)
 POST ${API_BASE}/invoices/{id}/send
 Authorization: Bearer <token>`}</pre>
-      </section>
+        </section>
 
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold">Webhooks (outbound)</h2>
-        <p className="mt-2 text-sm text-slate-600">
-          For event-driven integrations without polling, configure a webhook URL in Settings → Integrations.
-          See the <Link href="/help/integrations" className="text-indigo-600 hover:underline">Zapier &amp; webhooks guide</Link>.
-        </p>
-      </section>
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--if-text)' }}>
+            Webhooks (outbound)
+          </h2>
+          <p className="mt-2 text-sm" style={{ color: 'var(--if-muted)' }}>
+            For event-driven integrations without polling, configure a webhook URL in Settings → Integrations.
+            See the{' '}
+            <Link href="/help/integrations" className={linkClass} style={{ color: 'var(--if-accent-dark)' }}>
+              Zapier &amp; webhooks guide
+            </Link>
+            .
+          </p>
+        </section>
 
-      <section className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-6">
-        <h2 className="font-semibold text-amber-900">Business tier</h2>
-        <p className="mt-2 text-sm text-amber-800">
-          Higher API rate limits and dedicated API keys are on the roadmap for Business plan customers.
-          Contact <a href="mailto:support@invoiceflow.app" className="underline">support@invoiceflow.app</a> for early access.
-        </p>
-      </section>
+        <section
+          className="mt-8 rounded-xl border p-6"
+          style={{ borderColor: 'var(--if-border)', background: 'var(--if-warning-soft)' }}
+        >
+          <h2 className="font-semibold" style={{ color: 'var(--if-warning)' }}>
+            Business tier
+          </h2>
+          <p className="mt-2 text-sm" style={{ color: 'var(--if-text)' }}>
+            Higher API rate limits and dedicated API keys are on the roadmap for Business plan customers.
+            Contact{' '}
+            <a href="mailto:support@invoiceflow.app" className="underline" style={{ color: 'var(--if-accent-dark)' }}>
+              support@invoiceflow.app
+            </a>{' '}
+            for early access.
+          </p>
+        </section>
 
-      <div className="mt-10 flex flex-wrap gap-4 text-sm">
-        <Link href="/app/login" className="text-indigo-600 hover:underline">Sign in to get a token</Link>
-        <Link href="/help/integrations" className="text-indigo-600 hover:underline">Webhook events</Link>
+        <div className="mt-10 flex flex-wrap gap-4 text-sm" style={{ color: 'var(--if-accent-dark)' }}>
+          <Link href="/app/login" className={linkClass}>
+            Sign in to get a token
+          </Link>
+          <Link href="/help/integrations" className={linkClass}>
+            Webhook events
+          </Link>
+        </div>
       </div>
-    </div>
+    </MarketingShell>
   );
 }

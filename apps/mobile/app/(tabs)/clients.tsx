@@ -113,7 +113,7 @@ export default function ClientsScreen() {
           onRefresh={() => { setRefreshing(true); load(search); }}
           ListEmptyComponent={
             <EmptyState
-              icon="people-outline"
+              illustration="empty-clients.svg"
               title="No clients yet"
               message="Add clients manually or import from your contacts."
               actionLabel="Add Client"

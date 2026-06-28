@@ -6,6 +6,8 @@ import { invoicesApi, type Invoice } from '@/lib/appApi';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { StatusBadge } from '@/components/app/StatusBadge';
 import { EmptyState } from '@/components/app/EmptyState';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Card } from '@/components/ui/Card';
 import { useAppLocale } from '@/lib/i18n/AppLocaleContext';
 import type { AppTranslationKey } from '@/lib/i18n/app/en';
 
@@ -35,27 +37,27 @@ export default function InvoicesPage() {
   }, [filter]);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">{t('invoicesTitle')}</h1>
-          <p className="text-slate-500">{invoices.length} {t('documents')}</p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/app/invoices/new?type=CREDIT_NOTE" className="if-btn-secondary">+ {t('newCreditNote')}</Link>
-          <Link href="/app/invoices/new?type=ESTIMATE" className="if-btn-secondary">+ {t('newEstimate')}</Link>
-          <Link href="/app/invoices/new" className="if-btn-primary">+ {t('newInvoiceShort')}</Link>
-        </div>
-      </div>
+    <div className="mx-auto max-w-6xl animate-fade-in">
+      <PageHeader
+        title={t('invoicesTitle')}
+        subtitle={`${invoices.length} ${t('documents')}`}
+        actions={
+          <>
+            <Link href="/app/invoices/new?type=CREDIT_NOTE" className="if-btn-secondary">+ {t('newCreditNote')}</Link>
+            <Link href="/app/invoices/new?type=ESTIMATE" className="if-btn-secondary">+ {t('newEstimate')}</Link>
+            <Link href="/app/invoices/new" className="if-btn-primary">+ {t('newInvoiceShort')}</Link>
+          </>
+        }
+      />
 
-      <div className="flex flex-wrap gap-2">
+      <div className="mb-6 flex flex-wrap gap-2">
         {FILTER_KEYS.map((f) => (
           <button
             key={f.key}
             type="button"
             onClick={() => setFilter(f.key)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium ${
-              filter === f.key ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+              filter === f.key ? 'if-btn-primary !py-1.5 !px-4' : 'if-btn-secondary !py-1.5 !px-4'
             }`}
           >
             {t(f.labelKey)}
@@ -64,21 +66,22 @@ export default function InvoicesPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-500">{t('loading')}</p>
+        <p className="text-sm" style={{ color: 'var(--if-muted)' }}>{t('loading')}</p>
       ) : invoices.length === 0 ? (
         <EmptyState
+          illustration="/illustrations/empty-invoices.svg"
           title={t('noInvoices')}
           description={t('noInvoicesHint')}
           action={
-            <Link href="/app/invoices/new" className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">
+            <Link href="/app/invoices/new" className="if-btn-primary">
               {t('createInvoice')}
             </Link>
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <Card padding={false} className="overflow-hidden">
           <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-left text-slate-500">
+            <thead className="text-left" style={{ background: 'var(--if-bg)', color: 'var(--if-muted)' }}>
               <tr>
                 <th className="px-4 py-3 font-semibold">Number</th>
                 <th className="px-4 py-3 font-semibold">Client</th>
@@ -88,24 +91,24 @@ export default function InvoicesPage() {
                 <th className="px-4 py-3 text-right font-semibold">Amount</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y" style={{ borderColor: 'var(--if-border)' }}>
               {invoices.map((inv) => (
-                <tr key={inv.id} className="hover:bg-slate-50">
+                <tr key={inv.id} className="transition hover:bg-[var(--if-bg)]">
                   <td className="px-4 py-3">
-                    <Link href={`/app/invoices/${inv.id}`} className="font-medium text-indigo-600 hover:underline">
+                    <Link href={`/app/invoices/${inv.id}`} className="font-medium hover:underline" style={{ color: 'var(--if-accent-dark)' }}>
                       {inv.documentNumber}
                     </Link>
                   </td>
                   <td className="px-4 py-3">{inv.client?.name || '—'}</td>
-                  <td className="px-4 py-3 text-slate-500">{inv.documentType.replace('_', ' ')}</td>
-                  <td className="px-4 py-3 text-slate-500">{formatDate(inv.issueDate)}</td>
+                  <td className="px-4 py-3" style={{ color: 'var(--if-muted)' }}>{inv.documentType.replace('_', ' ')}</td>
+                  <td className="px-4 py-3" style={{ color: 'var(--if-muted)' }}>{formatDate(inv.issueDate)}</td>
                   <td className="px-4 py-3"><StatusBadge status={inv.status} /></td>
-                  <td className="px-4 py-3 text-right font-semibold">{formatCurrency(inv.total, inv.currency)}</td>
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatCurrency(inv.total, inv.currency)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
     </div>
   );

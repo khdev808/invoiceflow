@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { notificationsApi, type Notification } from '@/lib/appApi';
 import { formatDateTime } from '@/lib/format';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/app/EmptyState';
 
 export default function NotificationsPage() {
   const [items, setItems] = useState<Notification[]>([]);
@@ -14,26 +17,32 @@ export default function NotificationsPage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Notifications</h1>
-        <p className="text-slate-500">Payment alerts, overdue reminders, and client activity</p>
-      </div>
+    <div className="mx-auto max-w-3xl animate-fade-in">
+      <PageHeader
+        title="Notifications"
+        subtitle="Payment alerts, overdue reminders, and client activity"
+      />
 
-      {loading ? <p className="text-sm text-slate-500">Loading…</p> : items.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
-          No notifications yet.
-        </p>
+      {loading ? (
+        <p className="text-sm" style={{ color: 'var(--if-muted)' }}>Loading…</p>
+      ) : items.length === 0 ? (
+        <EmptyState
+          illustration="/illustrations/success-invoice.svg"
+          title="No notifications yet"
+          description="When clients pay invoices or documents become overdue, alerts will appear here."
+        />
       ) : (
-        <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          {items.map((n) => (
-            <div key={n.id} className={`px-6 py-4 ${!n.read ? 'bg-indigo-50/50' : ''}`}>
-              <p className="font-medium">{n.title}</p>
-              <p className="mt-1 text-sm text-slate-600">{n.body}</p>
-              <p className="mt-2 text-xs text-slate-400">{formatDateTime(n.createdAt)}</p>
-            </div>
-          ))}
-        </div>
+        <Card padding={false} className="overflow-hidden">
+          <div className="divide-y" style={{ borderColor: 'var(--if-border)' }}>
+            {items.map((n) => (
+              <div key={n.id} className="px-6 py-4" style={{ background: !n.read ? 'var(--if-accent-soft)' : undefined }}>
+                <p className="font-medium">{n.title}</p>
+                <p className="mt-1 text-sm" style={{ color: 'var(--if-muted)' }}>{n.body}</p>
+                <p className="mt-2 text-xs" style={{ color: 'var(--if-muted)' }}>{formatDateTime(n.createdAt)}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
       )}
     </div>
   );

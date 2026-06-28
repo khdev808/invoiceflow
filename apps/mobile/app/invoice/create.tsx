@@ -25,6 +25,12 @@ interface LineItem {
   discount: string;
 }
 
+const STEPS = [
+  { id: 1, label: 'Client & dates' },
+  { id: 2, label: 'Line items' },
+  { id: 3, label: 'Review & send' },
+] as const;
+
 export default function CreateInvoiceScreen() {
   const { type, clientId: paramClientId, prefilled } = useLocalSearchParams<{ type?: string; clientId?: string; prefilled?: string }>();
   const { colors } = useTheme();
@@ -35,6 +41,8 @@ export default function CreateInvoiceScreen() {
   const defaultTax = String(user?.settings?.defaultTaxRate ?? 0);
   const docType = type === 'ESTIMATE' ? 'ESTIMATE' : type === 'CREDIT_NOTE' ? 'CREDIT_NOTE' : 'INVOICE';
 
+  const [step, setStep] = useState(1);
+  const [stepError, setStepError] = useState('');
   const [clients, setClients] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -92,7 +100,7 @@ export default function CreateInvoiceScreen() {
   }, [prefilled, defaultTax]);
 
   const selectedClient = clients.find((c) => c.id === clientId);
-
+  const validItems = useMemo(() => lineItems.filter((i) => i.description && i.unitPrice), [lineItems]);
   const totals = useMemo(() => calcLineTotals(lineItems, docType === 'CREDIT_NOTE'), [lineItems, docType]);
 
   const addProductLine = (product: any) => {
@@ -120,7 +128,7 @@ export default function CreateInvoiceScreen() {
     return d.toISOString();
   };
 
-  const buildPayload = (validItems: LineItem[]) => ({
+  const buildPayload = (items: LineItem[]) => ({
     clientId,
     documentType: docType,
     currency,
@@ -133,7 +141,7 @@ export default function CreateInvoiceScreen() {
     depositAmount: depositMode === 'flat' && depositAmount ? parseFloat(depositAmount) : undefined,
     recurringRule: recurring || undefined,
     linkedInvoiceId: linkedInvoiceId || undefined,
-    lineItems: validItems.map((i) => ({
+    lineItems: items.map((i) => ({
       description: i.description,
       quantity: parseFloat(i.quantity),
       unitPrice: parseFloat(i.unitPrice),
@@ -142,7 +150,7 @@ export default function CreateInvoiceScreen() {
     })),
   });
 
-  const buildPreviewInvoice = (validItems: LineItem[]) => ({
+  const buildPreviewInvoice = (items: LineItem[]) => ({
     documentType: docType,
     documentNumber: 'PREVIEW',
     issueDate: new Date(),
@@ -156,7 +164,7 @@ export default function CreateInvoiceScreen() {
     depositPercent: depositMode === 'percent' && depositPercent ? parseFloat(depositPercent) : null,
     depositAmount: depositMode === 'flat' && depositAmount ? parseFloat(depositAmount) : null,
     client: selectedClient || { name: 'Client' },
-    lineItems: validItems.map((i) => {
+    lineItems: items.map((i) => {
       const qty = parseFloat(i.quantity || '0');
       const price = parseFloat(i.unitPrice || '0');
       const disc = parseFloat(i.discount || '0');
@@ -168,8 +176,36 @@ export default function CreateInvoiceScreen() {
     user,
   });
 
+  const validateStep = (currentStep: number) => {
+    if (currentStep === 1 && !clientId) {
+      setStepError(t('selectClient'));
+      return false;
+    }
+    if (currentStep === 2 && validItems.length === 0) {
+      setStepError(t('addLineItemRequired'));
+      return false;
+    }
+    setStepError('');
+    return true;
+  };
+
+  const goNext = () => {
+    if (!validateStep(step)) return;
+    setStep((s) => Math.min(s + 1, 3));
+  };
+
+  const goBack = () => {
+    setStepError('');
+    setStep((s) => Math.max(s - 1, 1));
+  };
+
+  const goToStep = (target: number) => {
+    if (target >= step) return;
+    setStepError('');
+    setStep(target);
+  };
+
   const handlePreviewPdf = async () => {
-    const validItems = lineItems.filter((i) => i.description && i.unitPrice);
     if (validItems.length === 0) {
       Alert.alert(t('error'), t('addLineItemRequired'));
       return;
@@ -182,9 +218,8 @@ export default function CreateInvoiceScreen() {
   };
 
   const handleSave = async (send = false) => {
-    if (!clientId) { Alert.alert(t('error'), t('selectClient')); return; }
-    const validItems = lineItems.filter((i) => i.description && i.unitPrice);
-    if (validItems.length === 0) { Alert.alert(t('error'), t('addLineItemRequired')); return; }
+    if (!validateStep(1)) { setStep(1); return; }
+    if (!validateStep(2)) { setStep(2); return; }
 
     setLoading(true);
     const payload = buildPayload(validItems);
@@ -220,185 +255,296 @@ export default function CreateInvoiceScreen() {
   const styles = makeStyles(colors);
   const screenTitle = docType === 'ESTIMATE' ? t('newEstimate') : docType === 'CREDIT_NOTE' ? t('newCreditNote') : t('newInvoice');
   const tplName = templates.find((x) => x.id === templateId)?.name;
+  const dueDateLabel = new Date(buildDueDate()).toLocaleDateString(lang);
 
   return (
     <>
       <Stack.Screen options={{ title: screenTitle }} />
       <PaywallModal visible={paywall} onClose={() => setPaywall(false)} reason="general" />
-      <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-        <View style={styles.modeRow}>
-          <Text style={[styles.modeLabel, { color: colors.text }]}>{t('simpleMode')}</Text>
-          <Switch value={advancedMode} onValueChange={setAdvancedMode} trackColor={{ true: colors.primary }} />
-          <Text style={[styles.modeLabel, { color: colors.text }]}>{t('advancedMode')}</Text>
-        </View>
-
-        <Text style={styles.label}>{t('client')}</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clientList}>
-          {clients.map((c) => (
-            <TouchableOpacity key={c.id} style={[styles.clientChip, clientId === c.id && styles.clientChipActive]} onPress={() => setClientId(c.id)}>
-              <Text style={[styles.clientChipText, clientId === c.id && styles.clientChipTextActive]}>{c.name}</Text>
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity style={styles.addClientChip} onPress={() => router.push('/client/create')}>
-            <Ionicons name="add" size={18} color={colors.primary} />
-          </TouchableOpacity>
-        </ScrollView>
-
-        <TemplatePicker
-          selected={templateId}
-          onSelect={setTemplateId}
-          onPremiumRequired={() => setPaywall(true)}
-          isPro={isPro}
-        />
-
-        {docType === 'CREDIT_NOTE' && invoices.length > 0 && (
-          <>
-            <Text style={styles.label}>{t('linkToInvoice')}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clientList}>
-              <TouchableOpacity style={[styles.clientChip, !linkedInvoiceId && styles.clientChipActive]} onPress={() => setLinkedInvoiceId('')}>
-                <Text style={[styles.clientChipText, !linkedInvoiceId && styles.clientChipTextActive]}>—</Text>
-              </TouchableOpacity>
-              {invoices.map((inv) => (
-                <TouchableOpacity key={inv.id} style={[styles.clientChip, linkedInvoiceId === inv.id && styles.clientChipActive]} onPress={() => setLinkedInvoiceId(inv.id)}>
-                  <Text style={[styles.clientChipText, linkedInvoiceId === inv.id && styles.clientChipTextActive]}>{inv.documentNumber}</Text>
+      <View style={styles.root}>
+        <ScrollView style={styles.container} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent}>
+          <View style={styles.stepper}>
+            {STEPS.map((s, i) => (
+              <View key={s.id} style={styles.stepGroup}>
+                <TouchableOpacity
+                  style={styles.stepBtn}
+                  onPress={() => goToStep(s.id)}
+                  disabled={s.id > step}
+                  activeOpacity={s.id < step ? 0.7 : 1}
+                >
+                  <View style={[styles.stepCircle, step >= s.id && styles.stepCircleActive]}>
+                    <Text style={[styles.stepNum, step >= s.id && styles.stepNumActive]}>{s.id}</Text>
+                  </View>
+                  <Text style={[styles.stepLabel, step >= s.id && styles.stepLabelActive]} numberOfLines={1}>{s.label}</Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </>
-        )}
+                {i < STEPS.length - 1 ? (
+                  <View style={[styles.stepLine, step > s.id && styles.stepLineActive]} />
+                ) : null}
+              </View>
+            ))}
+          </View>
 
-        {products.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>{t('quickAddCatalog')}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.md }}>
-              {products.slice(0, 8).map((p) => (
-                <TouchableOpacity key={p.id} style={styles.productChip} onPress={() => addProductLine(p)}>
-                  <Text style={styles.productChipText}>{p.name}</Text>
-                  <Text style={styles.productPrice}>{formatCurrency(p.unitPrice, currency, lang)}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </>
-        )}
-
-        <Text style={styles.sectionTitle}>{t('lineItems')}</Text>
-        {lineItems.map((item, index) => (
-          <View key={index} style={styles.lineCard}>
-            <View style={styles.lineHeader}>
-              <Text style={[styles.lineNum, { color: colors.textMuted }]}>#{index + 1}</Text>
-              {lineItems.length > 1 && (
-                <TouchableOpacity onPress={() => removeLine(index)}>
-                  <Text style={{ color: colors.danger, fontSize: 13, fontWeight: '600' }}>{t('removeLine')}</Text>
-                </TouchableOpacity>
-              )}
+          {stepError ? (
+            <View style={[styles.errorBox, { backgroundColor: colors.dangerSoft }]}>
+              <Text style={{ color: colors.danger, fontSize: 13, fontWeight: '600' }}>{stepError}</Text>
             </View>
-            <TextInput style={styles.input} placeholder={t('description')} placeholderTextColor={colors.textMuted} value={item.description} onChangeText={(v) => updateLine(index, 'description', v)} />
-            <View style={styles.lineRow}>
-              <View style={styles.lineField}><Text style={styles.fieldLabel}>{t('qty')}</Text><TextInput style={styles.smallInput} value={item.quantity} onChangeText={(v) => updateLine(index, 'quantity', v)} keyboardType="decimal-pad" /></View>
-              <View style={styles.lineField}><Text style={styles.fieldLabel}>{t('price')}</Text><TextInput style={styles.smallInput} value={item.unitPrice} onChangeText={(v) => updateLine(index, 'unitPrice', v)} keyboardType="decimal-pad" placeholder="0.00" /></View>
-              {advancedMode && (
+          ) : null}
+
+          {step === 1 ? (
+            <>
+              <View style={styles.modeRow}>
+                <Text style={[styles.modeLabel, { color: colors.text }]}>{t('simpleMode')}</Text>
+                <Switch value={advancedMode} onValueChange={setAdvancedMode} trackColor={{ true: colors.primary }} />
+                <Text style={[styles.modeLabel, { color: colors.text }]}>{t('advancedMode')}</Text>
+              </View>
+
+              <Text style={styles.label}>{t('client')}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clientList}>
+                {clients.map((c) => (
+                  <TouchableOpacity key={c.id} style={[styles.clientChip, clientId === c.id && styles.clientChipActive]} onPress={() => setClientId(c.id)}>
+                    <Text style={[styles.clientChipText, clientId === c.id && styles.clientChipTextActive]}>{c.name}</Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity style={styles.addClientChip} onPress={() => router.push('/client/create')}>
+                  <Ionicons name="add" size={18} color={colors.primary} />
+                </TouchableOpacity>
+              </ScrollView>
+
+              <TemplatePicker
+                selected={templateId}
+                onSelect={setTemplateId}
+                onPremiumRequired={() => setPaywall(true)}
+                isPro={isPro}
+              />
+
+              {docType === 'CREDIT_NOTE' && invoices.length > 0 && (
                 <>
-                  <View style={styles.lineField}><Text style={styles.fieldLabel}>{t('tax')}</Text><TextInput style={styles.smallInput} value={item.taxRate} onChangeText={(v) => updateLine(index, 'taxRate', v)} keyboardType="decimal-pad" /></View>
-                  <View style={styles.lineField}><Text style={styles.fieldLabel}>{t('discount')}</Text><TextInput style={styles.smallInput} value={item.discount} onChangeText={(v) => updateLine(index, 'discount', v)} keyboardType="decimal-pad" /></View>
+                  <Text style={styles.label}>{t('linkToInvoice')}</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clientList}>
+                    <TouchableOpacity style={[styles.clientChip, !linkedInvoiceId && styles.clientChipActive]} onPress={() => setLinkedInvoiceId('')}>
+                      <Text style={[styles.clientChipText, !linkedInvoiceId && styles.clientChipTextActive]}>—</Text>
+                    </TouchableOpacity>
+                    {invoices.map((inv) => (
+                      <TouchableOpacity key={inv.id} style={[styles.clientChip, linkedInvoiceId === inv.id && styles.clientChipActive]} onPress={() => setLinkedInvoiceId(inv.id)}>
+                        <Text style={[styles.clientChipText, linkedInvoiceId === inv.id && styles.clientChipTextActive]}>{inv.documentNumber}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
                 </>
               )}
-            </View>
-          </View>
-        ))}
 
-        <TouchableOpacity style={styles.addLineBtn} onPress={addLine}>
-          <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-          <Text style={styles.addLineText}>{t('addLineItem')}</Text>
-        </TouchableOpacity>
+              {docType === 'INVOICE' && (
+                <>
+                  <Text style={styles.label}>{t('paymentTerms')}</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.md }}>
+                    {paymentTermOptions.map((opt) => (
+                      <TouchableOpacity key={opt.days} style={[styles.freqChip, paymentTermDays === opt.days && styles.freqActive]} onPress={() => setPaymentTermDays(opt.days)}>
+                        <Text style={[styles.freqText, paymentTermDays === opt.days && styles.freqTextActive]}>{opt.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                  <Text style={[styles.hint, { color: colors.textMuted }]}>Due {dueDateLabel}</Text>
+                </>
+              )}
+            </>
+          ) : null}
 
-        {advancedMode && (
-          <>
-            <Text style={styles.label}>{t('paymentTerms')}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.md }}>
-              {paymentTermOptions.map((opt) => (
-                <TouchableOpacity key={opt.days} style={[styles.freqChip, paymentTermDays === opt.days && styles.freqActive]} onPress={() => setPaymentTermDays(opt.days)}>
-                  <Text style={[styles.freqText, paymentTermDays === opt.days && styles.freqTextActive]}>{opt.label}</Text>
-                </TouchableOpacity>
+          {step === 2 ? (
+            <>
+              {products.length > 0 && (
+                <>
+                  <Text style={styles.sectionTitle}>{t('quickAddCatalog')}</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.md }}>
+                    {products.slice(0, 8).map((p) => (
+                      <TouchableOpacity key={p.id} style={styles.productChip} onPress={() => addProductLine(p)}>
+                        <Text style={styles.productChipText}>{p.name}</Text>
+                        <Text style={styles.productPrice}>{formatCurrency(p.unitPrice, currency, lang)}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </>
+              )}
+
+              <Text style={styles.sectionTitle}>{t('lineItems')}</Text>
+              {lineItems.map((item, index) => (
+                <View key={index} style={styles.lineCard}>
+                  <View style={styles.lineHeader}>
+                    <Text style={[styles.lineNum, { color: colors.textMuted }]}>#{index + 1}</Text>
+                    {lineItems.length > 1 && (
+                      <TouchableOpacity onPress={() => removeLine(index)}>
+                        <Text style={{ color: colors.danger, fontSize: 13, fontWeight: '600' }}>{t('removeLine')}</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <TextInput style={styles.input} placeholder={t('description')} placeholderTextColor={colors.textMuted} value={item.description} onChangeText={(v) => updateLine(index, 'description', v)} />
+                  <View style={styles.lineRow}>
+                    <View style={styles.lineField}><Text style={styles.fieldLabel}>{t('qty')}</Text><TextInput style={styles.smallInput} value={item.quantity} onChangeText={(v) => updateLine(index, 'quantity', v)} keyboardType="decimal-pad" /></View>
+                    <View style={styles.lineField}><Text style={styles.fieldLabel}>{t('price')}</Text><TextInput style={styles.smallInput} value={item.unitPrice} onChangeText={(v) => updateLine(index, 'unitPrice', v)} keyboardType="decimal-pad" placeholder="0.00" /></View>
+                    {advancedMode && (
+                      <>
+                        <View style={styles.lineField}><Text style={styles.fieldLabel}>{t('tax')}</Text><TextInput style={styles.smallInput} value={item.taxRate} onChangeText={(v) => updateLine(index, 'taxRate', v)} keyboardType="decimal-pad" /></View>
+                        <View style={styles.lineField}><Text style={styles.fieldLabel}>{t('discount')}</Text><TextInput style={styles.smallInput} value={item.discount} onChangeText={(v) => updateLine(index, 'discount', v)} keyboardType="decimal-pad" /></View>
+                      </>
+                    )}
+                  </View>
+                </View>
               ))}
-            </ScrollView>
 
-            <Text style={styles.label}>{t('depositRequest')}</Text>
-            <View style={styles.depositModeRow}>
-              <TouchableOpacity style={[styles.freqChip, depositMode === 'percent' && styles.freqActive]} onPress={() => setDepositMode('percent')}>
-                <Text style={[styles.freqText, depositMode === 'percent' && styles.freqTextActive]}>{t('percentDeposit')}</Text>
+              <TouchableOpacity style={styles.addLineBtn} onPress={addLine}>
+                <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+                <Text style={styles.addLineText}>{t('addLineItem')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.freqChip, depositMode === 'flat' && styles.freqActive]} onPress={() => setDepositMode('flat')}>
-                <Text style={[styles.freqText, depositMode === 'flat' && styles.freqTextActive]}>{t('flatDeposit')}</Text>
-              </TouchableOpacity>
-            </View>
-            {depositMode === 'percent' ? (
-              <TextInput style={styles.input} value={depositPercent} onChangeText={setDepositPercent} keyboardType="decimal-pad" placeholder={t('depositPlaceholder')} placeholderTextColor={colors.textMuted} />
-            ) : (
-              <TextInput style={styles.input} value={depositAmount} onChangeText={setDepositAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.textMuted} />
-            )}
+            </>
+          ) : null}
 
-            {docType === 'INVOICE' && (
-              <>
-                <Text style={styles.label}>{t('recurringSchedule')}</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }}>
-                  {['', 'weekly', 'monthly', 'quarterly', 'yearly'].map((f) => (
-                    <TouchableOpacity key={f || 'none'} style={[styles.freqChip, recurring === f && styles.freqActive]} onPress={() => setRecurring(f)}>
-                      <Text style={[styles.freqText, recurring === f && styles.freqTextActive]}>{f === '' ? t('oneTime') : t(f as 'weekly' | 'monthly' | 'quarterly' | 'yearly')}</Text>
+          {step === 3 ? (
+            <>
+              <View style={[styles.reviewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={styles.sectionTitle}>Summary</Text>
+                <View style={styles.reviewRow}>
+                  <Text style={[styles.reviewLabel, { color: colors.textMuted }]}>{t('client')}</Text>
+                  <Text style={[styles.reviewValue, { color: colors.text }]}>{selectedClient?.name || '—'}</Text>
+                </View>
+                <View style={styles.reviewRow}>
+                  <Text style={[styles.reviewLabel, { color: colors.textMuted }]}>Document</Text>
+                  <Text style={[styles.reviewValue, { color: colors.text }]}>{docType.replace('_', ' ')}</Text>
+                </View>
+                {docType === 'INVOICE' ? (
+                  <View style={styles.reviewRow}>
+                    <Text style={[styles.reviewLabel, { color: colors.textMuted }]}>{t('paymentTerms')}</Text>
+                    <Text style={[styles.reviewValue, { color: colors.text }]}>{dueDateLabel}</Text>
+                  </View>
+                ) : null}
+                <View style={[styles.reviewDivider, { borderTopColor: colors.border }]}>
+                  <Text style={[styles.reviewLabel, { color: colors.textMuted, marginBottom: spacing.sm }]}>
+                    Line items ({validItems.length})
+                  </Text>
+                  {validItems.map((item, idx) => {
+                    const qty = parseFloat(item.quantity || '0');
+                    const price = parseFloat(item.unitPrice || '0');
+                    const lineTotal = qty * price;
+                    return (
+                      <View key={idx} style={styles.reviewLineItem}>
+                        <Text style={[styles.reviewLineDesc, { color: colors.text }]} numberOfLines={1}>{item.description}</Text>
+                        <Text style={[styles.reviewLineAmt, { color: colors.text }]}>{formatCurrency(lineTotal, currency, lang)}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {advancedMode && (
+                <>
+                  <Text style={styles.label}>{t('depositRequest')}</Text>
+                  <View style={styles.depositModeRow}>
+                    <TouchableOpacity style={[styles.freqChip, depositMode === 'percent' && styles.freqActive]} onPress={() => setDepositMode('percent')}>
+                      <Text style={[styles.freqText, depositMode === 'percent' && styles.freqTextActive]}>{t('percentDeposit')}</Text>
                     </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </>
+                    <TouchableOpacity style={[styles.freqChip, depositMode === 'flat' && styles.freqActive]} onPress={() => setDepositMode('flat')}>
+                      <Text style={[styles.freqText, depositMode === 'flat' && styles.freqTextActive]}>{t('flatDeposit')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {depositMode === 'percent' ? (
+                    <TextInput style={styles.input} value={depositPercent} onChangeText={setDepositPercent} keyboardType="decimal-pad" placeholder={t('depositPlaceholder')} placeholderTextColor={colors.textMuted} />
+                  ) : (
+                    <TextInput style={styles.input} value={depositAmount} onChangeText={setDepositAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.textMuted} />
+                  )}
+
+                  {docType === 'INVOICE' && (
+                    <>
+                      <Text style={styles.label}>{t('recurringSchedule')}</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }}>
+                        {['', 'weekly', 'monthly', 'quarterly', 'yearly'].map((f) => (
+                          <TouchableOpacity key={f || 'none'} style={[styles.freqChip, recurring === f && styles.freqActive]} onPress={() => setRecurring(f)}>
+                            <Text style={[styles.freqText, recurring === f && styles.freqTextActive]}>{f === '' ? t('oneTime') : t(f as 'weekly' | 'monthly' | 'quarterly' | 'yearly')}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </>
+                  )}
+
+                  <TouchableOpacity style={styles.sigToggle} onPress={() => setShowSignature(!showSignature)}>
+                    <Ionicons name="create-outline" size={20} color={colors.primary} />
+                    <Text style={styles.sigToggleText}>{signature ? t('signatureAdded') : t('addSignature')}</Text>
+                  </TouchableOpacity>
+                  {showSignature && <SignaturePad onSave={(s) => { setSignature(s); setShowSignature(false); }} />}
+
+                  <Text style={styles.label}>{t('termsLabel')}</Text>
+                  <TextInput style={[styles.input, styles.notes]} value={terms} onChangeText={setTerms} multiline placeholder="Net 30. Late payments subject to 5% fee." placeholderTextColor={colors.textMuted} />
+                </>
+              )}
+
+              <Text style={styles.label}>{t('notes')}</Text>
+              <TextInput style={[styles.input, styles.notes]} value={notes} onChangeText={setNotes} multiline placeholder={t('notesPlaceholder')} placeholderTextColor={colors.textMuted} />
+
+              <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                {advancedMode && totals.discountTotal > 0 && <View style={styles.summaryRow}><Text style={{ color: colors.textSecondary }}>Discount</Text><Text>{formatCurrency(totals.discountTotal, currency, lang)}</Text></View>}
+                {advancedMode && totals.taxTotal > 0 && <View style={styles.summaryRow}><Text style={{ color: colors.textSecondary }}>Tax</Text><Text>{formatCurrency(totals.taxTotal, currency, lang)}</Text></View>}
+                <View style={styles.totalRow}>
+                  <View>
+                    <Text style={styles.totalLabel}>{t('total')}</Text>
+                    {tplName && <Text style={{ fontSize: 12, color: colors.textMuted }}>{tplName} theme</Text>}
+                  </View>
+                  <Text style={[styles.totalValue, docType === 'CREDIT_NOTE' && { color: colors.danger }]}>{formatCurrency(totals.total, currency, lang)}</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity style={[styles.previewBtn, { borderColor: colors.primary }]} onPress={handlePreviewPdf}>
+                <Ionicons name="document-outline" size={20} color={colors.primary} />
+                <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('previewPdf')}</Text>
+              </TouchableOpacity>
+
+              <View style={styles.finalActions}>
+                <TouchableOpacity style={styles.saveBtn} onPress={() => handleSave(false)} disabled={loading}>
+                  <Text style={styles.saveBtnText}>{t('saveDraft')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.sendBtn} onPress={() => handleSave(true)} disabled={loading}>
+                  {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendBtnText}>{t('saveAndSend')}</Text>}
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : null}
+        </ScrollView>
+
+        {step < 3 ? (
+          <View style={[styles.navBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+            {step > 1 ? (
+              <TouchableOpacity style={[styles.navBtn, styles.navBack, { borderColor: colors.border }]} onPress={goBack}>
+                <Text style={[styles.navBackText, { color: colors.textSecondary }]}>{t('back')}</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.navSpacer} />
             )}
-
-            <TouchableOpacity style={styles.sigToggle} onPress={() => setShowSignature(!showSignature)}>
-              <Ionicons name="create-outline" size={20} color={colors.primary} />
-              <Text style={styles.sigToggleText}>{signature ? t('signatureAdded') : t('addSignature')}</Text>
+            <TouchableOpacity style={[styles.navBtn, styles.navNext]} onPress={goNext}>
+              <Text style={styles.navNextText}>{t('next')}</Text>
             </TouchableOpacity>
-            {showSignature && <SignaturePad onSave={(s) => { setSignature(s); setShowSignature(false); }} />}
-
-            <Text style={styles.label}>{t('termsLabel')}</Text>
-            <TextInput style={[styles.input, styles.notes]} value={terms} onChangeText={setTerms} multiline placeholder="Net 30. Late payments subject to 5% fee." placeholderTextColor={colors.textMuted} />
-          </>
-        )}
-
-        <Text style={styles.label}>{t('notes')}</Text>
-        <TextInput style={[styles.input, styles.notes]} value={notes} onChangeText={setNotes} multiline placeholder={t('notesPlaceholder')} placeholderTextColor={colors.textMuted} />
-
-        <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          {advancedMode && totals.discountTotal > 0 && <View style={styles.summaryRow}><Text style={{ color: colors.textSecondary }}>Discount</Text><Text>{formatCurrency(totals.discountTotal, currency, lang)}</Text></View>}
-          {advancedMode && totals.taxTotal > 0 && <View style={styles.summaryRow}><Text style={{ color: colors.textSecondary }}>Tax</Text><Text>{formatCurrency(totals.taxTotal, currency, lang)}</Text></View>}
-          <View style={styles.totalRow}>
-            <View>
-              <Text style={styles.totalLabel}>{t('total')}</Text>
-              {tplName && <Text style={{ fontSize: 12, color: colors.textMuted }}>{tplName} theme</Text>}
-            </View>
-            <Text style={[styles.totalValue, docType === 'CREDIT_NOTE' && { color: colors.danger }]}>{formatCurrency(totals.total, currency, lang)}</Text>
           </View>
-        </View>
-
-        <TouchableOpacity style={[styles.previewBtn, { borderColor: colors.primary }]} onPress={handlePreviewPdf}>
-          <Ionicons name="document-outline" size={20} color={colors.primary} />
-          <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('previewPdf')}</Text>
-        </TouchableOpacity>
-
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.saveBtn} onPress={() => handleSave(false)} disabled={loading}>
-            <Text style={styles.saveBtnText}>{t('saveDraft')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.sendBtn} onPress={() => handleSave(true)} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendBtnText}>{t('saveAndSend')}</Text>}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+        ) : null}
+      </View>
     </>
   );
 }
 
 const makeStyles = (colors: any) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
+  root: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1 },
+  scrollContent: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.lg, gap: spacing.xs },
+  stepGroup: { flexDirection: 'row', alignItems: 'center' },
+  stepBtn: { alignItems: 'center', maxWidth: 88 },
+  stepCircle: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  stepCircleActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  stepNum: { fontSize: 14, fontWeight: '700', color: colors.textMuted },
+  stepNumActive: { color: '#fff' },
+  stepLabel: { fontSize: 10, fontWeight: '600', color: colors.textMuted, marginTop: 4, textAlign: 'center' },
+  stepLabelActive: { color: colors.text },
+  stepLine: { width: 20, height: 1, backgroundColor: colors.border, marginHorizontal: 4, marginBottom: 16 },
+  stepLineActive: { backgroundColor: colors.primary },
+  errorBox: { borderRadius: radius.md, padding: spacing.sm, marginBottom: spacing.md },
   modeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, marginBottom: spacing.md },
   modeLabel: { fontSize: 13, fontWeight: '600' },
   label: { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
+  hint: { fontSize: 12, marginBottom: spacing.md },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginTop: spacing.md, marginBottom: spacing.sm },
   clientList: { marginBottom: spacing.md },
   clientChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.full, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, marginRight: spacing.sm },
@@ -416,6 +562,14 @@ const makeStyles = (colors: any) => StyleSheet.create({
   smallInput: { backgroundColor: colors.surfaceAlt, borderRadius: radius.sm, padding: spacing.sm, fontSize: 14, color: colors.text, textAlign: 'center' },
   addLineBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
   addLineText: { color: colors.primary, fontWeight: '600' },
+  reviewCard: { borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, marginBottom: spacing.md },
+  reviewRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
+  reviewLabel: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
+  reviewValue: { fontSize: 14, fontWeight: '600', flexShrink: 1, textAlign: 'right', marginLeft: spacing.md },
+  reviewDivider: { borderTopWidth: 1, marginTop: spacing.sm, paddingTop: spacing.sm },
+  reviewLineItem: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm, paddingVertical: 2 },
+  reviewLineDesc: { flex: 1, fontSize: 14 },
+  reviewLineAmt: { fontSize: 14, fontWeight: '600' },
   notes: { minHeight: 80, textAlignVertical: 'top' },
   summaryCard: { borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, marginTop: spacing.md },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
@@ -423,7 +577,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
   totalLabel: { fontSize: 18, fontWeight: '700', color: colors.text },
   totalValue: { fontSize: 28, fontWeight: '800', color: colors.primary },
   previewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, marginTop: spacing.md },
-  actions: { flexDirection: 'row', gap: spacing.sm, marginVertical: spacing.lg, marginBottom: spacing.xxl },
+  finalActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg, marginBottom: spacing.lg },
   saveBtn: { flex: 1, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.primary, alignItems: 'center' },
   saveBtnText: { color: colors.primary, fontWeight: '700', fontSize: 16 },
   sendBtn: { flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center' },
@@ -438,4 +592,11 @@ const makeStyles = (colors: any) => StyleSheet.create({
   depositModeRow: { flexDirection: 'row', marginBottom: spacing.sm },
   sigToggle: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
   sigToggleText: { color: colors.primary, fontWeight: '600' },
+  navBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderTopWidth: 1, gap: spacing.sm },
+  navBtn: { paddingVertical: spacing.md, paddingHorizontal: spacing.xl, borderRadius: radius.md, minWidth: 120, alignItems: 'center' },
+  navBack: { borderWidth: 1 },
+  navBackText: { fontWeight: '700', fontSize: 16 },
+  navNext: { backgroundColor: colors.primary, marginLeft: 'auto' },
+  navNextText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  navSpacer: { minWidth: 120 },
 });

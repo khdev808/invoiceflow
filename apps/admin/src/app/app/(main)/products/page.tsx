@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { productsApi, type Product } from '@/lib/appApi';
 import { formatCurrency } from '@/lib/format';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/app/EmptyState';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -35,29 +38,39 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Products & services</h1>
-        <p className="text-slate-500">Save items you invoice often for faster line-item entry.</p>
-      </div>
+    <div className="mx-auto max-w-6xl animate-fade-in">
+      <PageHeader
+        title="Products & services"
+        subtitle="Save items you invoice often for faster line-item entry."
+      />
 
-      <form onSubmit={add} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:grid-cols-6">
-        <input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
-        <input type="number" step="0.01" required placeholder="Price" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-        <input type="number" step="0.01" placeholder="Tax %" value={form.taxRate} onChange={(e) => setForm({ ...form, taxRate: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-        <input placeholder="SKU" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-        <button type="submit" className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Add</button>
-      </form>
+      <Card className="mb-6">
+        <form onSubmit={add} className="grid gap-3 md:grid-cols-6">
+          <input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="if-input md:col-span-2" />
+          <input type="number" step="0.01" required placeholder="Price" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} className="if-input" />
+          <input type="number" step="0.01" placeholder="Tax %" value={form.taxRate} onChange={(e) => setForm({ ...form, taxRate: e.target.value })} className="if-input" />
+          <input placeholder="SKU" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="if-input" />
+          <button type="submit" className="if-btn-primary">Add</button>
+        </form>
+      </Card>
 
-      {loading ? <p className="text-sm text-slate-500">Loading…</p> : (
+      {loading ? (
+        <p className="text-sm" style={{ color: 'var(--if-muted)' }}>Loading…</p>
+      ) : products.length === 0 ? (
+        <EmptyState
+          illustration="/illustrations/empty-invoices.svg"
+          title="No products yet"
+          description="Add your first product or service to speed up invoice line-item entry."
+        />
+      ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {products.map((p) => (
-            <div key={p.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <Card key={p.id} className="!p-5">
               <p className="font-semibold">{p.name}</p>
-              {p.description ? <p className="mt-1 text-sm text-slate-500">{p.description}</p> : null}
-              <p className="mt-3 text-lg font-bold text-indigo-600">{formatCurrency(p.unitPrice)}</p>
-              <button type="button" onClick={() => remove(p.id)} className="mt-3 text-xs text-red-600">Delete</button>
-            </div>
+              {p.description ? <p className="mt-1 text-sm" style={{ color: 'var(--if-muted)' }}>{p.description}</p> : null}
+              <p className="mt-3 text-lg font-bold" style={{ color: 'var(--if-accent-dark)' }}>{formatCurrency(p.unitPrice)}</p>
+              <button type="button" onClick={() => remove(p.id)} className="if-btn-danger mt-3 py-1 text-xs">Delete</button>
+            </Card>
           ))}
         </div>
       )}

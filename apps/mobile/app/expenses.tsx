@@ -11,6 +11,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useI18n } from '@/hooks/useI18n';
 import { Screen } from '@/components/ui/Screen';
 import { IconButton } from '@/components/ui/IconButton';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { PaywallModal } from '@/components/PaywallModal';
 import { formatCurrency } from '@/lib/format';
 import { hapticLight } from '@/lib/haptics';
@@ -115,7 +116,13 @@ export default function ExpensesScreen() {
           refreshing={refreshing}
           onRefresh={() => { setRefreshing(true); load(); }}
           ListEmptyComponent={
-            <Text style={[styles.empty, { color: colors.textMuted }]}>{t('noExpenses')}</Text>
+            <EmptyState
+              illustration="empty-expenses.svg"
+              title={t('noExpenses')}
+              message="Track business expenses manually or scan receipts with Pro."
+              actionLabel={t('scanReceipt')}
+              onAction={scanReceipt}
+            />
           }
           renderItem={({ item }) => (
             <TouchableOpacity
@@ -154,6 +161,5 @@ function makeStyles(colors: any) {
     desc: { fontSize: 15, fontWeight: '600' },
     meta: { fontSize: 12, marginTop: 2 },
     amount: { fontSize: 16, fontWeight: '800' },
-    empty: { textAlign: 'center', marginTop: 40, fontSize: 15, lineHeight: 22 },
   });
 }

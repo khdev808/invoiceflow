@@ -1,6 +1,5 @@
 import { Pressable, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import { fonts, radius, shadows, spacing } from '@/constants/theme';
 import { hapticLight } from '@/lib/haptics';
@@ -57,31 +56,6 @@ export function Button({
     onPress();
   };
 
-  if (variant === 'primary') {
-    return (
-      <Pressable
-        onPress={handlePress}
-        disabled={disabled || loading}
-        style={({ pressed }) => [
-          fullWidth && styles.full,
-          shadows.primary,
-          pressed && !disabled && { opacity: 0.92, transform: [{ scale: 0.98 }] },
-          disabled && styles.disabled,
-          style,
-        ]}
-      >
-        <LinearGradient
-          colors={disabled ? [colors.textMuted, colors.textMuted] : [colors.gradientStart, colors.gradientMid, colors.gradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.base, sizeStyle.base, styles.gradientInner, fullWidth && styles.full]}
-        >
-          {content}
-        </LinearGradient>
-      </Pressable>
-    );
-  }
-
   return (
     <Pressable
       onPress={handlePress}
@@ -90,6 +64,7 @@ export function Button({
         styles.base,
         sizeStyle.base,
         { backgroundColor: v.bg, borderColor: v.border },
+        variant === 'primary' && !disabled && shadows.primary,
         fullWidth && styles.full,
         pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
         disabled && styles.disabled,
@@ -126,7 +101,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
   },
-  gradientInner: { borderWidth: 0 },
   full: { width: '100%' },
   disabled: { opacity: 0.45 },
   label: { letterSpacing: -0.2 },

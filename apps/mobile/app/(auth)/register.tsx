@@ -4,10 +4,13 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/contexts/ThemeContext';
+import { getIllustration } from '@/lib/illustrations';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { devLogAction } from '@/lib/devLog';
-import { fonts, layout, radius, shadows, spacing } from '@/constants/theme';
+import { fonts, layout, radius, spacing } from '@/constants/theme';
+
+const OnboardingIllustration = getIllustration('onboarding-1.svg');
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -52,9 +55,15 @@ export default function RegisterScreen() {
           <Ionicons name="chevron-back" size={22} color={colors.text} />
         </TouchableOpacity>
 
+        {OnboardingIllustration ? (
+          <View style={styles.illustrationWrap}>
+            <OnboardingIllustration width={180} height={144} />
+          </View>
+        ) : null}
+
         <Text variant="title">Create Account</Text>
         <Text variant="body" color="secondary" style={{ marginTop: 6, marginBottom: spacing.lg }}>
-          Start invoicing free — no credit card required
+          A permanent record for your business — free to start
         </Text>
 
         <View style={[styles.form, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -80,7 +89,7 @@ export default function RegisterScreen() {
             </View>
           ))}
 
-          <Button label="Create Free Account" onPress={handleRegister} loading={loading} fullWidth icon="rocket-outline" style={{ marginTop: spacing.lg }} />
+          <Button label="Create Free Account" onPress={handleRegister} loading={loading} fullWidth icon="person-add-outline" style={{ marginTop: spacing.lg }} />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -99,14 +108,18 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       justifyContent: 'center',
       marginBottom: spacing.lg,
     },
-    form: { borderRadius: radius.xl, padding: spacing.lg, borderWidth: 1, ...shadows.md },
+    illustrationWrap: {
+      alignItems: 'center',
+      marginBottom: spacing.lg,
+    },
+    form: { borderRadius: radius.xl, padding: spacing.lg, borderWidth: StyleSheet.hairlineWidth },
     input: {
       borderRadius: radius.md,
       paddingHorizontal: spacing.md,
       paddingVertical: 14,
       fontSize: 16,
       fontFamily: fonts.regular,
-      borderWidth: 1,
+      borderWidth: StyleSheet.hairlineWidth,
     },
     errorBox: { padding: spacing.md, borderRadius: radius.md, marginBottom: spacing.sm },
   });

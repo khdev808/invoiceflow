@@ -35,7 +35,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     usesCleartextTraffic: IS_DEV,
     permissions: ['CAMERA', 'READ_CONTACTS'],
     adaptiveIcon: {
-      backgroundColor: '#E6F4FE',
+      backgroundColor: '#FAF8F4',
       foregroundImage: './assets/images/android-icon-foreground.png',
       backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',
@@ -54,7 +54,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         image: './assets/images/splash-icon.png',
         resizeMode: 'contain',
-        backgroundColor: '#2563EB',
+        backgroundColor: '#FAF8F4',
       },
     ],
     'expo-secure-store',

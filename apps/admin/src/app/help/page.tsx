@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { MarketingShell } from '@/components/marketing/MarketingShell';
 
 const FAQ = [
   {
@@ -31,32 +32,55 @@ const FAQ = [
   },
 ];
 
+const linkClass = 'transition-colors hover:underline hover:text-[var(--if-accent-dark)]';
+
 export default function HelpPage() {
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16">
-      <Link href="/" className="text-sm text-indigo-600 hover:underline">← Home</Link>
-      <h1 className="mt-4 text-3xl font-bold">Help & FAQ</h1>
-      <p className="mt-2 text-slate-600">
-        Quick answers for InvoiceFlow. Need more help? Email{' '}
-        <a href="mailto:support@invoiceflow.app" className="text-indigo-600 hover:underline">support@invoiceflow.app</a>.
-      </p>
+    <MarketingShell>
+      <div className="mx-auto max-w-3xl px-6 py-16">
+        <Link href="/" className={`text-sm ${linkClass}`} style={{ color: 'var(--if-accent-dark)' }}>
+          ← Home
+        </Link>
+        <h1 className="if-page-title mt-4">Help & FAQ</h1>
+        <p className="if-subtitle">
+          Quick answers for InvoiceFlow. Need more help? Email{' '}
+          <a href="mailto:support@invoiceflow.app" className={linkClass} style={{ color: 'var(--if-accent-dark)' }}>
+            support@invoiceflow.app
+          </a>
+          .
+        </p>
 
-      <div className="mt-10 space-y-6">
-        {FAQ.map((item) => (
-          <div key={item.q} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="font-semibold text-slate-900">{item.q}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">{item.a}</p>
-          </div>
-        ))}
-      </div>
+        <div className="mt-10 space-y-6">
+          {FAQ.map((item) => (
+            <div key={item.q} className="if-card p-6">
+              <h2 className="font-semibold" style={{ color: 'var(--if-text)' }}>
+                {item.q}
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--if-muted)' }}>
+                {item.a}
+              </p>
+            </div>
+          ))}
+        </div>
 
-      <div className="mt-10 flex flex-wrap gap-4 text-sm">
-        <Link href="/app/login" className="text-indigo-600 hover:underline">Sign in to the app</Link>
-        <Link href="/help/integrations" className="text-indigo-600 hover:underline">Zapier & webhooks</Link>
-        <Link href="/help/api" className="text-indigo-600 hover:underline">REST API</Link>
-        <Link href="/privacy" className="text-indigo-600 hover:underline">Privacy policy</Link>
-        <Link href="/terms" className="text-indigo-600 hover:underline">Terms of service</Link>
+        <div className="mt-10 flex flex-wrap gap-4 text-sm" style={{ color: 'var(--if-accent-dark)' }}>
+          <Link href="/app/login" className={linkClass}>
+            Sign in to the app
+          </Link>
+          <Link href="/help/integrations" className={linkClass}>
+            Zapier & webhooks
+          </Link>
+          <Link href="/help/api" className={linkClass}>
+            REST API
+          </Link>
+          <Link href="/privacy" className={linkClass}>
+            Privacy policy
+          </Link>
+          <Link href="/terms" className={linkClass}>
+            Terms of service
+          </Link>
+        </div>
       </div>
-    </div>
+    </MarketingShell>
   );
 }

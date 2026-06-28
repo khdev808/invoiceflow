@@ -110,7 +110,7 @@ export default function InvoicesScreen() {
           onRefresh={() => { setRefreshing(true); load(); }}
           ListEmptyComponent={
             <EmptyState
-              icon="document-text-outline"
+              illustration="empty-invoices.svg"
               title="No invoices yet"
               message="Create your first invoice and get paid faster."
               actionLabel={t('createInvoice')}
