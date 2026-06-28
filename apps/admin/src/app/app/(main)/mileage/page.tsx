@@ -90,7 +90,7 @@ export default function MileagePage() {
         ].map((s) => (
           <div key={s.label} className="if-stat-card">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{s.label}</p>
-            <p className="mt-2 text-2xl font-bold text-indigo-600">{s.value}</p>
+            <p className="mt-2 text-2xl font-bold" style={{ color: 'var(--if-accent-dark)' }}>{s.value}</p>
           </div>
         ))}
       </div>
@@ -109,7 +109,7 @@ export default function MileagePage() {
             <Card key={e.id} className="flex flex-wrap items-center justify-between gap-3 !p-4">
               <label className="flex flex-1 cursor-pointer items-center gap-3">
                 {!e.invoiced ? (
-                  <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggle(e.id)} className="h-4 w-4 rounded border-slate-300 text-indigo-600" />
+                  <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggle(e.id)} className="h-4 w-4 rounded accent-[var(--if-accent)]" />
                 ) : null}
                 <div>
                   <p className="font-semibold">{e.description}</p>

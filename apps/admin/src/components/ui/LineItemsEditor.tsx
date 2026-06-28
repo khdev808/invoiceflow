@@ -31,7 +31,7 @@ export function LineItemsEditor({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-slate-800">{t('lineItems')}</h3>
-        <button type="button" onClick={add} className="text-sm font-semibold text-indigo-600 hover:underline">
+        <button type="button" onClick={add} className="text-sm font-semibold hover:underline" style={{ color: 'var(--if-accent-dark)' }}>
           + {t('addLine')}
         </button>
       </div>
@@ -79,7 +79,7 @@ export function LineItemsEditor({
           </div>
         </div>
       ))}
-      <p className="text-right text-lg font-bold text-indigo-700">{t('lineTotal')}: {formatCurrency(total, currency)}</p>
+      <p className="text-right text-lg font-bold" style={{ color: 'var(--if-accent-dark)' }}>{t('lineTotal')}: {formatCurrency(total, currency)}</p>
     </div>
   );
 }

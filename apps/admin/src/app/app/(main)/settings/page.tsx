@@ -198,8 +198,9 @@ export default function SettingsPage() {
             type="button"
             onClick={() => setTab(tabKey)}
             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-              tab === tabKey ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:ring-indigo-200'
+              tab === tabKey ? 'text-white shadow-md' : 'bg-white ring-1 ring-[var(--if-border)] hover:ring-[var(--if-accent)]/30'
             }`}
+            style={tab === tabKey ? { background: 'var(--if-accent)' } : { color: 'var(--if-muted)' }}
           >
             {t(TAB_KEYS[tabKey])}
           </button>
@@ -264,11 +265,11 @@ export default function SettingsPage() {
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-            <input type="checkbox" checked={settings.enablePaymentReminders} onChange={(e) => setSettings({ ...settings, enablePaymentReminders: e.target.checked })} className="h-4 w-4 rounded border-slate-300 text-indigo-600" />
+            <input type="checkbox" checked={settings.enablePaymentReminders} onChange={(e) => setSettings({ ...settings, enablePaymentReminders: e.target.checked })} className="h-4 w-4 rounded accent-[var(--if-accent)]" />
             Send automated payment reminders
           </label>
           <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-            <input type="checkbox" checked={settings.enableLateFees} onChange={(e) => setSettings({ ...settings, enableLateFees: e.target.checked })} className="h-4 w-4 rounded border-slate-300 text-indigo-600" />
+            <input type="checkbox" checked={settings.enableLateFees} onChange={(e) => setSettings({ ...settings, enableLateFees: e.target.checked })} className="h-4 w-4 rounded accent-[var(--if-accent)]" />
             Apply late fees on overdue invoices
           </label>
           <div>
@@ -312,8 +313,8 @@ export default function SettingsPage() {
             <button type="button" onClick={testWebhook} className="if-btn-secondary">Send test</button>
           </div>
           <p className="text-sm text-slate-600">
-            Connect Zapier or Make — see <a href="/help/integrations" className="text-indigo-600 hover:underline">integration guide</a>.
-            For REST API access, see <a href="/help/api" className="text-indigo-600 hover:underline">API documentation</a>.
+            Connect Zapier or Make — see <a href="/help/integrations" className="hover:underline" style={{ color: 'var(--if-accent-dark)' }}>integration guide</a>.
+            For REST API access, see <a href="/help/api" className="hover:underline" style={{ color: 'var(--if-accent-dark)' }}>API documentation</a>.
           </p>
         </Card>
       )}
@@ -321,12 +322,13 @@ export default function SettingsPage() {
       {tab === 'Referrals' && referral ? (
         <Card className="space-y-4">
           <p className="text-slate-600">{referral.reward}</p>
-          <div className="rounded-xl bg-indigo-50 p-4">
-            <p className="text-xs font-bold uppercase tracking-wide text-indigo-500">Your referral code</p>
-            <p className="mt-1 text-2xl font-extrabold tracking-widest text-indigo-700">{referral.referralCode}</p>
+          <div className="rounded-xl p-4" style={{ background: 'var(--if-accent-soft)' }}>
+            <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--if-accent-dark)' }}>Your referral code</p>
+            <p className="mt-1 text-2xl font-extrabold tracking-widest" style={{ color: 'var(--if-text)' }}>{referral.referralCode}</p>
             <button
               type="button"
-              className="mt-3 text-sm font-semibold text-indigo-600 hover:underline"
+              className="mt-3 text-sm font-semibold hover:underline"
+              style={{ color: 'var(--if-accent-dark)' }}
               onClick={() => {
                 const url = `${window.location.origin}/app/register?ref=${referral.referralCode}`;
                 navigator.clipboard.writeText(url);
@@ -351,10 +353,10 @@ export default function SettingsPage() {
 
       {tab === 'Plan' && usage ? (
         <Card className="space-y-4">
-          <div className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white">
+          <div className="rounded-xl p-6 text-white" style={{ background: 'var(--if-text)' }}>
             <p className="text-sm font-semibold uppercase tracking-wide opacity-80">Current plan</p>
             <p className="mt-1 text-3xl font-bold capitalize">{usage.plan}</p>
-            <p className="mt-2 text-indigo-100">
+            <p className="mt-2 opacity-80">
               {usage.used} / {usage.limit >= 999999 ? '∞' : usage.limit} invoices this month
             </p>
           </div>

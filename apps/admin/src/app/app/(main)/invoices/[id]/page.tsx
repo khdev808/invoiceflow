@@ -102,7 +102,7 @@ export default function InvoiceDetailPage() {
     finally { setActionLoading(''); }
   };
 
-  if (loading) return <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" /></div>;
+  if (loading) return <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: 'var(--if-accent)', borderTopColor: 'transparent' }} /></div>;
   if (!invoice) return <p className="text-red-600">{t('invoiceNotFound')}</p>;
 
   const paid = invoice.payments?.reduce((s, p) => s + p.amount, 0) || 0;
@@ -152,7 +152,7 @@ export default function InvoiceDetailPage() {
             </div>
             <div className="rounded-xl bg-slate-50 p-3">
               <p className="text-xs font-semibold text-slate-500">{t('portalLink')}</p>
-              <button type="button" onClick={copyPortal} className="mt-1 text-sm font-medium text-indigo-600 hover:underline">
+              <button type="button" onClick={copyPortal} className="mt-1 text-sm font-medium hover:underline" style={{ color: 'var(--if-accent-dark)' }}>
                 {t('copyLink')}
               </button>
             </div>
@@ -253,7 +253,7 @@ export default function InvoiceDetailPage() {
               <h3 className="mb-3 font-semibold">{t('activity')}</h3>
               <div className="space-y-3">
                 {invoice.activities.map((a) => (
-                  <div key={a.id} className="border-l-2 border-indigo-200 pl-3">
+                  <div key={a.id} className="border-l-2 pl-3" style={{ borderColor: 'var(--if-accent-soft)' }}>
                     <p className="text-sm font-medium">
                       {a.action === 'EMAIL_DELIVERED' ? 'Email delivered'
                         : a.action === 'EMAIL_FAILED' ? 'Email failed'

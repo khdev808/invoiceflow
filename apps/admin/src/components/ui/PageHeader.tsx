@@ -15,7 +15,7 @@ export function PageHeader({
     <div className="mb-8 flex flex-wrap items-start justify-between gap-4 animate-fade-in">
       <div>
         {backHref ? (
-          <Link href={backHref} className="mb-2 inline-block text-sm font-medium text-indigo-600 hover:underline">
+          <Link href={backHref} className="mb-2 inline-block text-sm font-medium hover:underline" style={{ color: 'var(--if-accent-dark)' }}>
             ← Back
           </Link>
         ) : null}

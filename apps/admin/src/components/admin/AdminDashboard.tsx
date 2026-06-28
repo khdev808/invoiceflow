@@ -83,25 +83,23 @@ export function AdminDashboard() {
 
   if (!token) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
+      <div className="flex min-h-screen items-center justify-center p-6" style={{ background: 'var(--if-bg)' }}>
+        <div className="if-card w-full max-w-md p-8">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-2xl font-bold text-white shadow-lg shadow-indigo-200">
-              IF
-            </div>
-            <h1 className="text-2xl font-bold text-slate-900">InvoiceFlow Admin</h1>
-            <p className="mt-1 text-slate-500">Secure platform management</p>
+            <img src="/brand/logo-mark.svg" alt="" className="mx-auto mb-4 h-16 w-16" />
+            <h1 className="font-display text-2xl font-semibold">InvoiceFlow Admin</h1>
+            <p className="mt-1" style={{ color: 'var(--if-muted)' }}>Secure platform management</p>
           </div>
-          {error ? <p className="mb-4 text-center text-sm text-red-600">{error}</p> : null}
+          {error ? <p className="mb-4 text-center text-sm" style={{ color: 'var(--if-danger)' }}>{error}</p> : null}
           <input
-            className="mb-3 w-full rounded-xl border border-slate-200 px-4 py-3"
+            className="if-input mb-3"
             placeholder="Admin email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="username"
           />
           <input
-            className="mb-4 w-full rounded-xl border border-slate-200 px-4 py-3"
+            className="if-input mb-4"
             type="password"
             placeholder="Password"
             value={password}
@@ -113,11 +111,11 @@ export function AdminDashboard() {
             type="button"
             onClick={handleLogin}
             disabled={loading}
-            className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-3 font-semibold text-white shadow-md shadow-indigo-200 hover:opacity-95 disabled:opacity-50"
+            className="if-btn-primary mt-4 w-full py-3 disabled:opacity-50"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
-          <a href="/" className="mt-4 block text-center text-sm text-slate-500 hover:text-indigo-600">
+          <a href="/" className="mt-4 block text-center text-sm hover:underline" style={{ color: 'var(--if-muted)' }}>
             ← Back to homepage
           </a>
         </div>
@@ -134,16 +132,14 @@ export function AdminDashboard() {
     dashboard?.invoiceGrowthMonthly.map((d) => ({ period: d.period, count: d.count })) ?? [];
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-md">
+    <div className="min-h-screen" style={{ background: 'var(--if-bg)' }}>
+      <header className="sticky top-0 z-40 border-b backdrop-blur-md" style={{ borderColor: 'var(--if-border)', background: 'color-mix(in srgb, var(--if-surface) 90%, transparent)' }}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 font-bold text-white">
-              IF
-            </div>
+            <img src="/brand/logo-mark.svg" alt="" className="h-10 w-10" />
             <div>
-              <h1 className="text-xl font-bold text-slate-900">InvoiceFlow Admin</h1>
-              <p className="text-sm text-slate-500">
+              <h1 className="text-xl font-semibold">InvoiceFlow Admin</h1>
+              <p className="text-sm" style={{ color: 'var(--if-muted)' }}>
                 {dashboard ? `Updated ${formatDateTime(dashboard.generatedAt)}` : 'Loading...'}
               </p>
             </div>
@@ -153,12 +149,12 @@ export function AdminDashboard() {
               type="button"
               onClick={() => loadDashboard(true)}
               disabled={refreshing}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="if-btn-secondary px-3 py-2 text-sm disabled:opacity-50"
             >
               {refreshing ? 'Refreshing...' : 'Refresh'}
             </button>
-            <a href="/" className="text-sm text-slate-500 hover:text-indigo-600">Homepage</a>
-            <button type="button" onClick={handleLogout} className="text-sm text-slate-500 hover:text-red-500">
+            <a href="/" className="text-sm hover:underline" style={{ color: 'var(--if-muted)' }}>Homepage</a>
+            <button type="button" onClick={handleLogout} className="text-sm hover:underline" style={{ color: 'var(--if-danger)' }}>
               Sign Out
             </button>
           </div>
@@ -195,7 +191,7 @@ export function AdminDashboard() {
                   type="button"
                   onClick={() => setGrowthView('monthly')}
                   className={`rounded-lg px-4 py-2 text-sm font-semibold ${
-                    growthView === 'monthly' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600'
+                    growthView === 'monthly' ? 'bg-white shadow-sm' : ''
                   }`}
                 >
                   12 months
@@ -204,7 +200,7 @@ export function AdminDashboard() {
                   type="button"
                   onClick={() => setGrowthView('daily')}
                   className={`rounded-lg px-4 py-2 text-sm font-semibold ${
-                    growthView === 'daily' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600'
+                    growthView === 'daily' ? 'bg-white shadow-sm' : ''
                   }`}
                 >
                   30 days
@@ -266,7 +262,7 @@ export function AdminDashboard() {
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-slate-900">{formatMoney(inv.total, inv.currency)}</p>
-                        <p className="text-xs font-semibold uppercase text-indigo-600">{inv.status}</p>
+                        <p className="text-xs font-semibold uppercase" style={{ color: 'var(--if-accent-dark)' }}>{inv.status}</p>
                       </div>
                     </div>
                   ))}

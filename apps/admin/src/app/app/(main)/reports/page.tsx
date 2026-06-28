@@ -66,7 +66,7 @@ export default function ReportsPage() {
             {[
               { label: 'Income', value: formatCurrency(income?.total || 0), color: 'text-emerald-600' },
               { label: 'Expenses', value: formatCurrency(pl?.expenses || 0), color: 'text-red-600' },
-              { label: 'Profit', value: formatCurrency(pl?.profit || 0), color: 'text-indigo-600' },
+              { label: 'Profit', value: formatCurrency(pl?.profit || 0), color: 'text-[var(--if-success)]' },
             ].map((s) => (
               <div key={s.label} className="if-stat-card">
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{s.label}</p>

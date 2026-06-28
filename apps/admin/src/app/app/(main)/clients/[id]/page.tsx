@@ -26,7 +26,7 @@ export default function ClientDetailPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <Link href="/app/clients" className="text-sm text-indigo-600 hover:underline">← Clients</Link>
+      <Link href="/app/clients" className="text-sm hover:underline" style={{ color: 'var(--if-accent-dark)' }}>← Clients</Link>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">{client.name}</h1>
