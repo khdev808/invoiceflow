@@ -1,40 +1,23 @@
-import { Link, Stack } from 'expo-router';
-import { StyleSheet } from 'react-native';
-
-import { Text, View } from '@/components/Themed';
+import { router, Stack } from 'expo-router';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Screen } from '@/components/ui/Screen';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function NotFoundScreen() {
+  const { colors } = useTheme();
+
   return (
     <>
-      <Stack.Screen options={{ title: 'Oops!' }} />
-      <View style={styles.container}>
-        <Text style={styles.title}>This screen doesn't exist.</Text>
-
-        <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Go to home screen!</Text>
-        </Link>
-      </View>
+      <Stack.Screen options={{ title: 'Not found' }} />
+      <Screen style={{ backgroundColor: colors.background }}>
+        <EmptyState
+          illustration="error-404.svg"
+          title="Page not found"
+          message="This screen is not in your ledger."
+          actionLabel="Go home"
+          onAction={() => router.replace('/(tabs)')}
+        />
+      </Screen>
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
-  },
-  linkText: {
-    fontSize: 14,
-    color: '#2e78b7',
-  },
-});

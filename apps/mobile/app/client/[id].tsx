@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Text } from '@/components/ui/Text';
 import { formatCurrency } from '@/lib/format';
-import { radius, spacing } from '@/constants/theme';
+import { fonts, radius, spacing } from '@/constants/theme';
 
 export default function ClientDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,7 +40,7 @@ export default function ClientDetailScreen() {
           onPress={() => router.push({ pathname: '/client/create', params: { id, edit: '1' } })}
         >
           <Ionicons name="create-outline" size={18} color={colors.primary} />
-          <Text style={{ color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold', marginLeft: 6 }}>Edit client</Text>
+          <Text style={{ color: colors.primary, fontFamily: fonts.semiBold, marginLeft: 6 }}>Edit client</Text>
         </TouchableOpacity>
       </View>
 
@@ -103,14 +103,14 @@ function makeStyles(colors: any) {
   return StyleSheet.create({
     header: { alignItems: 'center', padding: spacing.xl, marginHorizontal: spacing.lg, marginBottom: spacing.md, borderRadius: radius.xl, borderWidth: 1 },
     avatar: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
-    avatarText: { color: '#fff', fontSize: 28, fontFamily: 'PlusJakartaSans_700Bold' },
-    name: { fontSize: 24, fontFamily: 'PlusJakartaSans_700Bold' },
+    avatarText: { color: '#fff', fontSize: 28, fontFamily: fonts.bold },
+    name: { fontSize: 24, fontFamily: fonts.bold },
     company: { marginTop: 4 },
     editBtn: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.full, borderWidth: 1 },
-    sectionTitle: { fontSize: 18, fontFamily: 'PlusJakartaSans_700Bold', marginHorizontal: spacing.lg, marginBottom: spacing.sm },
+    sectionTitle: { fontSize: 18, fontFamily: fonts.bold, marginHorizontal: spacing.lg, marginBottom: spacing.sm },
     empty: { textAlign: 'center', marginVertical: spacing.lg },
     invCard: { flexDirection: 'row', alignItems: 'center', marginHorizontal: spacing.lg, marginBottom: spacing.sm, padding: spacing.md, borderRadius: radius.lg, borderWidth: 1 },
-    invNum: { fontFamily: 'PlusJakartaSans_600SemiBold', marginBottom: 4 },
-    invAmount: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 16 },
+    invNum: { fontFamily: fonts.semiBold, marginBottom: 4 },
+    invAmount: { fontFamily: fonts.bold, fontSize: 16 },
   });
 }
